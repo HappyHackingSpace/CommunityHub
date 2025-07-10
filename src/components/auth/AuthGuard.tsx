@@ -11,34 +11,28 @@ interface AuthGuardProps {
 }
 
 export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, initialized } = useAuth();
   const router = useRouter();
   const hasRedirected = useRef(false);
 
-  useEffect(() => {
-    // Loading bitene kadar bekle
-    if (isLoading) return;
-    
-    // Redirect yapıldıysa tekrar yapma
-    if (hasRedirected.current) return;
-    
-    // Authentication kontrolü - sadece loading tamamlandıktan sonra
-    if (!isAuthenticated) {
-      hasRedirected.current = true;
-      // Küçük bir delay ile redirect yap
-      setTimeout(() => {
-        router.replace('/login');
-      }, 100);
-      return;
-    }
-
-    if (requiredRole && user && !checkRole(user.role, requiredRole)) {
-      hasRedirected.current = true;
-      setTimeout(() => {
-        router.replace('/unauthorized');
-      }, 100);
-      return;
-    }
+useEffect(() => {
+  console.log('AuthGuard: isLoading:', isLoading, 'isAuthenticated:', isAuthenticated);
+  
+  // Loading bitene kadar bekle
+ if (isLoading || !initialized) return;
+  
+  // Redirect yapıldıysa tekrar yapme
+  if (hasRedirected.current) return;
+  
+  // Authentication kontrolü
+  if (!isAuthenticated) {
+    console.log('AuthGuard: Not authenticated, redirecting to login');
+    hasRedirected.current = true;
+    setTimeout(() => {
+      router.replace('/login');
+    }, 100);
+    return;
+  }
   }, [isAuthenticated, isLoading, user, requiredRole, router]);
 
   const checkRole = (userRole: string, required: string): boolean => {

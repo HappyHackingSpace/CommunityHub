@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DatabaseService } from '@/lib/database';
 import { CloudinaryService } from '@/lib/cloudinary';
 
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -16,18 +15,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-     const { data, error } = await DatabaseService.createFile({
-      name: file.name,
-      original_name: file.name,
-      file_url: uploadResult.secure_url,
-      club_id: clubId,
-      folder_id: folderId || null,
-      uploaded_by: 'current-user-id', // TODO: Get from auth
-      file_type: getFileType(file.type),
-      mime_type: file.type,
-      file_size: file.size,
-      description: description || null,
-      cloudinary_public_id: uploadResult.public_id,
+    const { data, error } = await DatabaseService.getFiles({
+      clubId,
+      folderId: folderId || undefined,
     });
     
     if (error) {
@@ -102,6 +92,7 @@ export async function POST(request: NextRequest) {
       file_url: uploadResult.secure_url,
       club_id: clubId,
       folder_id: folderId || null,
+      uploaded_by: 'current-user-id', // TODO: Get from auth
       file_type: getFileType(file.type),
       mime_type: file.type,
       file_size: file.size,

@@ -4,8 +4,12 @@ import { DatabaseService } from '@/lib/database';
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
+    console.log('Validate route called');
+    
+   const authHeader = request.headers.get('authorization');
+console.log('Auth header:', authHeader); // Debug için
+const token = authHeader?.replace('Bearer ', '');
+console.log('Extracted token:', token?.substring(0, 20) + '...'); // İlk 20 karakter
     
     if (!token) {
       return NextResponse.json(
@@ -14,10 +18,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Check if supabase is properly initialized
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      return NextResponse.json(
+        { success: false, error: 'Supabase client not initialized' },
+        { status: 500 }
+      );
+    }
+
     // Supabase token'ını doğrula
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
+      console.error('Token validation error:', error);
       return NextResponse.json(
         { success: false, error: 'Geçersiz token' },
         { status: 401 }
@@ -28,6 +42,7 @@ export async function GET(request: NextRequest) {
     const { data: userData, error: userError } = await DatabaseService.getUser(user.id);
 
     if (userError || !userData) {
+      console.error('User profile error:', userError);
       return NextResponse.json(
         { success: false, error: 'Kullanıcı profili bulunamadı' },
         { status: 404 }
