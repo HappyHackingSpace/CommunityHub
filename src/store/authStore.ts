@@ -18,7 +18,7 @@ interface AuthStore {
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
   user: null,
-  isLoading: false,
+  isLoading: true, // Başlangıçta true olsun
   error: null,
   isAuthenticated: false,
 
@@ -55,7 +55,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   logout: () => {
-    set({ user: null, isAuthenticated: false });
+    set({ user: null, isAuthenticated: false, error: null });
     localStorage.removeItem('token');
+    // Sayfa yenile ya da login'e yönlendir
+    window.location.href = '/login';
   },
 }));
