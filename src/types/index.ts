@@ -85,3 +85,50 @@ export interface ApiResponse<T> {
   error?: string;
   message?: string;
 }
+
+export interface Meeting {
+  id: string;
+  title: string;
+  description: string;
+  clubId: string;
+  organizerId: string;
+  organizerName: string;
+  startTime: string;
+  endTime: string;
+  duration: number; // minutes
+  meetingLink?: string;
+  location?: string;
+  status: 'scheduled' | 'ongoing' | 'completed' | 'cancelled';
+  agenda: AgendaItem[];
+  notes?: string;
+  recurrence?: RecurrenceSettings;
+  participants: MeetingParticipant[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MeetingParticipant {
+  id: string;
+  meetingId: string;
+  userId: string;
+  userName: string;
+  response: 'pending' | 'accepted' | 'declined';
+  attended?: boolean;
+  joinedAt?: string;
+}
+
+export interface AgendaItem {
+  id: string;
+  title: string;
+  description?: string;
+  duration?: number; // minutes
+  presenter?: string;
+  order: number;
+}
+
+export interface RecurrenceSettings {
+  type: 'none' | 'daily' | 'weekly' | 'monthly';
+  interval: number; // every X days/weeks/months
+  endDate?: string;
+  daysOfWeek?: number[]; // 0-6 (Sunday-Saturday)
+}
