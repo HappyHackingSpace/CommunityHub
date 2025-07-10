@@ -8,9 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, Settings, Plus, Calendar, CheckSquare, FileText } from 'lucide-react';
-
+import MeetingList from '../meeting/MeetingList';
 import { useTaskStore } from '@/store/taskStore';
 import TaskList from '../task/TaskList';
+import FileManager from '../file/FileManager';
+
 
 interface ClubDetailProps {
   clubId: string;
@@ -128,26 +130,23 @@ export default function ClubDetail({ clubId }: ClubDetailProps) {
           </div>
         </TabsContent>
 
-        <TabsContent value="meetings">
-          <Card>
-            <CardHeader>
-              <CardTitle>Toplantılar</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-500">Toplantı sistemi geliştiriliyor...</p>
-            </CardContent>
-          </Card>
+       <TabsContent value="meetings">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Toplantılar</h2>
+              {canManage && (
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Yeni Toplantı
+                </Button>
+              )}
+            </div>
+            <MeetingList clubId={clubId} />
+          </div>
         </TabsContent>
 
-        <TabsContent value="files">
-          <Card>
-            <CardHeader>
-              <CardTitle>Dosyalar</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-500">Dosya paylaşım sistemi geliştiriliyor...</p>
-            </CardContent>
-          </Card>
+         <TabsContent value="files">
+          <FileManager clubId={clubId} />
         </TabsContent>
 
         <TabsContent value="members">

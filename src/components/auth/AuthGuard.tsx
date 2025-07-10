@@ -22,18 +22,24 @@ export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
     // Redirect yapıldıysa tekrar yapma
     if (hasRedirected.current) return;
     
+    // Authentication kontrolü - sadece loading tamamlandıktan sonra
     if (!isAuthenticated) {
       hasRedirected.current = true;
-      router.replace('/login');
+      // Küçük bir delay ile redirect yap
+      setTimeout(() => {
+        router.replace('/login');
+      }, 100);
       return;
     }
 
     if (requiredRole && user && !checkRole(user.role, requiredRole)) {
       hasRedirected.current = true;
-      router.replace('/unauthorized');
+      setTimeout(() => {
+        router.replace('/unauthorized');
+      }, 100);
       return;
     }
-  }, [isAuthenticated, isLoading, user, requiredRole]);
+  }, [isAuthenticated, isLoading, user, requiredRole, router]);
 
   const checkRole = (userRole: string, required: string): boolean => {
     const roleHierarchy = {

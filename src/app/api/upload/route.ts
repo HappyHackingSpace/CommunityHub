@@ -51,11 +51,20 @@ export async function POST(request: NextRequest) {
         size: file.size,
         uploadedAt: new Date().toISOString(),
       });
+
     }
+    const legacyResults = uploadResults.map(result => ({
+   id: result.id,
+   name: result.name,
+   url: result.url,
+   type: result.type,
+   size: result.size,
+   uploadedAt: result.uploadedAt,
+ }));
 
     return NextResponse.json({
       success: true,
-      data: uploadResults,
+       data: legacyResults, // Eski format
       message: `${uploadResults.length} dosya başarıyla yüklendi`
     });
 
@@ -66,6 +75,9 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+
+  
+
 }
 
 export async function DELETE(request: NextRequest) {

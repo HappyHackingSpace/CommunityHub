@@ -11,9 +11,10 @@ import { cn } from '@/lib/utils';
 interface FileUploadProps {
   onFilesUploaded: (files: UploadedFile[]) => void;
   folder?: string;
+   clubId?: string; 
   taskId?: string;
   maxFiles?: number;
-  maxSize?: number; // in MB
+  maxSize?: number; 
   acceptedTypes?: string[];
   existingFiles?: UploadedFile[];
 }
@@ -61,10 +62,15 @@ export default function FileUpload({
         formData.append('taskId', taskId);
       }
 
-      const response = await fetch('/api/upload', {
+     const response = await fetch('/api/files', {
         method: 'POST',
         body: formData,
       });
+      if (!response.ok) {
+        const errorText = await response.text();
+        setError(errorText || 'Dosya yüklenemedi');
+        return;
+      }
 
       const result = await response.json();
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/hooks/useAuth';
-
+import { useNotificationStore } from '@/store';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
@@ -12,11 +12,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Bell, LogOut, Settings, User } from 'lucide-react';
-import { useNotificationStore } from '@/store/notificationStore';
 
 export default function Header() {
-  const { user, isAdmin, isLeader, logout } = useAuth();
+  const { user, isAdmin, isLeader } = useAuth();
   const { unreadCount } = useNotificationStore();
+  const { logout } = useAuth();
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
