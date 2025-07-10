@@ -11,6 +11,8 @@ import { Users, Settings, Plus, Calendar, CheckSquare, FileText } from 'lucide-r
 import MeetingList from '../meeting/MeetingList';
 import { useTaskStore } from '@/store/taskStore';
 import TaskList from '../task/TaskList';
+import FileManager from '../file/FileManager';
+
 
 interface ClubDetailProps {
   clubId: string;
@@ -143,15 +145,8 @@ export default function ClubDetail({ clubId }: ClubDetailProps) {
           </div>
         </TabsContent>
 
-        <TabsContent value="files">
-          <Card>
-            <CardHeader>
-              <CardTitle>Dosyalar</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-500">Dosya paylaşım sistemi geliştiriliyor...</p>
-            </CardContent>
-          </Card>
+         <TabsContent value="files">
+          <FileManager clubId={clubId} />
         </TabsContent>
 
         <TabsContent value="members">

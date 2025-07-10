@@ -10,6 +10,7 @@ import { Calendar, User, Clock, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useTaskStore } from '@/store/taskStore';
+import FileViewer from '../shared/FileViewer';
 
 interface TaskListProps {
   clubId?: string;
@@ -138,9 +139,12 @@ export default function TaskList({ clubId, userId }: TaskListProps) {
               </div>
               
               {task.files && task.files.length > 0 && (
-                <div className="flex items-center text-sm text-gray-500">
-                  <FileText className="mr-1 h-4 w-4" />
-                  {task.files.length} dosya eklendi
+                <div className="mt-3 pt-3 border-t">
+                  <FileViewer 
+                    files={task.files} 
+                    showDownload={true} 
+                    showPreview={true} 
+                  />
                 </div>
               )}
               

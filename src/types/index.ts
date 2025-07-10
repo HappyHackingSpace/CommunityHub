@@ -53,20 +53,8 @@ export interface TaskFile {
   uploadedAt: string;
 }
 
-export interface Meeting {
-  id: string;
-  title: string;
-  description: string;
-  clubId: string;
-  organizer: string;
-  datetime: string;
-  duration: number;
-  attendees: string[];
-  status: 'scheduled' | 'ongoing' | 'completed' | 'cancelled';
-  meetingLink?: string;
-  notes?: string;
-  createdAt: string;
-}
+
+
 
 export interface Notification {
   id: string;
@@ -131,4 +119,46 @@ export interface RecurrenceSettings {
   interval: number; // every X days/weeks/months
   endDate?: string;
   daysOfWeek?: number[]; // 0-6 (Sunday-Saturday)
+}
+
+// Bu interfaces'leri dosyanın sonuna ekle:
+
+export interface FileItem {
+  id: string;
+  name: string;
+  originalName: string;
+  fileUrl: string;
+  clubId: string;
+  folderId?: string;
+  folderName?: string;
+  uploadedBy: string;
+  uploaderName: string;
+  fileType: 'document' | 'image' | 'video' | 'other';
+  mimeType: string;
+  fileSize: number;
+  description?: string;
+  tags: string[];
+  isPublic: boolean;
+  downloadCount: number;
+  version: number;
+  cloudinaryPublicId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  parentId?: string;
+  clubId: string;
+  createdBy: string;
+  permissions: {
+    view: string[];
+    upload: string[];
+  };
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  subfolders?: Folder[];
+  fileCount?: number;
 }

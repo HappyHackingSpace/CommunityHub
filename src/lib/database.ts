@@ -194,4 +194,219 @@ export class DatabaseService {
     
     return { data, error };
   }
+
+   static async getMeetings(filters: {
+    clubId?: string;
+    userId?: string;
+  } = {}) {
+    let query = supabase
+      .from('meetings')
+      .select(`
+        *,
+        organizer:users!meetings_organizer_id_fkey(name),
+        club:clubs(name),
+        meeting_participants(
+          *,
+          user:users(name)
+        )
+      `)
+      .order('start_time', { ascending: true });
+
+    if (filters.clubId) {
+      query = query.eq('club_id', filters.clubId);
+    }
+
+    if (filters.userId) {
+      query = query.or(`organizer_id.eq.${filters.userId},meeting_participants.user_id.eq.${filters.userId}`);
+    }
+
+    const { data, error } = await query;
+    return { data, error };
+  }
+
+  static async createMeeting(meeting: Tables['meetings']['Insert']) {
+    const { data, error } = await supabase
+      .from('meetings')
+      .insert(meeting)
+      .select()
+      .single();
+    
+    return { data, error };
+  }
+
+  static async updateMeeting(id: string, updates: Tables['meetings']['Update']) {
+    const { data, error } = await supabase
+      .from('meetings')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    return { data, error };
+  }
+
+  // Meeting Participants
+  static async addMeetingParticipant(participant: Tables['meeting_participants']['Insert']) {
+    const { data, error } = await supabase
+      .from('meeting_participants')
+      .insert(participant)
+      .select()
+      .single();
+    
+    return { data, error };
+  }
+
+  static async updateMeetingResponse(meetingId: string, userId: string, response: 'accepted' | 'declined') {
+    const { data, error } = await supabase
+      .from('meeting_participants')
+      .update({ response })
+      .eq('meeting_id', meetingId)
+      .eq('user_id', userId)
+      .select()
+      .single();
+    
+    return { data, error };
+  }
+
+  static async getMeetingById(id: string) {
+    const { data, error } = await supabase
+      .from('meetings')
+      .select(`
+        *,
+        organizer:users!meetings_organizer_id_fkey(name),
+        club:clubs(name),
+        meeting_participants(
+          *,
+          user:users(name)
+        )
+      `)
+      .eq('id', id)
+      .single();
+
+    return { data, error };
+  }
+
+   // Files
+  static async getFiles(filters: {
+    clubId: string;
+    folderId?: string;
+  }) {
+    let query = supabase
+      .from('files')
+      .select(`
+        *,
+        uploader:users!files_uploaded_by_fkey(name),
+        folder:folders(name)
+      `)
+      .eq('club_id', filters.clubId)
+      .order('created_at', { ascending: false });
+
+    if (filters.folderId) {
+      query = query.eq('folder_id', filters.folderId);
+    } else {
+      query = query.is('folder_id', null);
+    }
+
+    const { data, error } = await query;
+    return { data, error };
+  }
+
+    static async createFile(file: Tables['files']['Insert'] & { uploaded_by?: string }) {
+    const fileData = {
+      ...file,
+      uploaded_by: file.uploaded_by || null,
+    };
+    
+    const { data, error } = await supabase
+      .from('files')
+      .insert(fileData)
+      .select()
+      .single();
+    
+    return { data, error };
+  }
+
+  static async updateFile(id: string, updates: Tables['files']['Update']) {
+    const { data, error } = await supabase
+      .from('files')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    return { data, error };
+  }
+
+  static async deleteFile(id: string) {
+    const { data, error } = await supabase
+      .from('files')
+      .delete()
+      .eq('id', id)
+      .select()
+      .single();
+    
+    return { data, error };
+  }
+
+  // Folders
+  static async getFolders(filters: {
+    clubId: string;
+    parentId?: string;
+  }) {
+    let query = supabase
+      .from('folders')
+      .select(`
+        *,
+        creator:users!folders_created_by_fkey(name)
+      `)
+      .eq('club_id', filters.clubId)
+      .eq('is_active', true)
+      .order('name', { ascending: true });
+
+    if (filters.parentId) {
+      query = query.eq('parent_id', filters.parentId);
+    } else {
+      query = query.is('parent_id', null);
+    }
+
+    const { data, error } = await query;
+    return { data, error };
+  }
+
+   static async createFolder(folder: Tables['folders']['Insert'] & { created_by?: string }) {
+    const folderData = {
+      ...folder,
+      created_by: folder.created_by || null,
+    };
+    
+    const { data, error } = await supabase
+      .from('folders')
+      .insert(folderData)
+      .select()
+      .single();
+    
+    return { data, error };
+  }
+
+  static async updateFolder(id: string, updates: Tables['folders']['Update']) {
+    const { data, error } = await supabase
+      .from('folders')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    return { data, error };
+  }
+
+  static async deleteFolder(id: string) {
+    const { data, error } = await supabase
+      .from('folders')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    return { data, error };
+  }
 }

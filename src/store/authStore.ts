@@ -6,11 +6,13 @@ interface AuthStore {
   isLoading: boolean;
   error: string | null;
   isAuthenticated: boolean;
+  initialized: boolean;
   
   // Actions
   setUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  setInitialized: (initialized: boolean) => void;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   clearError: () => void;
@@ -18,13 +20,19 @@ interface AuthStore {
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
   user: null,
-  isLoading: true, // Başlangıçta true olsun
+  isLoading: false,
   error: null,
   isAuthenticated: false,
+  initialized: false,
 
-  setUser: (user) => set({ user, isAuthenticated: !!user }),
-  setLoading: (loading) => set({ isLoading: loading }),
+  setUser: (user) => {
+    set({ user, isAuthenticated: !!user });
+  },
+  setLoading: (loading) => {
+    set({ isLoading: loading });
+  },
   setError: (error) => set({ error }),
+  setInitialized: (initialized) => set({ initialized }),
   clearError: () => set({ error: null }),
 
   login: async (email: string, password: string) => {
@@ -55,9 +63,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   logout: () => {
-    set({ user: null, isAuthenticated: false, error: null });
+    set({ user: null, isAuthenticated: false, error: null, isLoading: false });
     localStorage.removeItem('token');
-    // Sayfa yenile ya da login'e yönlendir
-    window.location.href = '/login';
+    // Router kullanarak güvenli yönlendirme
+    if (typeof window !== 'undefined') {
+      window.location.replace('/login');
+    }
   },
 }));
