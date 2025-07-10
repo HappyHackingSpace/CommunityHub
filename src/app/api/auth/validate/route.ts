@@ -6,8 +6,10 @@ export async function GET(request: NextRequest) {
   try {
     console.log('Validate route called');
     
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
+   const authHeader = request.headers.get('authorization');
+console.log('Auth header:', authHeader); // Debug için
+const token = authHeader?.replace('Bearer ', '');
+console.log('Extracted token:', token?.substring(0, 20) + '...'); // İlk 20 karakter
     
     if (!token) {
       return NextResponse.json(
