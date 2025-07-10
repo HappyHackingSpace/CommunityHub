@@ -24,6 +24,7 @@ export const useAuth = () => {
     if (typeof window === 'undefined') return;
     
     const token = localStorage.getItem('token');
+    console.log('Token from localStorage:', token);
     
     if (token && !user) {
       setLoading(true);
@@ -36,12 +37,15 @@ export const useAuth = () => {
         }
       })
       .then(response => {
+        console.log('Validate response status:', response.status);
+        console.log('Validate response ok:', response.ok);
         if (!response.ok) {
           throw new Error('Token validation failed');
         }
         return response.json();
       })
       .then(result => {
+        console.log('Validate result:', result);
         if (result.success && result.data.user) {
           setUser(result.data.user);
         } else {
