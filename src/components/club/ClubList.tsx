@@ -17,9 +17,8 @@ export default function ClubList() {
     fetchClubs();
   }, [fetchClubs]);
 
-  const userClubs = clubs.filter(club => 
-    club.memberIds.includes(user?.id || '') || club.leaderId === user?.id
-  );
+  // Tüm kulüpleri göster
+  const displayClubs = clubs;
 
   const getClubTypeColor = (type: string) => {
     switch (type) {
@@ -63,7 +62,7 @@ export default function ClubList() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Kulüpler</h1>
-          <p className="text-gray-600">Katıldığınız kulüpleri yönetin</p>
+          <p className="text-gray-600">Tüm kulüpleri görüntüleyin</p>
         </div>
         {(isAdmin || isLeader) && (
           <Button>
@@ -74,64 +73,84 @@ export default function ClubList() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {userClubs.map((club) => (
-          <Link key={club.id} href={`/clubs/${club.id}`}>
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{club.name}</CardTitle>
-                  <Badge className={getClubTypeColor(club.type)}>
-                    {getClubTypeName(club.type)}
-                  </Badge>
+        {displayClubs.map((club) => (
+          <Card key={club.id} className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <Link href={`/clubs/${club.id}`} className="flex-1">
+                  <CardTitle className="text-lg hover:text-blue-600 cursor-pointer">
+                    {club.name}
+                  </CardTitle>
+                </Link>
+                <Badge className={getClubTypeColor(club.type)}>
+                  {getClubTypeName(club.type)}
+                </Badge>
+              </div>
+              <p className="text-sm text-gray-600 line-clamp-2">
+                {club.description}
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">Lider</span>
+                  <span className="font-medium">{club.leaderName}</span>
                 </div>
-                <p className="text-sm text-gray-600 line-clamp-2">
-                  {club.description}
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Lider</span>
-                    <span className="font-medium">{club.leaderName}</span>
+                
+                <div className="flex items-center space-x-4 text-sm text-gray-500">
+                  <div className="flex items-center">
+                    <Users className="mr-1 h-4 w-4" />
+                    {club.memberCount} üye
                   </div>
-                  
-                  <div className="flex items-center space-x-4 text-sm text-gray-500">
-                    <div className="flex items-center">
-                      <Users className="mr-1 h-4 w-4" />
-                      {club.memberCount} üye
-                    </div>
-                    <div className="flex items-center">
-                      <CheckSquare className="mr-1 h-4 w-4" />
-                      8 görev
-                    </div>
-                    <div className="flex items-center">
-                      <Calendar className="mr-1 h-4 w-4" />
-                      2 toplantı
-                    </div>
+                  <div className="flex items-center">
+                    <CheckSquare className="mr-1 h-4 w-4" />
+                    8 görev
                   </div>
-                  
+                  <div className="flex items-center">
+                    <Calendar className="mr-1 h-4 w-4" />
+                    2 toplantı
+                  </div>
+                </div>
+                
+                {/* Kullanıcının bu kulüpteki durumu */}
+                <div className="flex items-center justify-between">
                   {club.leaderId === user?.id && (
                     <Badge variant="outline" className="w-fit">
                       Kulüp Liderisiniz
                     </Badge>
                   )}
+                  {club.memberIds.includes(user?.id || '') && club.leaderId !== user?.id && (
+                    <Badge variant="outline" className="w-fit bg-green-50 text-green-700">
+                      Üyesiniz
+                    </Badge>
+                  )}
+                  {!club.memberIds.includes(user?.id || '') && club.leaderId !== user?.id && (
+                    <Button variant="outline" size="sm">
+                      Katıl
+                    </Button>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          </Link>
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
       
-      {userClubs.length === 0 && (
+      {displayClubs.length === 0 && (
         <div className="text-center py-12">
           <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Henüz hiçbir kulübe katılmadınız
+            Henüz hiçbir kulüp yok
           </h3>
           <p className="text-gray-500 mb-4">
-            Kulüplere katılarak topluluk aktivitelerine dahil olun
+            İlk kulübü oluşturun ve topluluğu başlatın
           </p>
-          <Button variant="outline">Kulüpleri Keşfet</Button>
+          {(isAdmin || isLeader) && (
+            <Button variant="outline">
+              <Plus className="mr-2 h-4 w-4" />
+              İlk Kulübü Oluştur
+            </Button>
+          )}
         </div>
       )}
     </div>
