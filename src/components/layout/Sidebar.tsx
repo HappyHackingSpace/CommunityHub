@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useClubStore } from '@/store';
 import { cn } from '@/lib/utils';
@@ -23,6 +24,7 @@ const navigationItems = [
   { name: 'Toplantılar', href: '/meetings', icon: Calendar, roles: ['admin', 'club_leader', 'member'] },
   { name: 'Dosyalar', href: '/files', icon: FileText, roles: ['admin', 'club_leader', 'member'] },
   { name: 'Ayarlar', href: '/settings', icon: Settings, roles: ['admin', 'club_leader'] },
+  { name: 'Admin Panel', href: '/permissions', icon: Settings, roles: ['admin'] },
 ];
 
 export default function Sidebar() {
@@ -30,13 +32,18 @@ export default function Sidebar() {
   const { user, isAdmin, isLeader } = useAuth();
   const { clubs } = useClubStore();
 
-  const userClubs = clubs.filter(club => 
-    club.memberIds.includes(user?.id || '') || club.leaderId === user?.id
-  );
+  // Memoize computed values to prevent unnecessary re-renders
+  const userClubs = useMemo(() => {
+    return clubs.filter(club => 
+      club.memberIds.includes(user?.id || '') || club.leaderId === user?.id
+    );
+  }, [clubs, user?.id]);
 
-  const hasAccess = (requiredRoles: string[]) => {
-    return user && requiredRoles.includes(user.role);
-  };
+  const hasAccess = useMemo(() => {
+    return (requiredRoles: string[]) => {
+      return user && requiredRoles.includes(user.role);
+    };
+  }, [user?.role]);
 
   return (
     <div className="bg-white w-64 border-r border-gray-200 flex flex-col">

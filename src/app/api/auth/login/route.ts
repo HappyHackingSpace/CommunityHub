@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-import { DatabaseService } from '@/lib/database';
+import { AuthService } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,54 +7,28 @@ export async function POST(request: NextRequest) {
     
     if (!email || !password) {
       return NextResponse.json(
-        { success: false, error: 'Email ve şifre gerekli' },
+        { success: false, error: 'Email and password are required' },
         { status: 400 }
       );
     }
 
-    // Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (authError || !authData.user) {
-      return NextResponse.json(
-        { success: false, error: 'Geçersiz email veya şifre' },
-        { status: 401 }
-      );
-    }
-
-    // Get user profile from database
-    const { data: userData, error: userError } = await DatabaseService.getUser(authData.user.id);
-
-    if (userError || !userData) {
-      return NextResponse.json(
-        { success: false, error: 'Kullanıcı profili bulunamadı' },
-        { status: 404 }
-      );
-    }
-
-    if (!userData.is_active) {
-      return NextResponse.json(
-        { success: false, error: 'Hesap pasif durumda' },
-        { status: 403 }
-      );
-    }
+    const { user, token } = await AuthService.login(email, password);
 
     return NextResponse.json({
       success: true,
-      data: { 
-        user: userData, 
-        token: authData.session?.access_token 
-      },
-      message: 'Giriş başarılı'
+      data: { user, token },
+      message: 'Login successful'
     });
+
   } catch (error) {
     console.error('Login error:', error);
+    
+    const message = error instanceof Error ? error.message : 'Login failed';
+    const status = message.includes('Invalid') ? 401 : 500;
+    
     return NextResponse.json(
-      { success: false, error: 'Giriş yapılamadı' },
-      { status: 500 }
+      { success: false, error: message },
+      { status }
     );
   }
 }

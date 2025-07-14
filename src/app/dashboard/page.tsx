@@ -1,9 +1,9 @@
-import AuthGuard from '@/components/auth/AuthGuard';
+
 import MainLayout from '@/components/layout/MainLayout';
 
 export default function DashboardPage() {
   return (
-    <AuthGuard>
+  
       <MainLayout>
         <div className="space-y-6">
           <div>
@@ -54,6 +54,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </MainLayout>
-    </AuthGuard>
+
   );
 }

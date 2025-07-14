@@ -3,7 +3,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useClubStore } from '@/store';
 import { useNotificationStore } from '@/store/notificationStore';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
@@ -13,16 +13,30 @@ interface MainLayoutProps {
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
-  const { user } = useAuth();
-  const { fetchClubs } = useClubStore();
-  const { fetchNotifications } = useNotificationStore();
+  const { user, isAuthenticated, initialized } = useAuth();
+  const { fetchClubs, clubs } = useClubStore();
+  const { fetchNotifications, notifications } = useNotificationStore();
+  const hasLoadedDataRef = useRef(false);
 
   useEffect(() => {
-    if (user) {
+    // Only fetch data when user is fully authenticated and app is initialized
+    if (isAuthenticated && initialized && user && !hasLoadedDataRef.current) {
+      hasLoadedDataRef.current = true;
+      
+      // Fetch clubs (with built-in caching)
       fetchClubs();
-      fetchNotifications(user.id);
+      
+      // Fetch notifications if needed
+      if (notifications.length === 0) {
+        fetchNotifications(user.id);
+      }
     }
-  }, [user, fetchClubs, fetchNotifications]);
+    
+    // Reset flag when user logs out
+    if (!isAuthenticated) {
+      hasLoadedDataRef.current = false;
+    }
+  }, [isAuthenticated && initialized && !!user]); // Combine conditions
 
   return (
     <div className="flex h-screen bg-gray-100">

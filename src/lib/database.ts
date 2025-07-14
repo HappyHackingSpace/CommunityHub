@@ -35,8 +35,10 @@ export class DatabaseService {
     return { data, error };
   }
 
-  // Clubs
+  // Clubs - Artık tüm kulüpler dönecek, filtering frontend'de olacak
   static async getClubs(userId?: string) {
+    console.log('DatabaseService.getClubs called - returning all clubs');
+    
     let query = supabase
       .from('clubs')
       .select(`
@@ -46,11 +48,14 @@ export class DatabaseService {
       `)
       .eq('is_active', true);
 
+    // userId parametresi sadece debug için kullanılacak
     if (userId) {
-      query = query.or(`leader_id.eq.${userId},club_members.user_id.eq.${userId}`);
+      console.log('User context provided:', userId);
     }
 
     const { data, error } = await query;
+    
+    console.log('DatabaseService.getClubs raw result:', { data, error });
     
     // Transform data to match frontend expectations
     const transformedData = data?.map(club => ({
@@ -59,6 +64,8 @@ export class DatabaseService {
       memberCount: club.club_members?.length || 0,
       memberIds: club.club_members?.map((m: Tables['club_members']['Row']) => m.user_id) || []
     }));
+
+    console.log('DatabaseService.getClubs transformed data:', transformedData);
 
     return { data: transformedData, error };
   }
@@ -409,4 +416,14 @@ export class DatabaseService {
     
     return { data, error };
   }
+
+  static async getUsers() {
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, name, email, role, is_active')
+    .eq('is_active', true)
+    .order('name', { ascending: true });
+  
+  return { data, error };
+}
 }

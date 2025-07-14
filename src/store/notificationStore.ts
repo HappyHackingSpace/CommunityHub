@@ -57,7 +57,10 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   setError: (error) => set({ error }),
 
   fetchNotifications: async (userId: string) => {
-    set({ isLoading: true });
+    const state = get();
+    if (state.isLoading) return; // Prevent multiple simultaneous calls
+    
+    set({ isLoading: true, error: null });
     try {
       const response = await fetch(`/api/notifications?userId=${userId}`);
       const result = await response.json();

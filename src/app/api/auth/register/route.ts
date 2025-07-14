@@ -1,56 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-import { DatabaseService } from '@/lib/database';
+import { AuthService } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, name, role = 'member' } = await request.json();
+    const { email, password, name } = await request.json();
     
     if (!email || !password || !name) {
       return NextResponse.json(
-        { success: false, error: 'Email, şifre ve isim gerekli' },
+        { success: false, error: 'Email, password, and name are required' },
         { status: 400 }
       );
     }
 
-    // Create auth user
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (authError || !authData.user) {
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
       return NextResponse.json(
-        { success: false, error: authError?.message || 'Kayıt oluşturulamadı' },
+        { success: false, error: 'Invalid email format' },
         { status: 400 }
       );
     }
 
-    // Create user profile
-    const { data: userData, error: userError } = await DatabaseService.createUser({
-      id: authData.user.id,
-      email,
-      name,
-      role: role as 'admin' | 'club_leader' | 'member',
-    });
-
-    if (userError) {
-      console.error('User profile creation error:', userError);
+    // Basic password validation
+    if (password.length < 6) {
       return NextResponse.json(
-        { success: false, error: 'Kullanıcı profili oluşturulamadı' },
-        { status: 500 }
+        { success: false, error: 'Password must be at least 6 characters' },
+        { status: 400 }
       );
     }
+
+    const { user } = await AuthService.register(email, password, name);
 
     return NextResponse.json({
       success: true,
-      data: { user: userData },
-      message: 'Kayıt başarılı. Email doğrulama linkini kontrol edin.'
+      data: { user },
+      message: 'Registration successful. Please check your email for verification.'
     });
+
   } catch (error) {
     console.error('Register error:', error);
+    
+    const message = error instanceof Error ? error.message : 'Registration failed';
+    
     return NextResponse.json(
-      { success: false, error: 'Kayıt oluşturulamadı' },
+      { success: false, error: message },
       { status: 500 }
     );
   }
