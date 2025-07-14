@@ -36,6 +36,8 @@ cp .env.example .env.local
 # Start development server
 npm run dev
 
+```
+
 
 ⚙️ Environment Variables
 env
