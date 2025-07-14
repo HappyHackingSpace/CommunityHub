@@ -55,43 +55,46 @@ export const useClubStore = create<ClubStore>()(
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
 
-  fetchClubs: async () => {
-    const state = get();
+// src/store/clubStore.ts - fetchClubs fonksiyonuna auth header ekle
+fetchClubs: async () => {
+  const state = get();
+  
+  console.log('🏢 ClubStore.fetchClubs called');
+  
+  // ... cache logic aynı ...
+  
+  set({ isLoading: true, error: null });
+  try {
+    console.log('🏢 Making API call to /api/clubs');
     
-    console.log('ClubStore.fetchClubs called - will get ALL clubs');
-    
-    // Check cache - if data is less than 5 minutes old, don't fetch
-    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-    if (state.lastFetched && (Date.now() - state.lastFetched) < CACHE_DURATION && state.clubs.length > 0) {
-      console.log('ClubStore.fetchClubs: Using cached data');
-      return;
+    // ✅ Auth token'ı ekle
+    const token = localStorage.getItem('token');
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
     
-    if (state.isLoading) {
-      console.log('ClubStore.fetchClubs: Already loading');
-      return; // Prevent multiple simultaneous calls
-    }
+    const response = await fetch('/api/clubs', { headers });
+    const result = await response.json();
     
-    set({ isLoading: true, error: null });
-    try {
-      console.log('ClubStore.fetchClubs: Making API call to /api/clubs');
-      const response = await fetch('/api/clubs');
-      const result = await response.json();
-      
-      console.log('ClubStore.fetchClubs: API response:', result);
-      
-      if (result.success) {
-        set({ clubs: result.data, isLoading: false, lastFetched: Date.now() });
-        console.log('ClubStore.fetchClubs: Successfully updated clubs:', result.data);
-      } else {
-        set({ error: result.error, isLoading: false });
-        console.error('ClubStore.fetchClubs: API error:', result.error);
-      }
-    } catch (error) {
-      console.error('ClubStore.fetchClubs: Network error:', error);
-      set({ error: 'Kulüpler yüklenemedi', isLoading: false });
+    console.log('🏢 API response:', { 
+      success: result.success, 
+      dataLength: result.data?.length,
+      error: result.error 
+    });
+    
+    if (result.success) {
+      set({ clubs: result.data, isLoading: false, lastFetched: Date.now() });
+      console.log('✅ Clubs updated successfully:', result.data?.length, 'clubs');
+    } else {
+      set({ error: result.error, isLoading: false });
+      console.error('❌ Clubs API error:', result.error);
     }
-  },
+  } catch (error) {
+    console.error('💥 Clubs network error:', error);
+    set({ error: 'Kulüpler yüklenemedi', isLoading: false });
+  }
+},
 
   fetchClubById: async (id: string) => {
     const state = get();
@@ -112,7 +115,12 @@ export const useClubStore = create<ClubStore>()(
     }
   },
 
-  clearCache: () => set({ clubs: [], lastFetched: null }),
+  clearCache: () => set({ 
+  clubs: [], 
+  currentClub: null,
+  lastFetched: null,
+  error: null 
+}),
 }),
 {
   name: 'club-storage',

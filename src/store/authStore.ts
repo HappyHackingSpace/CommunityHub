@@ -138,32 +138,44 @@ export const useAuthStore = create<AuthStore>()(
     }
   },
 
-  logout: () => {
-    const user = get().user;
-    
-    if (user?.email) {
-      fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email }),
-      }).catch(() => {
-        // Ignore errors for logout
-      });
-    }
-
-    localStorage.removeItem('token');
-    set({ 
-      user: null, 
-      isAuthenticated: false, 
-      error: null, 
-      isLoading: false 
+  // src/store/authStore.ts - logout fonksiyonunu değiştir
+logout: () => {
+  const user = get().user;
+  
+  if (user?.email) {
+    fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user.email }),
+    }).catch(() => {
+      // Ignore errors for logout
     });
+  }
+
+  localStorage.removeItem('token');
+  
+  // ✅ Store'ları temizle
+  set({ 
+    user: null, 
+    isAuthenticated: false, 
+    error: null, 
+    isLoading: false,
+    initialized: false  // ✅ Bu önemli - tekrar init olsun
+  });
+  
+  // ✅ Diğer store'ları da temizle
+  if (typeof window !== 'undefined') {
+    // Club store temizle
+    const clubStore = require('./clubStore').useClubStore;
+    clubStore.getState().clearCache();
     
-    // Redirect to login
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login';
-    }
-  },
+    // Notification store temizle
+    const notificationStore = require('./notificationStore').useNotificationStore;
+    notificationStore.getState().setNotifications([]);
+    
+    window.location.href = '/login';
+  }
+},
 }),
 {
   name: 'auth-storage',

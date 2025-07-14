@@ -23,8 +23,8 @@ const navigationItems = [
   { name: 'Görevler', href: '/tasks', icon: CheckSquare, roles: ['admin', 'club_leader', 'member'] },
   { name: 'Toplantılar', href: '/meetings', icon: Calendar, roles: ['admin', 'club_leader', 'member'] },
   { name: 'Dosyalar', href: '/files', icon: FileText, roles: ['admin', 'club_leader', 'member'] },
-  { name: 'Ayarlar', href: '/settings', icon: Settings, roles: ['admin', 'club_leader'] },
-  { name: 'Admin Panel', href: '/permissions', icon: Settings, roles: ['admin'] },
+  { name: 'Ayarlar', href: '/settings', icon: Settings, roles: ['admin', 'club_leader'] }, // ✅ member kaldırıldı
+  { name: 'Admin Panel', href: '/permissions', icon: Settings, roles: ['admin'] }, // ✅ sadece admin
 ];
 
 export default function Sidebar() {
@@ -39,11 +39,14 @@ export default function Sidebar() {
     );
   }, [clubs, user?.id]);
 
-  const hasAccess = useMemo(() => {
-    return (requiredRoles: string[]) => {
-      return user && requiredRoles.includes(user.role);
-    };
-  }, [user?.role]);
+ const hasAccess = useMemo(() => {
+  return (requiredRoles: string[]) => {
+    if (!user || !user.role) return false;
+    
+    // ✅ Explicit role check
+    return requiredRoles.includes(user.role);
+  };
+}, [user?.role]);
 
   return (
     <div className="bg-white w-64 border-r border-gray-200 flex flex-col">
