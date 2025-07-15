@@ -1,3 +1,4 @@
+// src/app/page.tsx
 'use client';
 
 import { useEffect } from 'react';
@@ -11,7 +12,7 @@ export default function HomePage() {
 
   useEffect(() => {
     // Auth sistem hazır olana kadar bekle
-    if (!initialized) return;
+    if (!initialized || isLoading) return;
     
     // Authenticated ise dashboard'a yönlendir
     if (isAuthenticated) {
@@ -20,7 +21,7 @@ export default function HomePage() {
       // Değilse login'e yönlendir
       router.replace('/login');
     }
-  }, [isAuthenticated, initialized, router]);
+  }, [isAuthenticated, initialized, isLoading, router]);
 
   // Loading göster
   return (

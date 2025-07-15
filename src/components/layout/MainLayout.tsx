@@ -1,3 +1,4 @@
+// src/components/layout/MainLayout.tsx
 'use client';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -6,7 +7,6 @@ import { useNotificationStore } from '@/store/notificationStore';
 import { useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
-
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -36,7 +36,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     if (!isAuthenticated) {
       hasLoadedDataRef.current = false;
     }
-  }, [isAuthenticated && initialized && !!user]); // Combine conditions
+  }, [isAuthenticated, initialized, user, fetchClubs, fetchNotifications, notifications.length]);
 
   return (
     <div className="flex h-screen bg-gray-100">

@@ -1,4 +1,6 @@
-import { supabase } from './supabase';
+// src/lib/auth.ts
+import { createClient } from '@/utils/supabase/server'
+import { createClient as createBrowserClient } from '@/utils/supabase/client'
 
 export interface AuthUser {
   id: string;
@@ -9,110 +11,25 @@ export interface AuthUser {
 }
 
 export class AuthService {
-  static async login(email: string, password: string): Promise<{ user: AuthUser; token: string }> {
-    console.log('🔑 AuthService.login called for:', email);
+  static async getCurrentUser(): Promise<AuthUser | null> {
+    const supabase = await createClient()
     
-    // ✅ Supabase Auth ile giriş yap
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    console.log('🔑 Supabase auth result:', { 
-      user: !!authData.user, 
-      session: !!authData.session, 
-      error: authError?.message 
-    });
-
-    if (authError || !authData.user || !authData.session) {
-      await this.logSecurityEvent('login_failed', email, authError?.message || 'Invalid credentials');
-      throw new Error('Geçersiz email veya şifre');
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error || !user) {
+      return null
     }
 
-    // ✅ let kullan, const değil
-    let userData;
-    const { data: fetchedUserData, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', authData.user.id)
-      .eq('is_active', true)
-      .single();
-
-    console.log('🔑 Custom user data:', { fetchedUserData, userError });
-
-    if (userError || !fetchedUserData) {
-      // ✅ Eğer custom tabloda yoksa oluştur
-      if (userError?.code === 'PGRST116') { // No rows returned
-        console.log('🔄 Creating user profile in custom table...');
-        
-        const newUserData = {
-          id: authData.user.id,
-          email: authData.user.email!,
-          name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'User',
-          role: 'member' as const,
-          is_active: true,
-          permissions: []
-        };
-
-        const { data: createdUser, error: createError } = await supabase
-          .from('users')
-          .insert(newUserData)
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('❌ Failed to create user profile:', createError);
-          throw new Error('Kullanıcı profili oluşturulamadı');
-        }
-
-        userData = createdUser; // ✅ Artık çalışır
-      } else {
-        await this.logSecurityEvent('login_failed', email, 'User profile not found or inactive');
-        throw new Error('Kullanıcı bulunamadı veya pasif');
-      }
-    } else {
-      userData = fetchedUserData; // ✅ Normal case
-    }
-
-    const user: AuthUser = {
-      id: userData.id,
-      email: userData.email,
-      name: userData.name,
-      role: userData.role,
-      isActive: userData.is_active,
-    };
-
-    await this.logSecurityEvent('login_success', email, 'User logged in successfully');
-
-    return { user, token: authData.session.access_token };
-  }
-
-  // ✅ Token validation'ı da düzelt
-  static async validateToken(token: string): Promise<AuthUser> {
-    console.log('🔍 Validating token...');
-    
-    // ✅ Supabase auth ile token'ı kontrol et
-    const { data: { user: authUser }, error } = await supabase.auth.getUser(token);
-    
-    console.log('🔍 Token validation result:', { 
-      user: !!authUser, 
-      error: error?.message 
-    });
-    
-    if (error || !authUser) {
-      throw new Error('Geçersiz veya süresi dolmuş token');
-    }
-    
-    // ✅ Custom users tablosundan fresh data al
+    // Get user details from custom users table
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('*')
-      .eq('id', authUser.id)
+      .eq('id', user.id)
       .eq('is_active', true)
-      .single();
+      .single()
 
     if (userError || !userData) {
-      throw new Error('Kullanıcı bulunamadı veya pasif');
+      return null
     }
 
     return {
@@ -121,32 +38,46 @@ export class AuthService {
       name: userData.name,
       role: userData.role,
       isActive: userData.is_active,
-    };
-  }
-
-  // ✅ Logout'u da düzelt
-  static async logout(email: string): Promise<void> {
-    await supabase.auth.signOut();
-    await this.logSecurityEvent('logout_success', email, 'User logged out');
-  }
-
-
-  private static async logSecurityEvent(
-    event: string, 
-    email: string, 
-    details: string, 
-    ipAddress?: string
-  ): Promise<void> {
-    try {
-      await supabase.from('security_logs').insert({
-        event_type: event,
-        user_email: email,
-        details,
-        ip_address: ipAddress,
-        user_agent: 'Web App',
-      });
-    } catch (error) {
-      console.error('Failed to log security event:', error);
     }
+  }
+
+  static async signInWithPassword(email: string, password: string) {
+    const supabase = createBrowserClient()
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error || !data.user) {
+      throw new Error(error?.message || 'Giriş başarısız')
+    }
+
+    return data
+  }
+
+  static async signUp(email: string, password: string, name: string) {
+    const supabase = createBrowserClient()
+    
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name,
+        }
+      }
+    })
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return data
+  }
+
+  static async signOut() {
+    const supabase = createBrowserClient()
+    await supabase.auth.signOut()
   }
 }

@@ -1,48 +1,80 @@
-'use client';
+// src/components/auth/LoginForm.tsx
+'use client'
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/utils/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Loader2 } from 'lucide-react'
 
 export default function LoginForm() {
-  const [loginData, setLoginData] = useState({ email: '', password: '' });
-  const [registerData, setRegisterData] = useState({ email: '', password: '', name: '' });
-  const [registerSuccess, setRegisterSuccess] = useState(false);
-  
-  const { login, register, isLoading, error, clearError } = useAuthStore();
-  const router = useRouter();
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const router = useRouter()
+  const supabase = createClient()
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    clearError();
+  const handleLogin = async (formData: FormData) => {
+    setLoading(true)
+    setError(null)
     
-    try {
-      await login(loginData.email, loginData.password);
-      router.push('/dashboard');
-    } catch (err) {
-      // Error is handled by store
-    }
-  };
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    clearError();
-    setRegisterSuccess(false);
-    
     try {
-      await register(registerData.email, registerData.password, registerData.name);
-      setRegisterSuccess(true);
-      setRegisterData({ email: '', password: '', name: '' });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        setError(error.message)
+      } else {
+        router.push('/dashboard')
+        router.refresh()
+      }
     } catch (err) {
-      // Error is handled by store
+      setError('Giriş sırasında bir hata oluştu')
+    } finally {
+      setLoading(false)
     }
-  };
+  }
+
+  const handleSignUp = async (formData: FormData) => {
+    setLoading(true)
+    setError(null)
+    setMessage(null)
+    
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+    const name = formData.get('name') as string
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+          }
+        }
+      })
+
+      if (error) {
+        setError(error.message)
+      } else {
+        setMessage('Kayıt başarılı! Lütfen email adresinizi kontrol edin.')
+      }
+    } catch (err) {
+      setError('Kayıt sırasında bir hata oluştu')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -66,28 +98,25 @@ export default function LoginForm() {
               </Alert>
             )}
 
-            {registerSuccess && (
+            {message && (
               <Alert>
-                <AlertDescription>
-                  Kayıt başarılı! Lütfen email adresinizi kontrol edin ve hesabınızı doğrulayın.
-                </AlertDescription>
+                <AlertDescription>{message}</AlertDescription>
               </Alert>
             )}
 
             <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
+              <form action={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <label htmlFor="login-email" className="text-sm font-medium">
                     Email
                   </label>
                   <Input
                     id="login-email"
+                    name="email"
                     type="email"
                     placeholder="email@example.com"
-                    value={loginData.email}
-                    onChange={(e) => setLoginData(prev => ({ ...prev, email: e.target.value }))}
                     required
-                    disabled={isLoading}
+                    disabled={loading}
                   />
                 </div>
                 
@@ -97,21 +126,20 @@ export default function LoginForm() {
                   </label>
                   <Input
                     id="login-password"
+                    name="password"
                     type="password"
                     placeholder="••••••••"
-                    value={loginData.password}
-                    onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
                     required
-                    disabled={isLoading}
+                    disabled={loading}
                   />
                 </div>
                 
                 <Button 
                   type="submit" 
                   className="w-full"
-                  disabled={isLoading}
+                  disabled={loading}
                 >
-                  {isLoading ? (
+                  {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Giriş yapılıyor...
@@ -124,19 +152,18 @@ export default function LoginForm() {
             </TabsContent>
 
             <TabsContent value="register">
-              <form onSubmit={handleRegister} className="space-y-4">
+              <form action={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
                   <label htmlFor="register-name" className="text-sm font-medium">
                     İsim
                   </label>
                   <Input
                     id="register-name"
+                    name="name"
                     type="text"
                     placeholder="Adınız Soyadınız"
-                    value={registerData.name}
-                    onChange={(e) => setRegisterData(prev => ({ ...prev, name: e.target.value }))}
                     required
-                    disabled={isLoading}
+                    disabled={loading}
                   />
                 </div>
 
@@ -146,12 +173,11 @@ export default function LoginForm() {
                   </label>
                   <Input
                     id="register-email"
+                    name="email"
                     type="email"
                     placeholder="email@example.com"
-                    value={registerData.email}
-                    onChange={(e) => setRegisterData(prev => ({ ...prev, email: e.target.value }))}
                     required
-                    disabled={isLoading}
+                    disabled={loading}
                   />
                 </div>
                 
@@ -161,12 +187,11 @@ export default function LoginForm() {
                   </label>
                   <Input
                     id="register-password"
+                    name="password"
                     type="password"
                     placeholder="••••••••"
-                    value={registerData.password}
-                    onChange={(e) => setRegisterData(prev => ({ ...prev, password: e.target.value }))}
                     required
-                    disabled={isLoading}
+                    disabled={loading}
                     minLength={6}
                   />
                   <p className="text-xs text-gray-500">En az 6 karakter olmalıdır</p>
@@ -175,9 +200,9 @@ export default function LoginForm() {
                 <Button 
                   type="submit" 
                   className="w-full"
-                  disabled={isLoading}
+                  disabled={loading}
                 >
-                  {isLoading ? (
+                  {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Kayıt oluşturuluyor...
@@ -192,5 +217,5 @@ export default function LoginForm() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

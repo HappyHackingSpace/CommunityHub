@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DatabaseService } from '@/lib/database';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase-client';
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -127,19 +128,7 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Update activity in database
-    const { error: updateError } = await supabase
-      .from('activities')
-      .update({ metadata: updatedMetadata })
-      .eq('id', notificationId);
 
-    if (updateError) {
-      console.error('Notification update error:', updateError);
-      return NextResponse.json(
-        { success: false, error: 'Bildirim güncellenemedi' },
-        { status: 500 }
-      );
-    }
 
     return NextResponse.json({
       success: true,
