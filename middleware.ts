@@ -1,4 +1,4 @@
-// middleware.ts - ROOT LEVEL (src klasörü ile aynı seviyede)
+// middleware.ts - AUTH LOOP FIX
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -28,99 +28,56 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  // 🚀 CRITICAL: Get user session without side effects
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   const { pathname } = request.nextUrl
 
-  // 🚀 Public routes (no auth required)
-  const publicRoutes = ['/login', '/auth/confirm', '/auth/callback', '/register']
+  // 🔥 FIX: Define exact public routes (prevent auth loops)
+  const publicRoutes = ['/login', '/register', '/auth/confirm', '/auth/callback']
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
-
-  // ✅ Allow public routes
-  if (isPublicRoute) {
-    return supabaseResponse
-  }
-
-  // 🚀 FIX: Check for auth cookies first (faster than API call)
-  const authCookies = request.cookies.getAll().filter(cookie => 
-    cookie.name.includes('supabase') || 
-    cookie.name.includes('auth') ||
-    cookie.name.includes('sb-')
-  )
-
-  // If no auth cookies, redirect immediately
-  if (authCookies.length === 0 && pathname !== '/') {
-    console.log('🔒 Middleware: No auth cookies, redirecting to login from:', pathname)
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
-
-  try {
-    // IMPORTANT: Auth check with timeout
-    const authPromise = supabase.auth.getUser()
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Auth timeout')), 2000)
-    )
-
-   try {
-  const { data: { user } } = await supabase.auth.getUser()
   
-  // ✅ FIX: If user exists and on login page, redirect to dashboard
-  if (user && (pathname === '/login' || pathname === '/')) {
-    console.log('✅ Middleware: User logged in, redirecting to dashboard')
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
-  }
+  // 🔥 FIX: API routes should not redirect (prevent fetch loops)
+  const isApiRoute = pathname.startsWith('/api/')
+  
+  // 🔥 FIX: Static assets should not redirect
+  const isStaticAsset = pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2)$/)
 
-    // ❌ Redirect to login if no user and accessing protected route
-    if (!user && pathname !== '/') {
-      console.log('🔒 Middleware: No user, redirecting to login from:', pathname)
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
-    }
-
-    // ✅ If user exists and on login page, redirect to dashboard
-    if (user && pathname === '/login') {
-      console.log('✅ Middleware: User logged in, redirecting to dashboard')
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
-    }
-
-    // ✅ User exists, continue
-    return supabaseResponse
-
-  } catch (error) {
-    console.log('⚠️ Middleware: Auth check failed:', error)
-  }
-    
-    // If auth check fails but we have cookies, allow through
-    // (let client-side handle the auth)
-    if (authCookies.length > 0) {
-      return supabaseResponse
-    }
-    
-    // No cookies and auth failed, redirect to login
-    if (pathname !== '/') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
-    }
-    
+  // ✅ Allow access to public routes, API routes, and static assets
+  if (isPublicRoute || isApiRoute || isStaticAsset) {
     return supabaseResponse
   }
+
+  // 🔥 FIX: If no user and accessing protected route, redirect to login
+  if (!user) {
+    const loginUrl = request.nextUrl.clone()
+    loginUrl.pathname = '/login'
+    loginUrl.searchParams.set('redirectTo', pathname) // Preserve intended destination
+    return NextResponse.redirect(loginUrl)
+  }
+
+  // 🔥 FIX: If user exists but accessing root, redirect to dashboard
+  if (user && pathname === '/') {
+    const dashboardUrl = request.nextUrl.clone()
+    dashboardUrl.pathname = '/dashboard'
+    return NextResponse.redirect(dashboardUrl)
+  }
+
+  // ✅ All good, proceed with request
+  return supabaseResponse
 }
 
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
+     * Match all request paths except:
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - api routes (handled separately)
+     * - .next (Next.js internals)
      */
-    '/((?!_next/static|_next/image|favicon.ico|api).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

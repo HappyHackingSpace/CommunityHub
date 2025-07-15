@@ -152,67 +152,19 @@ export default function LoginForm() {
             </TabsContent>
 
             <TabsContent value="register">
-              <form action={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="register-name" className="text-sm font-medium">
-                    İsim
-                  </label>
-                  <Input
-                    id="register-name"
-                    name="name"
-                    type="text"
-                    placeholder="Adınız Soyadınız"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="register-email" className="text-sm font-medium">
-                    Email
-                  </label>
-                  <Input
-                    id="register-email"
-                    name="email"
-                    type="email"
-                    placeholder="email@example.com"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="register-password" className="text-sm font-medium">
-                    Şifre
-                  </label>
-                  <Input
-                    id="register-password"
-                    name="password"
-                    type="password"
-                    placeholder="••••••••"
-                    required
-                    disabled={loading}
-                    minLength={6}
-                  />
-                  <p className="text-xs text-gray-500">En az 6 karakter olmalıdır</p>
-                </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Kayıt oluşturuluyor...
-                    </>
-                  ) : (
-                    'Kayıt Ol'
-                  )}
-                </Button>
-              </form>
-            </TabsContent>
+  <div className="text-center py-4">
+    <p className="text-sm text-gray-600 mb-4">
+      Hesap oluşturmak için ayrı sayfamızı kullanın
+    </p>
+    <Button
+      variant="outline"
+      onClick={() => router.push('/register')}
+      className="w-full"
+    >
+      Kayıt Sayfasına Git
+    </Button>
+  </div>
+</TabsContent>
           </Tabs>
         </CardContent>
       </Card>
