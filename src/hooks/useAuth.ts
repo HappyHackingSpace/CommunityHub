@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-client'
 import type { User } from '@supabase/supabase-js'
+import { appCache } from '@/lib/cache' 
 
 interface AuthUser {
   id: string
@@ -105,77 +106,54 @@ const sessionManager = AuthSessionManager.getInstance()
 const stateManager = AuthStateManager.getInstance()
 
 export function useAuth() {
-  const [state, setState] = useState<AuthState>(() => stateManager.getState())
-  const router = useRouter()
+  const [state, setState] = useState<AuthState>({
+    user: null,
+    isLoading: true,
+    initialized: false,
+    error: null
+  })
+   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
-  
-  // 🚀 RACE CONDITION FIX: Prevent multiple simultaneous fetches
   const fetchInProgressRef = useRef(false)
   const mountedRef = useRef(true)
-  const lastUserIdRef = useRef<string | null>(null)
 
-  // 🚀 PERFORMANCE: Optimized profile fetcher with deduplication
-  const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | null> => {
-    // 🔥 RACE CONDITION FIX: Prevent duplicate fetches for same user
-    if (fetchInProgressRef.current && lastUserIdRef.current === authUser.id) {
-      console.log('⏳ Auth: Profile fetch already in progress for', authUser.id)
-      return null
+
+const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | null> => {
+    const cachedResult = appCache.getAuthUser(authUser.id)
+    if (cachedResult.data && !cachedResult.isStale) {
+      return cachedResult.data
     }
 
-    // 🚀 CACHE CHECK: Return cached user if available
-    const cachedUser = sessionManager.getCachedUser(authUser.id)
-    if (cachedUser) {
-      console.log('✅ Auth: Using cached profile for', authUser.id)
-      return cachedUser
-    }
+    if (fetchInProgressRef.current) return null
 
     fetchInProgressRef.current = true
-    lastUserIdRef.current = authUser.id
     
     try {
-      console.log('🔍 Auth: Fetching fresh profile for', authUser.id)
-      
-      // 🚀 USE OPTIMIZED RPC FUNCTION
-      const { data: profileData, error } = await supabase
-        .rpc('get_user_profile', { user_uuid: authUser.id })
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authUser.id)
+        .eq('is_active', true)
         .single()
 
-      if (error) {
-        console.error('❌ Auth: Profile fetch error:', error)
-        
-        // 🔥 FALLBACK: Create profile if doesn't exist
-        if (error.code === 'PGRST116') {
-          return await createUserProfile(authUser)
+      if (userData) {
+        const userProfile: AuthUser = {
+          id: userData.id,
+          email: userData.email,
+          name: userData.name,
+          role: userData.role,
+          isActive: userData.is_active,
+          emailVerified: userData.email_verified || false,
+          permissions: userData.permissions || []
         }
         
-        return null
-      }
-
-     if (profileData) {
-  const profile = profileData as any // Type assertion ekle
-  const userProfile: AuthUser = {
-    id: profile.id,
-    email: profile.email,
-    name: profile.name,
-    role: profile.role,
-    isActive: profile.is_active,
-    emailVerified: profile.email_verified,
-    permissions: profile.permissions || []
-  }
-        
-        // 🚀 CACHE THE RESULT
-        sessionManager.setCachedUser(authUser.id, userProfile)
+        appCache.setAuthUser(authUser.id, userProfile)
         return userProfile
       }
       
       return null
-      
-    } catch (error) {
-      console.error('💥 Auth: Profile fetch exception:', error)
-      return null
     } finally {
       fetchInProgressRef.current = false
-      lastUserIdRef.current = null
     }
   }, [supabase])
 
@@ -240,7 +218,7 @@ export function useAuth() {
     }
   }, [supabase])
 
-  // 🚀 PERFORMANCE: Debounced auth state handler
+
   const handleAuthStateChange = useCallback(async (event: string, session: any) => {
     if (!mountedRef.current) return
 
