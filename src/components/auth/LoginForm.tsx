@@ -150,21 +150,35 @@ export default function LoginForm() {
                 </Button>
               </form>
             </TabsContent>
-
+            <TabsContent value="register">
             <form action={handleSignUp} className="space-y-4">
-    <div className="space-y-2">
-      <label htmlFor="register-name" className="text-sm font-medium">
-       Ad Soyad
-      </label>
-      <Input
-        id="register-name"
-        name="name"
-        type="text"
-        placeholder="John Doe"
-        required
-        disabled={loading}
-      />
-    </div>
+     <div className="space-y-2">
+                <label htmlFor="register-email" className="text-sm font-medium">
+                  Email
+                </label>
+                <Input
+                  id="register-email"
+                  name="email"
+                  type="email"
+                  placeholder="email@example.com"
+                  required
+                  disabled={loading}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="register-password" className="text-sm font-medium">
+                  Şifre
+                </label>
+                <Input
+                  id="register-password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  disabled={loading}
+                />
+              </div>
     {/* Add email and password fields similar to login */}
     <Button type="submit" className="w-full" disabled={loading}>
       {loading ? (
@@ -177,6 +191,7 @@ export default function LoginForm() {
       )}
     </Button>
   </form>
+            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
