@@ -275,7 +275,7 @@ const Sidebar = memo(() => {
     }
 
     const filteredClubs = clubs.filter(club => {
-      const isMember = club.memberIds && club.memberIds.includes(user.id)
+     const isMember = club.memberIds?.includes(user.id)
       const isLeader = club.leaderId === user.id
       return isMember || isLeader
     }).map(club => ({
