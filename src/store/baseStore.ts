@@ -1,7 +1,7 @@
 // src/store/base.ts - UNIFIED ZUSTAND STORE PATTERN
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { appCache, PerformanceMonitor } from '@/lib/cache';
+import { appCache, startMeasure } from '@/lib/cache';
 
 // 🚀 Base interface for all stores
 export interface BaseStoreState<T> {
@@ -27,7 +27,8 @@ export interface BaseStoreActions<T> {
 // 🚀 Create base store with common functionality
 export function createBaseStore<T extends { id: string }>(
   name: string,
-  cacheTTL = 5 * 60 * 1000
+  cacheTTL = 5 * 60 * 1000,
+  cacheMethod?: (data: T[]) => void
 ) {
   return (set: any, get: any) => ({
     // State
@@ -40,18 +41,20 @@ export function createBaseStore<T extends { id: string }>(
 
     // Base actions
     setData: (data: T[]) => {
-      const endMeasure = PerformanceMonitor.startMeasure(`${name}.setData`);
+      const endMeasure = startMeasure(`${name}.setData`);
       
-      appCache.setClubs(data, cacheTTL); // Generic cache method needed
+      if (cacheMethod) {
+        cacheMethod(data);
+      }  
       set({ 
-        data, 
-        lastFetched: Date.now(),
-        cacheStatus: 'fresh',
-        error: null
-      });
-      
-      endMeasure();
-    },
+         data, 
+         lastFetched: Date.now(),
+         cacheStatus: 'fresh',
+         error: null
+       });
+       
+       endMeasure();
+     },
 
     setCurrentItem: (item: T | null) => set({ currentItem: item }),
 
@@ -118,17 +121,14 @@ export interface ClubStore extends BaseStoreState<Club>, BaseStoreActions<Club> 
 export const useClubStore = create<ClubStore>()(
   persist(
     (set, get) => ({
-      // Inherit base store functionality
-      ...createBaseStore<Club>('club', 5 * 60 * 1000)(set, get),
+      ...createBaseStore<Club>('club', 5 * 60 * 1000, (data) => appCache.setClubs(data))(set, get),
 
-      // Club-specific implementations
       fetchClubs: async (force = false) => {
         const state = get();
-        const endMeasure = PerformanceMonitor.startMeasure('club.fetchClubs');
+        const endMeasure = startMeasure('club.fetchClubs');
 
         console.log('🏢 ClubStore: fetchClubs called', { force, current: state.data.length });
 
-        // Cache strategy: Check memory first
         if (!force) {
           const cached = appCache.getClubs();
           if (cached.data && !cached.isStale) {
@@ -149,11 +149,9 @@ export const useClubStore = create<ClubStore>()(
               cacheStatus: 'stale',
               error: null 
             });
-            // Continue to fetch fresh data
           }
         }
 
-        // Prevent duplicate requests
         if (state.isLoading && !force) {
           console.log('⏳ ClubStore: Already loading, skipping');
           endMeasure();
@@ -167,7 +165,7 @@ export const useClubStore = create<ClubStore>()(
           const result = await response.json();
           
           if (result.success) {
-            // Use base store method
+        
             get().setData(result.data);
             console.log('✅ ClubStore: Fetched', result.data.length, 'clubs');
           } else {
@@ -381,6 +379,7 @@ export interface TaskStore extends BaseStoreState<Task>, BaseStoreActions<Task> 
   createTask: (task: Omit<Task, 'id' | 'createdAt'>) => Promise<void>;
   updateTaskStatus: (id: string, status: Task['status']) => Promise<void>;
   getUserTasks: (userId: string) => Task[];
+  backgroundSync: () => Promise<void>;
   getTasksByClub: (clubId: string) => Task[];
 }
 
@@ -472,6 +471,28 @@ export const useTaskStore = create<TaskStore>()(
 
       getTasksByClub: (clubId: string) => {
         return get().data.filter(task => task.clubId === clubId);
+      },
+
+      backgroundSync: async () => {
+        const state = get();
+        if (state.isLoading) return;
+
+        try {
+          const response = await fetch('/api/tasks');
+          const result = await response.json();
+
+          if (result.success) {
+            // Check if data actually changed
+            const currentIds = state.data.map(t => t.id).sort();
+            const newIds = result.data.map((t: Task) => t.id).sort();
+
+            if (JSON.stringify(currentIds) !== JSON.stringify(newIds)) {
+              get().setData(result.data);
+            }
+          }
+        } catch (error) {
+          console.error('⚠️ TaskStore: Background sync failed:', error);
+        }
       },
     }),
     {
