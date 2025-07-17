@@ -182,8 +182,8 @@ function PerformanceLogger() {
 
     const logInterval = setInterval(() => {
       // Log performance stats every 30 seconds
-      import('@/lib/cache').then(({ PerformanceMonitor }) => {
-        PerformanceMonitor.logStats();
+      import('@/lib/cache').then(({ logPerformanceStats }) => {
+        logPerformanceStats();
       });
     }, 30000);
 

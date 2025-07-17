@@ -225,73 +225,71 @@ export class PersistentCache {
 }
 
 // 🚀 PERFORMANCE: Performance monitoring utilities
-export class PerformanceMonitor {
-  private static measurements = new Map<string, number[]>();
+const performanceMeasurements = new Map<string, number[]>();
 
-  static startMeasure(name: string): () => number {
-    const start = performance.now();
-    return () => {
-      const duration = performance.now() - start;
-      this.addMeasurement(name, duration);
-      return duration;
-    };
+export function startMeasure(name: string): () => number {
+  const start = performance.now();
+  return () => {
+    const duration = performance.now() - start;
+    addMeasurement(name, duration);
+    return duration;
+  };
+}
+
+export function addMeasurement(name: string, duration: number): void {
+  if (!performanceMeasurements.has(name)) {
+    performanceMeasurements.set(name, []);
+  }
+  
+  const measurements = performanceMeasurements.get(name)!;
+  measurements.push(duration);
+  
+  // Keep only last 100 measurements
+  if (measurements.length > 100) {
+    measurements.shift();
+  }
+}
+
+export function getPerformanceStats(name: string) {
+  const measurements = performanceMeasurements.get(name) || [];
+  if (measurements.length === 0) {
+    return { count: 0, avg: 0, min: 0, max: 0, p95: 0 };
   }
 
-  static addMeasurement(name: string, duration: number): void {
-    if (!this.measurements.has(name)) {
-      this.measurements.set(name, []);
-    }
-    
-    const measurements = this.measurements.get(name)!;
-    measurements.push(duration);
-    
-    // Keep only last 100 measurements
-    if (measurements.length > 100) {
-      measurements.shift();
-    }
+  const sorted = [...measurements].sort((a, b) => a - b);
+  const count = measurements.length;
+  const avg = measurements.reduce((sum, val) => sum + val, 0) / count;
+  const min = sorted[0];
+  const max = sorted[sorted.length - 1];
+  const p95Index = Math.floor(count * 0.95);
+  const p95 = sorted[p95Index] || max;
+
+  return { count, avg, min, max, p95 };
+}
+
+export function getAllPerformanceStats() {
+  const result: Record<string, any> = {};
+  for (const [name] of performanceMeasurements) {
+    result[name] = getPerformanceStats(name);
   }
+  return result;
+}
 
-  static getStats(name: string) {
-    const measurements = this.measurements.get(name) || [];
-    if (measurements.length === 0) {
-      return { count: 0, avg: 0, min: 0, max: 0, p95: 0 };
-    }
-
-    const sorted = [...measurements].sort((a, b) => a - b);
-    const count = measurements.length;
-    const avg = measurements.reduce((sum, val) => sum + val, 0) / count;
-    const min = sorted[0];
-    const max = sorted[sorted.length - 1];
-    const p95Index = Math.floor(count * 0.95);
-    const p95 = sorted[p95Index] || max;
-
-    return { count, avg, min, max, p95 };
-  }
-
-  static getAllStats() {
-    const result: Record<string, any> = {};
-    for (const [name] of this.measurements) {
-      result[name] = this.getStats(name);
-    }
-    return result;
-  }
-
-  static logStats(): void {
-    const stats = this.getAllStats();
-    console.group('📊 Performance Stats');
-    Object.entries(stats).forEach(([name, stat]) => {
-      console.log(`${name}:`, {
-        avg: `${stat.avg.toFixed(2)}ms`,
-        p95: `${stat.p95.toFixed(2)}ms`,
-        count: stat.count
-      });
+export function logPerformanceStats(): void {
+  const stats = getAllPerformanceStats();
+  console.group('📊 Performance Stats');
+  Object.entries(stats).forEach(([name, stat]) => {
+    console.log(`${name}:`, {
+      avg: `${stat.avg.toFixed(2)}ms`,
+      p95: `${stat.p95.toFixed(2)}ms`,
+      count: stat.count
     });
-    console.groupEnd();
-  }
+  });
+  console.groupEnd();
+}
 
-  static clear(): void {
-    this.measurements.clear();
-  }
+export function clearPerformanceMeasurements(): void {
+  performanceMeasurements.clear();
 }
 
 // 🚀 PERFORMANCE: Cache management for different data types
@@ -371,7 +369,7 @@ export class AppCacheManager {
       task: taskCache.getStats(),
       meeting: meetingCache.getStats(),
       file: fileCache.getStats(),
-      performance: PerformanceMonitor.getAllStats()
+      performance: getAllPerformanceStats()
     };
   }
 }

@@ -2,14 +2,14 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { PerformanceMonitor } from '@/lib/cache';
+import { startMeasure } from '@/lib/cache';
 
 // 🚀 PERFORMANCE: React hook for performance monitoring
 export function usePerformanceMonitor(name: string, deps: any[] = []) {
   const endMeasure = useRef<(() => number) | null>(null);
 
   useEffect(() => {
-    endMeasure.current = PerformanceMonitor.startMeasure(name);
+    endMeasure.current = startMeasure(name);
     
     return () => {
       if (endMeasure.current) {
