@@ -75,7 +75,7 @@ export async function grantPermission(
         try {
           return JSON.parse(p)
         } catch {
-          return p
+          console.error('Failed to parse permission:', p)
         }
       }
       return p
