@@ -26,7 +26,14 @@ export async function hasPermission(userId: string, permissionName: string): Pro
 
     // JSON permissions'ları kontrol et
     const permissions = user.permissions || []
-    return permissions.some((p: UserPermission) => p.name === permissionName)
+    return permissions.some((p: UserPermission) => {
+       if (p.name !== permissionName) return false
+       // Check if permission has expired
+       if (p.expires_at && new Date() > new Date(p.expires_at)) {
+          return false
+        }
+       return true
+    })
   } catch (error) {
     console.error('Permission check error:', error)
     return false
@@ -44,7 +51,9 @@ export async function getUserPermissions(userId: string): Promise<UserPermission
       .eq('id', userId)
       .single()
 
-    return user?.permissions || []
+    const permissions = user?.permissions || []
+    const now = new Date()
+    return permissions.filter((p: UserPermission) => !p.expires_at || new Date(p.expires_at) > now)
   } catch (error) {
     console.error('Get user permissions error:', error)
     return []
@@ -82,7 +91,8 @@ export async function grantPermission(
     })
     
     // Duplicate check
-    if (permissions.some((p: UserPermission) => p.name === permissionName)) {
+    const existingPermission = permissions.find((p: UserPermission) => p.name === permissionName)
+    if (existingPermission && (!existingPermission.expires_at || new Date(existingPermission.expires_at) > new Date())) {
       return false
     }
 
@@ -117,7 +127,22 @@ export async function revokePermission(userId: string, permissionName: string): 
       .eq('id', userId)
       .single()
 
-    const permissions = (user?.permissions || []).filter(
+      // Parse permissions if they're stored as JSON strings
+let permissions = user?.permissions || []
+permissions = permissions.map((p: any) => {
+ if (typeof p === 'string') {
+    try {
+      return JSON.parse(p)
+    } catch {
+     console.error('Failed to parse permission:', p)
+      return p
+    }
+ }
+  return p
+})
+
+
+    const filteredPermissions = permissions.filter(
       (p: UserPermission) => p.name !== permissionName
     )
 
@@ -179,15 +204,17 @@ export async function setUserPermissions(
   }
 }
 
-// Legacy role system ile hybrid check
+
 export async function canUserPerform(userId: string, action: string): Promise<boolean> {
+
+   try {
   const supabase = createClient()
   
-  // Önce yeni permission sistemini dene
+  
   const hasNewPermission = await hasPermission(userId, action)
   if (hasNewPermission) return true
 
-  // Fallback: Eski role sistemini kontrol et
+ 
   const { data: user } = await supabase
     .from('users')
     .select('role')
@@ -216,7 +243,12 @@ export async function canUserPerform(userId: string, action: string): Promise<bo
     return memberPermissions.includes(action)
   }
 
+  // Eğer hiçbir role eşleşmezse, izin yok
   return false
+  } catch (error) {
+console.error('canUserPerform error:', error)
+  return false
+   }
 }
 
 // Available permissions list (hardcoded)
