@@ -152,7 +152,21 @@ export default function LoginForm() {
             </TabsContent>
             <TabsContent value="register">
             <form action={handleSignUp} className="space-y-4">
-     <div className="space-y-2">
+                <div className="space-y-2">
+                  <label htmlFor="register-name" className="text-sm font-medium">
+                    Ad Soyad
+                  </label>
+                  <Input
+                    id="register-name"
+                   name="name"
+                    type="text"
+                    placeholder="John Doe"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+                
+                <div className="space-y-2">
                 <label htmlFor="register-email" className="text-sm font-medium">
                   Email
                 </label>
