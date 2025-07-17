@@ -117,8 +117,8 @@ export function useCachedData<T>(
   
   const { ttl = 5 * 60 * 1000, enabled = true, refetchOnMount = false } = options;
   
-  const fetchData = useCallback(async (force = false) => {
-    if (!enabled) return;
+  const fetchData = useCallback(async (force: boolean = false) => {
+    if (!enabled && !force) return;
     
     setIsLoading(true);
     setError(null);
@@ -178,14 +178,22 @@ export function useMemoryMonitor() {
 
   useEffect(() => {
     const updateMemoryInfo = () => {
-      const memory = (performance as any).memory;
-      if (memory) {
-        setMemoryInfo({
-          usedJSHeapSize: memory.usedJSHeapSize,
-          totalJSHeapSize: memory.totalJSHeapSize,
-          jsHeapSizeLimit: memory.jsHeapSizeLimit,
-          usagePercentage: (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100
-        });
+      // Check if performance.memory exists (Chrome-only feature)
+      if (typeof performance !== 'undefined' && 'memory' in performance) {
+        const memory = (performance as any).memory;
+        if (memory && typeof memory.usedJSHeapSize === 'number') {
+          setMemoryInfo({
+            usedJSHeapSize: memory.usedJSHeapSize,
+            totalJSHeapSize: memory.totalJSHeapSize,
+            jsHeapSizeLimit: memory.jsHeapSizeLimit,
+            usagePercentage: memory.jsHeapSizeLimit > 0 
+              ? (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100 
+              : 0
+          });
+        }
+      } else {
+        // Set null if memory API is not available
+        setMemoryInfo(null);
       }
     };
 
