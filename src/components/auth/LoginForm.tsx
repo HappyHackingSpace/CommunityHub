@@ -151,20 +151,32 @@ export default function LoginForm() {
               </form>
             </TabsContent>
 
-            <TabsContent value="register">
-  <div className="text-center py-4">
-    <p className="text-sm text-gray-600 mb-4">
-      Hesap oluşturmak için ayrı sayfamızı kullanın
-    </p>
-    <Button
-      variant="outline"
-      onClick={() => router.push('/register')}
-      className="w-full"
-    >
-      Kayıt Sayfasına Git
+            <form action={handleSignUp} className="space-y-4">
+    <div className="space-y-2">
+      <label htmlFor="register-name" className="text-sm font-medium">
+       Ad Soyad
+      </label>
+      <Input
+        id="register-name"
+        name="name"
+        type="text"
+        placeholder="John Doe"
+        required
+        disabled={loading}
+      />
+    </div>
+    {/* Add email and password fields similar to login */}
+    <Button type="submit" className="w-full" disabled={loading}>
+      {loading ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Kayıt yapılıyor...
+        </>
+      ) : (
+        'Kayıt Ol'
+      )}
     </Button>
-  </div>
-</TabsContent>
+  </form>
           </Tabs>
         </CardContent>
       </Card>
