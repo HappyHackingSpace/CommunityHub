@@ -141,6 +141,25 @@ export async function setUserPermissions(
 ): Promise<boolean> {
   try {
     const supabase = createClient()
+
+    const { data: user } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single()
+    
+    if (!user) {
+      console.error('User not found:', userId)
+      return false
+    }
+    
+    // Validate permission names
+    const validPermissions = AVAILABLE_PERMISSIONS.map(p => p.name)
+    const invalidPermissions = permissionNames.filter(name => !validPermissions.includes(name))
+    if (invalidPermissions.length > 0) {
+      console.error('Invalid permissions:', invalidPermissions)
+      return false
+    }
     
     const permissions = permissionNames.map(name => ({
       name,
