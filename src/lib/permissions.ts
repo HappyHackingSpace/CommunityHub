@@ -148,7 +148,7 @@ permissions = permissions.map((p: any) => {
 
     const { error } = await supabase
       .from('users')
-      .update({ permissions })
+     .update({ permissions: filteredPermissions })
       .eq('id', userId)
 
     return !error
