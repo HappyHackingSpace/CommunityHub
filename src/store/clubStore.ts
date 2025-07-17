@@ -1,6 +1,7 @@
 // src/store/clubStore.ts - PERFORMANCE OPTIMIZED VERSION
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import { createClient } from '@/lib/supabase-client'
 import { Club } from '@/types'
 
 interface ClubCache {
@@ -156,44 +157,45 @@ export const useClubStore = create<ClubStore>()(
         set({ isLoading: true, error: null })
 
         try {
-          console.log('🏢 ClubStore: Making API call')
+          console.log('🏢 ClubStore: Making Supabase query')
           
-          const token = localStorage.getItem('token')
-          const headers: HeadersInit = { 'Content-Type': 'application/json' }
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`
+          const supabase = createClient()
+          const { data, error } = await supabase
+            .from('clubs')
+            .select('*')
+            .order('created_at', { ascending: false })
+          
+          if (error) {
+            throw new Error(`Supabase Error: ${error.message}`)
           }
           
-          const response = await fetch('/api/clubs', { headers })
-          
-          if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`)
-          }
-          
-          const result = await response.json()
-          
-          console.log('🏢 ClubStore: API response:', { 
-            success: result.success, 
-            dataLength: result.data?.length,
-            error: result.error 
+          console.log('🏢 ClubStore: Supabase response:', { 
+            dataLength: data?.length,
+            error: error 
           })
           
-          if (result.success) {
+          if (data) {
+            // Ensure memberIds is always an array
+            const normalizedData = data.map(club => ({
+              ...club,
+              memberIds: club.memberIds || []
+            }))
+            
             // Update all caches
-            setCachedClubs(cacheKey, result.data)
+            setCachedClubs(cacheKey, normalizedData)
             
             set({ 
-              clubs: result.data, 
+              clubs: normalizedData, 
               isLoading: false, 
               lastFetched: Date.now(),
               cacheStatus: 'fresh',
               error: null
             })
             
-            console.log('✅ ClubStore: Clubs updated successfully:', result.data?.length, 'clubs')
+            console.log('✅ ClubStore: Clubs updated successfully:', normalizedData?.length, 'clubs')
           } else {
-            set({ error: result.error, isLoading: false, cacheStatus: 'empty' })
-            console.error('❌ ClubStore: API error:', result.error)
+            set({ error: 'No data returned', isLoading: false, cacheStatus: 'empty' })
+            console.error('❌ ClubStore: No data returned from Supabase')
           }
         } catch (error) {
           console.error('💥 ClubStore: Network error:', error)
@@ -220,21 +222,35 @@ export const useClubStore = create<ClubStore>()(
         set({ isLoading: true, error: null })
         
         try {
-          const response = await fetch(`/api/clubs/${id}`)
-          const result = await response.json()
+          const supabase = createClient()
+          const { data, error } = await supabase
+            .from('clubs')
+            .select('*')
+            .eq('id', id)
+            .single()
           
-          if (result.success) {
-            set({ currentClub: result.data, isLoading: false })
+          if (error) {
+            throw new Error(`Supabase Error: ${error.message}`)
+          }
+          
+          if (data) {
+            // Ensure memberIds is always an array
+            const normalizedClub = {
+              ...data,
+              memberIds: data.memberIds || []
+            }
+            
+            set({ currentClub: normalizedClub, isLoading: false })
             
             // 🚀 PERFORMANCE: Add to clubs list if not exists
             if (!state.clubs.find(club => club.id === id)) {
-              const newClubs = [...state.clubs, result.data]
+              const newClubs = [...state.clubs, normalizedClub]
               const cacheKey = getCacheKey()
               setCachedClubs(cacheKey, newClubs)
               set({ clubs: newClubs })
             }
           } else {
-            set({ error: result.error, isLoading: false })
+            set({ error: 'Club not found', isLoading: false })
           }
         } catch (error) {
           set({ error: 'Kulüp bilgileri yüklenemedi', isLoading: false })
@@ -249,21 +265,34 @@ export const useClubStore = create<ClubStore>()(
         console.log('🔄 ClubStore: Background sync started')
         
        try {
-          const response = await fetch('/api/clubs')
-          const result = await response.json()
+          const supabase = createClient()
+          const { data, error } = await supabase
+            .from('clubs')
+            .select('*')
+            .order('created_at', { ascending: false })
           
-          if (result.success) {
+          if (error) {
+            throw new Error(`Supabase Error: ${error.message}`)
+          }
+          
+          if (data) {
+            // Ensure memberIds is always an array
+            const normalizedData = data.map(club => ({
+              ...club,
+              memberIds: club.memberIds || []
+            }))
+            
             const cacheKey = getCacheKey()
-            setCachedClubs(cacheKey, result.data)
+            setCachedClubs(cacheKey, normalizedData)
             
             // Only update if data actually changed
             const currentIds = state.clubs.map(c => c.id).sort()
-            const newIds = result.data.map((c: Club) => c.id).sort()
+            const newIds = normalizedData.map((c: Club) => c.id).sort()
             
             if (JSON.stringify(currentIds) !== JSON.stringify(newIds)) {
               console.log('🔄 ClubStore: Background sync found changes')
               set({ 
-                clubs: result.data,
+                clubs: normalizedData,
                 lastFetched: Date.now(),
                 cacheStatus: 'fresh'
               })
@@ -332,7 +361,7 @@ export const startClubBackgroundSync = () => {
   
   backgroundSyncInterval = setInterval(() => {
     const store = useClubStore.getState()
-    if (!store.isLoading && store.clubs.length > 0) {
+    if (!store.isLoading) {
       store.backgroundSync()
     }
   }, BACKGROUND_SYNC_INTERVAL)

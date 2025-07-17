@@ -119,12 +119,12 @@ export default function ClubList() {
                       Kulüp Liderisiniz
                     </Badge>
                   )}
-                  {club.memberIds.includes(user?.id || '') && club.leaderId !== user?.id && (
+                  {(club.memberIds || []).includes(user?.id || '') && club.leaderId !== user?.id && (
                     <Badge variant="outline" className="w-fit bg-green-50 text-green-700">
                       Üyesiniz
                     </Badge>
                   )}
-                  {!club.memberIds.includes(user?.id || '') && club.leaderId !== user?.id && (
+                  {!(club.memberIds || []).includes(user?.id || '') && club.leaderId !== user?.id && (
                     <Button variant="outline" size="sm">
                       Katıl
                     </Button>
