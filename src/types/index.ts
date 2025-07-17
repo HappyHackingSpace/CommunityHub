@@ -15,7 +15,7 @@ export interface Club {
   description: string;
   leaderId: string;
   leaderName: string;
-  memberIds: string[];
+  memberIds?: string[]; // Made optional since Supabase might return null
   memberCount: number;
   type: 'education' | 'social' | 'project';
   createdAt: string;
