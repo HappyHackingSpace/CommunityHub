@@ -14,7 +14,7 @@ export default function FilesPageContent() {
   const [selectedClubId, setSelectedClubId] = useState<string>('');
 
   const userClubs = clubs.filter(club => 
-    club.memberIds.includes(user?.id || '') || club.leaderId === user?.id
+    (club.memberIds || []).includes(user?.id || '') || club.leaderId === user?.id
   );
 
   // Auto-select first club if only one available
