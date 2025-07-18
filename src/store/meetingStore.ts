@@ -299,26 +299,23 @@ export const useMeetingStore = create<MeetingStore>()(
           const result = await apiResponse.json();
           
           if (result.success) {
-            // Update meeting in local state
-            set((state) => ({
-              meetings: state.meetings.map(meeting => 
-                meeting.id === meetingId 
-                  ? { ...meeting, userResponse: response }
-                  : meeting
-              ),
-              isLoading: false,
-              error: null
-            }));
-            
-            // Update cache
-            const cacheKey = getCacheKey();
-            const updatedMeetings = state.meetings.map(meeting => 
-              meeting.id === meetingId 
-                ? { ...meeting, userResponse: response }
-                : meeting
-            );
-            setCachedMeetings(cacheKey, updatedMeetings);
-          } else {
+  // Create updated meetings array first
+  const currentState = get();
+  const updatedMeetings = currentState.meetings.map(meeting =>
+    meeting.id === meetingId
+      ? { ...meeting, userResponse: response }
+      : meeting
+  );
+  // Update meeting in local state
+  set((state) => ({
+    meetings: updatedMeetings,
+    isLoading: false,
+    error: null
+  }));
+  // Update cache
+  const cacheKey = getCacheKey();
+  setCachedMeetings(cacheKey, updatedMeetings);
+} else {
             throw new Error(result.error || 'Failed to update response');
           }
         } catch (error) {
