@@ -134,7 +134,10 @@ export default function TaskList({ clubId, userId }: TaskListProps) {
                 </div>
                 <div className="flex items-center text-gray-500">
                   <Calendar className="mr-1 h-4 w-4" />
-                  {format(new Date(task.dueDate), 'dd MMMM yyyy', { locale: tr })}
+                  {task.dueDate && !isNaN(new Date(task.dueDate).getTime()) 
+                    ? format(new Date(task.dueDate), 'dd MMMM yyyy', { locale: tr })
+                    : 'Tarih belirtilmemiş'
+                  }
                 </div>
               </div>
               
@@ -151,7 +154,10 @@ export default function TaskList({ clubId, userId }: TaskListProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center text-xs text-gray-400">
                   <Clock className="mr-1 h-3 w-3" />
-                  {format(new Date(task.createdAt), 'dd MMM yyyy', { locale: tr })} tarihinde oluşturuldu
+                  {task.createdAt && !isNaN(new Date(task.createdAt).getTime())
+                    ? `${format(new Date(task.createdAt), 'dd MMM yyyy', { locale: tr })} tarihinde oluşturuldu`
+                    : 'Oluşturma tarihi bilinmiyor'
+                  }
                 </div>
                 <Button variant="outline" size="sm">
                   Detaylar

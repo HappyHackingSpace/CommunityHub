@@ -1,42 +1,65 @@
-import { supabase } from './supabase';
-import { Database } from '@/types/database';
+// src/lib/database.ts
+import { createClient } from '@/lib/supabase-client'
+import { Database } from '@/types/database'
 
-type Tables = Database['public']['Tables'];
+type Tables = Database['public']['Tables']
 
 export class DatabaseService {
+  // Browser-safe client
+  private static getClient() {
+    return createClient()
+  }
+
   // Users
   static async getUser(id: string) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', id)
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 
   static async getUserByEmail(email: string) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('email', email)
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 
   static async createUser(user: Tables['users']['Insert']) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('users')
       .insert(user)
       .select()
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
+  }
+
+  static async getUsers() {
+    const supabase = this.getClient()
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, name, email, role, is_active')
+      .eq('is_active', true)
+      .order('name', { ascending: true })
+    
+    return { data, error }
   }
 
   // Clubs
   static async getClubs(userId?: string) {
+    console.log('DatabaseService.getClubs called - returning all clubs')
+    
+    const supabase = this.getClient()
     let query = supabase
       .from('clubs')
       .select(`
@@ -44,13 +67,15 @@ export class DatabaseService {
         leader:users!clubs_leader_id_fkey(name),
         club_members(user_id)
       `)
-      .eq('is_active', true);
+      .eq('is_active', true)
 
     if (userId) {
-      query = query.or(`leader_id.eq.${userId},club_members.user_id.eq.${userId}`);
+      console.log('User context provided:', userId)
     }
 
-    const { data, error } = await query;
+    const { data, error } = await query
+    
+    console.log('DatabaseService.getClubs raw result:', { data, error })
     
     // Transform data to match frontend expectations
     const transformedData = data?.map(club => ({
@@ -58,12 +83,15 @@ export class DatabaseService {
       leaderName: club.leader?.name || 'Unknown',
       memberCount: club.club_members?.length || 0,
       memberIds: club.club_members?.map((m: Tables['club_members']['Row']) => m.user_id) || []
-    }));
+    }))
 
-    return { data: transformedData, error };
+    console.log('DatabaseService.getClubs transformed data:', transformedData)
+
+    return { data: transformedData, error }
   }
 
   static async getClub(id: string) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('clubs')
       .select(`
@@ -73,7 +101,7 @@ export class DatabaseService {
       `)
       .eq('id', id)
       .eq('is_active', true)
-      .single();
+      .single()
 
     if (data) {
       return {
@@ -84,31 +112,33 @@ export class DatabaseService {
           memberIds: data.club_members?.map((m: Tables['club_members']['Row']) => m.user_id) || []
         },
         error
-      };
+      }
     }
 
-    return { data, error };
+    return { data, error }
   }
 
   static async createClub(club: Tables['clubs']['Insert']) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('clubs')
       .insert(club)
       .select()
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 
   // Club Memberships
   static async joinClub(clubId: string, userId: string) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('club_members')
       .insert({ club_id: clubId, user_id: userId })
       .select()
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 
   // Tasks
@@ -117,6 +147,7 @@ export class DatabaseService {
     userId?: string;
     status?: string;
   } = {}) {
+    const supabase = this.getClient()
     let query = supabase
       .from('tasks')
       .select(`
@@ -125,47 +156,50 @@ export class DatabaseService {
         assigned_to_user:users!tasks_assigned_to_fkey(name),
         club:clubs(name)
       `)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
 
     if (filters.clubId) {
-      query = query.eq('club_id', filters.clubId);
+      query = query.eq('club_id', filters.clubId)
     }
 
     if (filters.userId) {
-      query = query.or(`assigned_to.eq.${filters.userId},assigned_by.eq.${filters.userId}`);
+      query = query.or(`assigned_to.eq.${filters.userId},assigned_by.eq.${filters.userId}`)
     }
 
     if (filters.status) {
-      query = query.eq('status', filters.status);
+      query = query.eq('status', filters.status)
     }
 
-    const { data, error } = await query;
-    return { data, error };
+    const { data, error } = await query
+    return { data, error }
   }
 
   static async createTask(task: Tables['tasks']['Insert']) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('tasks')
       .insert(task)
       .select()
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 
   static async updateTask(id: string, updates: Tables['tasks']['Update']) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('tasks')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 
   // Activities (Notifications)
   static async getActivities(userId: string, type?: string) {
+    const supabase = this.getClient()
     let query = supabase
       .from('activities')
       .select(`
@@ -175,30 +209,33 @@ export class DatabaseService {
       `)
       .contains('target_users', [userId])
       .eq('is_active', true)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
 
     if (type) {
-      query = query.eq('type', type);
+      query = query.eq('type', type)
     }
 
-    const { data, error } = await query;
-    return { data, error };
+    const { data, error } = await query
+    return { data, error }
   }
 
   static async createActivity(activity: Tables['activities']['Insert']) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('activities')
       .insert(activity)
       .select()
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 
-   static async getMeetings(filters: {
+  // Meetings
+  static async getMeetings(filters: {
     clubId?: string;
     userId?: string;
   } = {}) {
+    const supabase = this.getClient()
     let query = supabase
       .from('meetings')
       .select(`
@@ -210,65 +247,70 @@ export class DatabaseService {
           user:users(name)
         )
       `)
-      .order('start_time', { ascending: true });
+      .order('start_time', { ascending: true })
 
     if (filters.clubId) {
-      query = query.eq('club_id', filters.clubId);
+      query = query.eq('club_id', filters.clubId)
     }
 
     if (filters.userId) {
-      query = query.or(`organizer_id.eq.${filters.userId},meeting_participants.user_id.eq.${filters.userId}`);
+      query = query.or(`organizer_id.eq.${filters.userId},meeting_participants.user_id.eq.${filters.userId}`)
     }
 
-    const { data, error } = await query;
-    return { data, error };
+    const { data, error } = await query
+    return { data, error }
   }
 
   static async createMeeting(meeting: Tables['meetings']['Insert']) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('meetings')
       .insert(meeting)
       .select()
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 
   static async updateMeeting(id: string, updates: Tables['meetings']['Update']) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('meetings')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 
   // Meeting Participants
   static async addMeetingParticipant(participant: Tables['meeting_participants']['Insert']) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('meeting_participants')
       .insert(participant)
       .select()
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 
   static async updateMeetingResponse(meetingId: string, userId: string, response: 'accepted' | 'declined') {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('meeting_participants')
       .update({ response })
       .eq('meeting_id', meetingId)
       .eq('user_id', userId)
       .select()
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 
   static async getMeetingById(id: string) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('meetings')
       .select(`
@@ -281,16 +323,17 @@ export class DatabaseService {
         )
       `)
       .eq('id', id)
-      .single();
+      .single()
 
-    return { data, error };
+    return { data, error }
   }
 
-   // Files
+  // Files
   static async getFiles(filters: {
     clubId: string;
     folderId?: string;
   }) {
+    const supabase = this.getClient()
     let query = supabase
       .from('files')
       .select(`
@@ -299,53 +342,56 @@ export class DatabaseService {
         folder:folders(name)
       `)
       .eq('club_id', filters.clubId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
 
     if (filters.folderId) {
-      query = query.eq('folder_id', filters.folderId);
+      query = query.eq('folder_id', filters.folderId)
     } else {
-      query = query.is('folder_id', null);
+      query = query.is('folder_id', null)
     }
 
-    const { data, error } = await query;
-    return { data, error };
+    const { data, error } = await query
+    return { data, error }
   }
 
-    static async createFile(file: Tables['files']['Insert'] & { uploaded_by?: string }) {
+  static async createFile(file: Tables['files']['Insert'] & { uploaded_by?: string }) {
+    const supabase = this.getClient()
     const fileData = {
       ...file,
       uploaded_by: file.uploaded_by || null,
-    };
+    }
     
     const { data, error } = await supabase
       .from('files')
       .insert(fileData)
       .select()
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 
   static async updateFile(id: string, updates: Tables['files']['Update']) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('files')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 
   static async deleteFile(id: string) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('files')
       .delete()
       .eq('id', id)
       .select()
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 
   // Folders
@@ -353,6 +399,7 @@ export class DatabaseService {
     clubId: string;
     parentId?: string;
   }) {
+    const supabase = this.getClient()
     let query = supabase
       .from('folders')
       .select(`
@@ -361,52 +408,55 @@ export class DatabaseService {
       `)
       .eq('club_id', filters.clubId)
       .eq('is_active', true)
-      .order('name', { ascending: true });
+      .order('name', { ascending: true })
 
     if (filters.parentId) {
-      query = query.eq('parent_id', filters.parentId);
+      query = query.eq('parent_id', filters.parentId)
     } else {
-      query = query.is('parent_id', null);
+      query = query.is('parent_id', null)
     }
 
-    const { data, error } = await query;
-    return { data, error };
+    const { data, error } = await query
+    return { data, error }
   }
 
-   static async createFolder(folder: Tables['folders']['Insert'] & { created_by?: string }) {
+  static async createFolder(folder: Tables['folders']['Insert'] & { created_by?: string }) {
+    const supabase = this.getClient()
     const folderData = {
       ...folder,
       created_by: folder.created_by || null,
-    };
+    }
     
     const { data, error } = await supabase
       .from('folders')
       .insert(folderData)
       .select()
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 
   static async updateFolder(id: string, updates: Tables['folders']['Update']) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('folders')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 
   static async deleteFolder(id: string) {
+    const supabase = this.getClient()
     const { data, error } = await supabase
       .from('folders')
       .update({ is_active: false, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
-      .single();
+      .single()
     
-    return { data, error };
+    return { data, error }
   }
 }

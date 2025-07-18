@@ -1,3 +1,4 @@
+// src/components/layout/Header.tsx
 'use client';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -12,11 +13,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Bell, LogOut, Settings, User } from 'lucide-react';
+import NotificationCenter from '@/components/notification/NotificationCenter';
 
 export default function Header() {
-  const { user, isAdmin, isLeader } = useAuth();
+  const { user, isAdmin, isLeader, logout } = useAuth();
   const { unreadCount } = useNotificationStore();
-  const { logout } = useAuth();
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
@@ -49,7 +50,10 @@ export default function Header() {
         </div>
 
         <div className="flex items-center space-x-4">
-          {/* Notification Bell */}
+          {/* Notification Center */}
+          <NotificationCenter />
+
+           {/* Notification Bell */}
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
             {unreadCount > 0 && (

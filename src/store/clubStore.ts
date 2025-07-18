@@ -1,11 +1,22 @@
-import { create } from 'zustand';
-import { Club } from '@/types';
+// src/store/clubStore.ts - PERFORMANCE OPTIMIZED VERSION
+import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { createClient } from '@/lib/supabase-client'
+import { Club } from '@/types'
+
+interface ClubCache {
+  data: Club[];
+  timestamp: number;
+  ttl: number;
+}
 
 interface ClubStore {
   clubs: Club[];
   currentClub: Club | null;
   isLoading: boolean;
   error: string | null;
+  lastFetched: number | null;
+  cacheStatus: 'fresh' | 'stale' | 'empty';
   
   // Actions
   setClubs: (clubs: Club[]) => void;
@@ -15,69 +26,353 @@ interface ClubStore {
   deleteClub: (id: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  fetchClubs: () => Promise<void>;
+  fetchClubs: (force?: boolean) => Promise<void>;
   fetchClubById: (id: string) => Promise<void>;
+  clearCache: () => void;
+  invalidateCache: () => void;
+  backgroundSync: () => Promise<void>;
 }
 
-export const useClubStore = create<ClubStore>((set, get) => ({
-  clubs: [],
-  currentClub: null,
-  isLoading: false,
-  error: null,
+// 🚀 PERFORMANCE: Cache configuration
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+const BACKGROUND_SYNC_INTERVAL = 2 * 60 * 1000 // 2 minutes
+const memoryCache = new Map<string, ClubCache>()
 
-  setClubs: (clubs) => set({ clubs }),
-  setCurrentClub: (club) => set({ currentClub: club }),
-  
-  addClub: (club) => set((state) => ({ 
-    clubs: [...state.clubs, club] 
-  })),
-  
-  updateClub: (id, updates) => set((state) => ({
-    clubs: state.clubs.map(club => 
-      club.id === id ? { ...club, ...updates } : club
-    ),
-    currentClub: state.currentClub?.id === id 
-      ? { ...state.currentClub, ...updates }
-      : state.currentClub
-  })),
-  
-  deleteClub: (id) => set((state) => ({
-    clubs: state.clubs.filter(club => club.id !== id),
-    currentClub: state.currentClub?.id === id ? null : state.currentClub
-  })),
-  
-  setLoading: (loading) => set({ isLoading: loading }),
-  setError: (error) => set({ error }),
+// 🚀 PERFORMANCE: Cache utilities
+const getCacheKey = (userId?: string) => `clubs_${userId || 'all'}`
 
-  fetchClubs: async () => {
-    set({ isLoading: true });
-    try {
-      const response = await fetch('/api/clubs');
-      const result = await response.json();
-      
-      if (result.success) {
-        set({ clubs: result.data, isLoading: false });
-      } else {
-        set({ error: result.error, isLoading: false });
+const getCachedClubs = (cacheKey: string): { clubs: Club[] | null; isStale: boolean } => {
+  const cached = memoryCache.get(cacheKey)
+  if (!cached) return { clubs: null, isStale: false }
+  
+  const isStale = Date.now() - cached.timestamp > cached.ttl
+  return { clubs: cached.data, isStale }
+}
+
+const setCachedClubs = (cacheKey: string, clubs: Club[]) => {
+  memoryCache.set(cacheKey, {
+    data: clubs,
+    timestamp: Date.now(),
+    ttl: CACHE_TTL
+  })
+}
+
+export const useClubStore = create<ClubStore>()(
+  persist(
+    (set, get) => ({
+      clubs: [],
+      currentClub: null,
+      isLoading: false,
+      error: null,
+      lastFetched: null,
+      cacheStatus: 'empty',
+
+      setClubs: (clubs) => {
+        const cacheKey = getCacheKey()
+        setCachedClubs(cacheKey, clubs)
+        set({ 
+          clubs, 
+          lastFetched: Date.now(),
+          cacheStatus: 'fresh',
+          error: null
+        })
+      },
+
+      setCurrentClub: (club) => set({ currentClub: club }),
+  
+      addClub: (club) => set((state) => {
+        const newClubs = [...state.clubs, club]
+        const cacheKey = getCacheKey()
+        setCachedClubs(cacheKey, newClubs)
+        return { clubs: newClubs }
+      }),
+  
+      updateClub: (id, updates) => set((state) => {
+        const newClubs = state.clubs.map(club => 
+          club.id === id ? { ...club, ...updates } : club
+        )
+        const cacheKey = getCacheKey()
+        setCachedClubs(cacheKey, newClubs)
+        
+        return {
+          clubs: newClubs,
+          currentClub: state.currentClub?.id === id 
+            ? { ...state.currentClub, ...updates }
+            : state.currentClub
+        }
+      }),
+  
+      deleteClub: (id) => set((state) => {
+        const newClubs = state.clubs.filter(club => club.id !== id)
+        const cacheKey = getCacheKey()
+        setCachedClubs(cacheKey, newClubs)
+        
+        return {
+          clubs: newClubs,
+          currentClub: state.currentClub?.id === id ? null : state.currentClub
+        }
+      }),
+  
+      setLoading: (loading) => set({ isLoading: loading }),
+      setError: (error) => set({ error }),
+
+      // 🚀 PERFORMANCE: Smart fetch with multi-layer caching
+      fetchClubs: async (force = false) => {
+        const state = get()
+        const cacheKey = getCacheKey()
+
+        console.log('🏢 ClubStore.fetchClubs called', { force, currentCount: state.clubs.length })
+
+        // 🚀 CACHE LAYER 1: Memory cache check
+        if (!force) {
+          const { clubs: cachedClubs, isStale } = getCachedClubs(cacheKey)
+          
+          if (cachedClubs && !isStale) {
+            console.log('✅ ClubStore: Using fresh memory cache')
+            set({ 
+              clubs: cachedClubs, 
+              cacheStatus: 'fresh',
+              error: null 
+            })
+            return
+          }
+          
+          if (cachedClubs && isStale) {
+            console.log('⚠️ ClubStore: Using stale cache, will background sync')
+            set({ 
+              clubs: cachedClubs, 
+              cacheStatus: 'stale',
+              error: null 
+            })
+            // Continue to fetch fresh data
+          }
+        }
+
+        // 🚀 CACHE LAYER 2: Prevent duplicate requests
+        if (state.isLoading && !force) {
+          console.log('⏳ ClubStore: Already loading, skipping')
+          return
+        }
+
+        set({ isLoading: true, error: null })
+
+        try {
+          console.log('🏢 ClubStore: Making Supabase query')
+          
+          const supabase = createClient()
+          const { data, error } = await supabase
+            .from('clubs')
+            .select('*')
+            .order('created_at', { ascending: false })
+          
+          if (error) {
+            throw new Error(`Supabase Error: ${error.message}`)
+          }
+          
+          console.log('🏢 ClubStore: Supabase response:', { 
+            dataLength: data?.length,
+            error: error 
+          })
+          
+          if (data) {
+            // Ensure memberIds is always an array
+            const normalizedData = data.map(club => ({
+              ...club,
+              memberIds: club.memberIds || []
+            }))
+            
+            // Update all caches
+            setCachedClubs(cacheKey, normalizedData)
+            
+            set({ 
+              clubs: normalizedData, 
+              isLoading: false, 
+              lastFetched: Date.now(),
+              cacheStatus: 'fresh',
+              error: null
+            })
+            
+            console.log('✅ ClubStore: Clubs updated successfully:', normalizedData?.length, 'clubs')
+          } else {
+            set({ error: 'No data returned', isLoading: false, cacheStatus: 'empty' })
+            console.error('❌ ClubStore: No data returned from Supabase')
+          }
+        } catch (error) {
+          console.error('💥 ClubStore: Network error:', error)
+          set({ 
+            error: 'Kulüpler yüklenemedi', 
+            isLoading: false,
+            cacheStatus: state.clubs.length > 0 ? 'stale' : 'empty'
+          })
+        }
+      },
+
+      fetchClubById: async (id: string) => {
+        const state = get()
+        if (state.isLoading) return
+
+        // 🚀 PERFORMANCE: Check if club already exists in memory
+        const existingClub = state.clubs.find(club => club.id === id)
+        if (existingClub) {
+          console.log('✅ ClubStore: Using existing club from memory')
+          set({ currentClub: existingClub })
+          return
+        }
+        
+        set({ isLoading: true, error: null })
+        
+        try {
+          const supabase = createClient()
+          const { data, error } = await supabase
+            .from('clubs')
+            .select('*')
+            .eq('id', id)
+            .single()
+          
+          if (error) {
+            throw new Error(`Supabase Error: ${error.message}`)
+          }
+          
+          if (data) {
+            // Ensure memberIds is always an array
+            const normalizedClub = {
+              ...data,
+              memberIds: data.memberIds || []
+            }
+            
+            set({ currentClub: normalizedClub, isLoading: false })
+            
+            // 🚀 PERFORMANCE: Add to clubs list if not exists
+            if (!state.clubs.find(club => club.id === id)) {
+              const newClubs = [...state.clubs, normalizedClub]
+              const cacheKey = getCacheKey()
+              setCachedClubs(cacheKey, newClubs)
+              set({ clubs: newClubs })
+            }
+          } else {
+            set({ error: 'Club not found', isLoading: false })
+          }
+        } catch (error) {
+          set({ error: 'Kulüp bilgileri yüklenemedi', isLoading: false })
+        }
+      },
+
+      // 🚀 PERFORMANCE: Background sync for fresh data
+      backgroundSync: async () => {
+        const state = get()
+        if (state.isLoading) return
+
+        console.log('🔄 ClubStore: Background sync started')
+        
+       try {
+          const supabase = createClient()
+          const { data, error } = await supabase
+            .from('clubs')
+            .select('*')
+            .order('created_at', { ascending: false })
+          
+          if (error) {
+            throw new Error(`Supabase Error: ${error.message}`)
+          }
+          
+          if (data) {
+            // Ensure memberIds is always an array
+            const normalizedData = data.map(club => ({
+              ...club,
+              memberIds: club.memberIds || []
+            }))
+            
+            const cacheKey = getCacheKey()
+            setCachedClubs(cacheKey, normalizedData)
+            
+            // Only update if data actually changed
+            const currentIds = state.clubs.map(c => c.id).sort()
+            const newIds = normalizedData.map((c: Club) => c.id).sort()
+            
+            if (JSON.stringify(currentIds) !== JSON.stringify(newIds)) {
+              console.log('🔄 ClubStore: Background sync found changes')
+              set({ 
+                clubs: normalizedData,
+                lastFetched: Date.now(),
+                cacheStatus: 'fresh'
+              })
+            } else {
+              console.log('✅ ClubStore: Background sync - no changes')
+              set({ cacheStatus: 'fresh' })
+            }
+          }
+        } catch (error) {
+          console.error('⚠️ ClubStore: Background sync failed:', error)
+          // Don't update error state for background sync failures
+        }
+      },
+
+      clearCache: () => {
+        memoryCache.clear()
+        set({ 
+          clubs: [], 
+          currentClub: null,
+          lastFetched: null,
+          error: null,
+          cacheStatus: 'empty'
+        })
+      },
+
+      invalidateCache: () => {
+        memoryCache.clear()
+        set({ cacheStatus: 'empty' })
+      },
+    }),
+    {
+      name: 'club-storage-v2',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ 
+        clubs: state.clubs,
+        lastFetched: state.lastFetched,
+        cacheStatus: state.cacheStatus
+      }),
+      // 🚀 PERFORMANCE: Persist configuration
+      skipHydration: false,
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Check if persisted data is stale
+          const isStale = state.lastFetched && 
+            (Date.now() - state.lastFetched > CACHE_TTL)
+          
+          if (isStale) {
+            state.cacheStatus = 'stale'
+          }
+          
+          console.log('🏢 ClubStore: Rehydrated from localStorage', {
+            clubsCount: state.clubs.length,
+            cacheStatus: state.cacheStatus
+          })
+        }
       }
-    } catch (error) {
-      set({ error: 'Kulüpler yüklenemedi', isLoading: false });
     }
-  },
+  )
+)
 
-  fetchClubById: async (id: string) => {
-    set({ isLoading: true });
-    try {
-      const response = await fetch(`/api/clubs/${id}`);
-      const result = await response.json();
-      
-      if (result.success) {
-        set({ currentClub: result.data, isLoading: false });
-      } else {
-        set({ error: result.error, isLoading: false });
-      }
-    } catch (error) {
-      set({ error: 'Kulüp bilgileri yüklenemedi', isLoading: false });
+// 🚀 PERFORMANCE: Background sync setup
+let backgroundSyncInterval: NodeJS.Timeout | null = null
+
+export const startClubBackgroundSync = () => {
+  if (backgroundSyncInterval) return
+  
+  backgroundSyncInterval = setInterval(() => {
+    const store = useClubStore.getState()
+    if (!store.isLoading) {
+      store.backgroundSync()
     }
-  },
-}));
+  }, BACKGROUND_SYNC_INTERVAL)
+  
+  console.log('🔄 ClubStore: Background sync started')
+}
+
+export const stopClubBackgroundSync = () => {
+  if (backgroundSyncInterval) {
+    clearInterval(backgroundSyncInterval)
+    backgroundSyncInterval = null
+    console.log('⏹️ ClubStore: Background sync stopped')
+  }
+}

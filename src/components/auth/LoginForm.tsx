@@ -1,31 +1,80 @@
-'use client';
+// src/components/auth/LoginForm.tsx
+'use client'
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2 } from 'lucide-react';
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase-client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Loader2 } from 'lucide-react'
 
 export default function LoginForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const { login, isLoading, error, clearError } = useAuthStore();
-  const router = useRouter();
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const router = useRouter()
+  const supabase = createClient()
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    clearError();
+  const handleLogin = async (formData: FormData) => {
+    setLoading(true)
+    setError(null)
     
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+
     try {
-      await login(email, password);
-      router.push('/dashboard');
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        setError(error.message)
+      } else {
+        router.push('/dashboard')
+        router.refresh()
+      }
     } catch (err) {
-      // Error zaten store'da set edildi
+      setError('Giriş sırasında bir hata oluştu')
+    } finally {
+      setLoading(false)
     }
-  };
+  }
+
+  const handleSignUp = async (formData: FormData) => {
+    setLoading(true)
+    setError(null)
+    setMessage(null)
+    
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+    const name = formData.get('name') as string
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+          }
+        }
+      })
+
+      if (error) {
+        setError(error.message)
+      } else {
+        setMessage('Kayıt başarılı! Lütfen email adresinizi kontrol edin.')
+      }
+    } catch (err) {
+      setError('Kayıt sırasında bir hata oluştu')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -33,64 +82,133 @@ export default function LoginForm() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Community Platform</CardTitle>
           <CardDescription>
-            Kulüp yönetim platformuna giriş yapın
+            Kulüp yönetim platformuna giriş yapın veya kayıt olun
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <Tabs defaultValue="login" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Giriş Yap</TabsTrigger>
+              <TabsTrigger value="register">Kayıt Ol</TabsTrigger>
+            </TabsList>
+
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="email@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Şifre
-              </label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Giriş yapılıyor...
-                </>
-              ) : (
-                'Giriş Yap'
-              )}
-            </Button>
-          </form>
+
+            {message && (
+              <Alert>
+                <AlertDescription>{message}</AlertDescription>
+              </Alert>
+            )}
+
+            <TabsContent value="login">
+              <form action={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="login-email" className="text-sm font-medium">
+                    Email
+                  </label>
+                  <Input
+                    id="login-email"
+                    name="email"
+                    type="email"
+                    placeholder="email@example.com"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="login-password" className="text-sm font-medium">
+                    Şifre
+                  </label>
+                  <Input
+                    id="login-password"
+                    name="password"
+                    type="password"
+                    placeholder="••••••••"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Giriş yapılıyor...
+                    </>
+                  ) : (
+                    'Giriş Yap'
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+            <TabsContent value="register">
+            <form action={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="register-name" className="text-sm font-medium">
+                    Ad Soyad
+                  </label>
+                  <Input
+                    id="register-name"
+                   name="name"
+                    type="text"
+                    placeholder="John Doe"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                <label htmlFor="register-email" className="text-sm font-medium">
+                  Email
+                </label>
+                <Input
+                  id="register-email"
+                  name="email"
+                  type="email"
+                  placeholder="email@example.com"
+                  required
+                  disabled={loading}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="register-password" className="text-sm font-medium">
+                  Şifre
+                </label>
+                <Input
+                  id="register-password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  disabled={loading}
+                />
+              </div>
+    {/* Add email and password fields similar to login */}
+    <Button type="submit" className="w-full" disabled={loading}>
+      {loading ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Kayıt yapılıyor...
+        </>
+      ) : (
+        'Kayıt Ol'
+      )}
+    </Button>
+  </form>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
