@@ -33,20 +33,24 @@ interface ClubStore {
   backgroundSync: () => Promise<void>;
 }
 
-// 🚀 PERFORMANCE: Cache configuration
-const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
-const BACKGROUND_SYNC_INTERVAL = 2 * 60 * 1000 // 2 minutes
+// 🚀 PERFORMANCE: Cache configuration - Extended TTL for better UX
+const CACHE_TTL = 15 * 60 * 1000 // 15 minutes (extended from 5)
+const STALE_THRESHOLD = 10 * 60 * 1000 // 10 minutes (data is considered stale but still usable)
+const BACKGROUND_SYNC_INTERVAL = 5 * 60 * 1000 // 5 minutes (less frequent)
 const memoryCache = new Map<string, ClubCache>()
 
 // 🚀 PERFORMANCE: Cache utilities
 const getCacheKey = (userId?: string) => `clubs_${userId || 'all'}`
 
-const getCachedClubs = (cacheKey: string): { clubs: Club[] | null; isStale: boolean } => {
+const getCachedClubs = (cacheKey: string): { clubs: Club[] | null; isStale: boolean; isVeryStale: boolean } => {
   const cached = memoryCache.get(cacheKey)
-  if (!cached) return { clubs: null, isStale: false }
+  if (!cached) return { clubs: null, isStale: false, isVeryStale: false }
   
-  const isStale = Date.now() - cached.timestamp > cached.ttl
-  return { clubs: cached.data, isStale }
+  const age = Date.now() - cached.timestamp
+  const isStale = age > STALE_THRESHOLD
+  const isVeryStale = age > CACHE_TTL
+  
+  return { clubs: cached.data, isStale, isVeryStale }
 }
 
 const setCachedClubs = (cacheKey: string, clubs: Club[]) => {
@@ -121,12 +125,13 @@ export const useClubStore = create<ClubStore>()(
         const state = get()
         const cacheKey = getCacheKey()
 
-        console.log('🏢 ClubStore.fetchClubs called', { force, currentCount: state.clubs.length })
+        console.log('🏢 ClubStore.fetchClubs called', { force, currentCount: state.clubs.length, cacheStatus: state.cacheStatus })
 
-        // 🚀 CACHE LAYER 1: Memory cache check
+        // 🚀 CACHE LAYER 1: Memory cache check with improved stale handling
         if (!force) {
-          const { clubs: cachedClubs, isStale } = getCachedClubs(cacheKey)
+          const { clubs: cachedClubs, isStale, isVeryStale } = getCachedClubs(cacheKey)
           
+          // Use fresh cache immediately
           if (cachedClubs && !isStale) {
             console.log('✅ ClubStore: Using fresh memory cache')
             set({ 
@@ -137,14 +142,30 @@ export const useClubStore = create<ClubStore>()(
             return
           }
           
-          if (cachedClubs && isStale) {
-            console.log('⚠️ ClubStore: Using stale cache, will background sync')
+          // Use stale cache but trigger background refresh
+          if (cachedClubs && isStale && !isVeryStale) {
+            console.log('⚠️ ClubStore: Using stale cache, triggering background refresh')
             set({ 
               clubs: cachedClubs, 
               cacheStatus: 'stale',
               error: null 
             })
-            // Continue to fetch fresh data
+            // Trigger background refresh without blocking UI
+            setTimeout(() => {
+              get().backgroundSync()
+            }, 100)
+            return
+          }
+
+          // Use very stale cache only if no fresh data available, but show as stale
+          if (cachedClubs && isVeryStale) {
+            console.log('⚠️ ClubStore: Using very stale cache as fallback')
+            set({ 
+              clubs: cachedClubs, 
+              cacheStatus: 'stale',
+              error: null 
+            })
+            // Continue to fetch fresh data below
           }
         }
 
@@ -199,11 +220,23 @@ export const useClubStore = create<ClubStore>()(
           }
         } catch (error) {
           console.error('💥 ClubStore: Network error:', error)
-          set({ 
-            error: 'Kulüpler yüklenemedi', 
-            isLoading: false,
-            cacheStatus: state.clubs.length > 0 ? 'stale' : 'empty'
-          })
+          
+          // Smart error handling - keep existing data if available
+          const existingClubs = state.clubs
+          if (existingClubs.length > 0) {
+            console.log('🔄 ClubStore: Network error, keeping existing data as stale')
+            set({ 
+              isLoading: false,
+              cacheStatus: 'stale',
+              error: 'Bağlantı sorunu - eski veriler gösteriliyor'
+            })
+          } else {
+            set({ 
+              error: 'Kulüpler yüklenemedi - internet bağlantınızı kontrol edin', 
+              isLoading: false,
+              cacheStatus: 'empty'
+            })
+          }
         }
       },
 
@@ -257,14 +290,14 @@ export const useClubStore = create<ClubStore>()(
         }
       },
 
-      // 🚀 PERFORMANCE: Background sync for fresh data
+      // 🚀 PERFORMANCE: Background sync for fresh data with retry logic
       backgroundSync: async () => {
         const state = get()
         if (state.isLoading) return
 
         console.log('🔄 ClubStore: Background sync started')
         
-       try {
+        try {
           const supabase = createClient()
           const { data, error } = await supabase
             .from('clubs')
@@ -290,20 +323,26 @@ export const useClubStore = create<ClubStore>()(
             const newIds = normalizedData.map((c: Club) => c.id).sort()
             
             if (JSON.stringify(currentIds) !== JSON.stringify(newIds)) {
-              console.log('🔄 ClubStore: Background sync found changes')
+              console.log('🔄 ClubStore: Background sync found changes, updating UI')
               set({ 
                 clubs: normalizedData,
                 lastFetched: Date.now(),
-                cacheStatus: 'fresh'
+                cacheStatus: 'fresh',
+                error: null
               })
             } else {
-              console.log('✅ ClubStore: Background sync - no changes')
-              set({ cacheStatus: 'fresh' })
+              console.log('✅ ClubStore: Background sync - no changes, updating cache status')
+              set({ 
+                cacheStatus: 'fresh',
+                lastFetched: Date.now(),
+                error: null
+              })
             }
           }
         } catch (error) {
           console.error('⚠️ ClubStore: Background sync failed:', error)
-          // Don't update error state for background sync failures
+          // For background sync failures, don't change cache status
+          // The data remains stale but still usable
         }
       },
 
@@ -335,17 +374,24 @@ export const useClubStore = create<ClubStore>()(
       skipHydration: false,
       onRehydrateStorage: () => (state) => {
         if (state) {
-          // Check if persisted data is stale
-          const isStale = state.lastFetched && 
-            (Date.now() - state.lastFetched > CACHE_TTL)
+          // Check if persisted data is stale but still usable
+          const age = state.lastFetched ? Date.now() - state.lastFetched : Infinity
+          const isStale = age > STALE_THRESHOLD
+          const isVeryStale = age > CACHE_TTL
           
-          if (isStale) {
-            state.cacheStatus = 'stale'
+          if (isVeryStale) {
+            state.cacheStatus = 'empty' // Force fresh fetch
+            state.clubs = [] // Clear very old data
+          } else if (isStale) {
+            state.cacheStatus = 'stale' // Use stale data but trigger refresh
+          } else {
+            state.cacheStatus = 'fresh'
           }
           
           console.log('🏢 ClubStore: Rehydrated from localStorage', {
             clubsCount: state.clubs.length,
-            cacheStatus: state.cacheStatus
+            cacheStatus: state.cacheStatus,
+            age: Math.round(age / 1000) + 's'
           })
         }
       }

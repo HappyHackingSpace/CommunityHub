@@ -304,24 +304,32 @@ const Sidebar = memo(() => {
 
     const now = Date.now()
     const timeSinceLastFetch = now - lastFetchRef.current
-    const shouldFetch = clubs.length === 0 && 
+    const shouldFetch = (clubs.length === 0 || cacheStatus === 'empty') && 
                        !isLoading && 
-                       cacheStatus === 'empty' &&
                        timeSinceLastFetch > 1000 // Prevent rapid refetches
 
+    // Always show stale data immediately if available
+    if (cacheStatus === 'stale' && clubs.length > 0) {
+      console.log('📊 Sidebar: Showing stale data while fresh data loads')
+      // Don't fetch again if we already have stale data showing
+      return
+    }
+
     if (shouldFetch && retryCountRef.current < MAX_RETRIES) {
-      console.log('🏢 Sidebar: Fetching clubs (smart fetch)')
+      console.log('🏢 Sidebar: Fetching clubs (smart fetch)', { cacheStatus, clubsLength: clubs.length })
       lastFetchRef.current = now
       retryCountRef.current++
       
       fetchClubs().catch(error => {
         console.error('🏢 Sidebar: Fetch failed, will retry with backoff')
-        // Exponential backoff retry
-        setTimeout(() => {
-          if (retryCountRef.current < MAX_RETRIES) {
-            fetchClubs()
-          }
-        }, Math.pow(2, retryCountRef.current) * 1000)
+        // Exponential backoff retry only if no data available
+        if (clubs.length === 0) {
+          setTimeout(() => {
+            if (retryCountRef.current < MAX_RETRIES) {
+              fetchClubs()
+            }
+          }, Math.pow(2, retryCountRef.current) * 1000)
+        }
       })
     }
 
@@ -385,6 +393,9 @@ const Sidebar = memo(() => {
             {isLoading && (
               <div className="ml-2 w-3 h-3 border border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
             )}
+            {cacheStatus === 'stale' && !isLoading && (
+              <div className="ml-2 w-2 h-2 bg-yellow-400 rounded-full" title="Veriler güncellenebilir"></div>
+            )}
           </h3>
           {(isAdmin || isLeader) && (
             <Link href="/clubs?action=create">
@@ -404,12 +415,12 @@ const Sidebar = memo(() => {
           onRetry={handleRetry}
         />
 
-        {/* 🚀 PERFORMANCE: Error state with retry */}
+        {/* 🚀 PERFORMANCE: Error state with retry and better messaging */}
         {!isLoading && userClubs.length === 0 && clubs.length === 0 && (
           <div className="text-center py-4">
             <p className="text-xs text-gray-500 mb-2">
               {retryCountRef.current >= MAX_RETRIES 
-                ? 'Kulüpler yüklenemedi'
+                ? 'Bağlantı sorunu - Kulüpler yüklenemedi'
                 : 'Kulüpler yükleniyor...'
               }
             </p>
@@ -422,6 +433,15 @@ const Sidebar = memo(() => {
                 Tekrar dene
               </button>
             )}
+          </div>
+        )}
+
+        {/* Show stale data indicator */}
+        {cacheStatus === 'stale' && userClubs.length > 0 && !isLoading && (
+          <div className="text-center py-2">
+            <p className="text-xs text-yellow-600">
+              Veriler güncellenebilir olabilir
+            </p>
           </div>
         )}
       </div>
