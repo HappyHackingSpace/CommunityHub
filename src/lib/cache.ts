@@ -330,28 +330,24 @@ export class AppCacheManager {
     return { data: null, isStale: false };
   }
 
-  // 🚀 Club cache methods
-  setClubs(clubs: any[], ttl = 5 * 60 * 1000): void {
+ setClubs(clubs: any[], ttl = 5 * 60 * 1000): void {
     clubCache.set('all_clubs', clubs, ttl);
     this.persistentCache.set('all_clubs', clubs, ttl);
   }
-
   getClubs(): { data: any[] | null; isStale: boolean } {
     const memory = clubCache.get<any[]>('all_clubs');
     if (memory.exists && !memory.isStale) {
       return { data: memory.data, isStale: false };
     }
-
     const persistent = this.persistentCache.get<any[]>('all_clubs');
     if (persistent.data) {
       clubCache.set('all_clubs', persistent.data);
       return { data: persistent.data, isStale: persistent.isStale };
     }
-
     return { data: null, isStale: false };
   }
-
-   setTasks(tasks: any[], ttl = 2 * 60 * 1000): void {
+  // 🚀 Task cache methods
+  setTasks(tasks: any[], ttl = 2 * 60 * 1000): void {
     taskCache.set('all_tasks', tasks, ttl);
     this.persistentCache.set('all_tasks', tasks, ttl);
   }
