@@ -351,6 +351,23 @@ export class AppCacheManager {
     return { data: null, isStale: false };
   }
 
+   setTasks(tasks: any[], ttl = 2 * 60 * 1000): void {
+    taskCache.set('all_tasks', tasks, ttl);
+    this.persistentCache.set('all_tasks', tasks, ttl);
+  }
+  getTasks(): { data: any[] | null; isStale: boolean } {
+    const memory = taskCache.get<any[]>('all_tasks');
+    if (memory.exists && !memory.isStale) {
+      return { data: memory.data, isStale: false };
+    }
+    const persistent = this.persistentCache.get<any[]>('all_tasks');
+    if (persistent.data) {
+      taskCache.set('all_tasks', persistent.data);
+      return { data: persistent.data, isStale: persistent.isStale };
+    }
+    return { data: null, isStale: false };
+  }
+
   // 🚀 Clear all caches
   clearAll(): void {
     authCache.clear();
