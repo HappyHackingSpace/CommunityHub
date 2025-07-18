@@ -4,7 +4,8 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useClubStore } from '@/store';
 import { useNotificationStore } from '@/store/notificationStore';
-import { useEffect, useRef, memo, useCallback } from 'react';
+import { useEffect, useRef, memo, useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { usePerformanceMonitor, useNetworkStatus } from '@/hooks/usePerformance';
 import { setupCacheCleanup } from '@/lib/cache';
 import Sidebar from './Sidebar';
@@ -107,7 +108,7 @@ function MainLayout({ children }: MainLayoutProps) {
     }
   }, [isOnline, connectionType, isAuthenticated, user, fetchClubs]);
 
-  // ✅ FIX: Better auth state handling
+  // ✅ FIX: Simple loading state for initialization
   if (!initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -119,20 +120,8 @@ function MainLayout({ children }: MainLayoutProps) {
     );
   }
 
-  // ✅ FIX: Let middleware handle redirects, show loading for auth checks
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Giriş kontrol ediliyor...</p>
-          <p className="text-xs text-gray-400 mt-2">
-            Bu ekran 3 saniyeden fazla kalırsa sayfayı yenileyin
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // AuthRedirect component will handle authentication redirects,
+  // so MainLayout only needs to worry about rendering the layout
 
   return (
     <>
@@ -284,6 +273,7 @@ function MainLayoutWithContext({ children }: MainLayoutProps) {
       cacheStatus={cacheStatus}
     >
       <MainLayout>{children}</MainLayout>
+      <CacheDebugPanel />
     </LayoutProvider>
   );
 }

@@ -172,7 +172,7 @@ const ClubsList = memo(({
     }
   }, [handleScroll])
 
-  if (isLoading) {
+  if (isLoading && userClubs.length === 0) {
     return (
       <div className="space-y-2">
         {[1, 2, 3].map(i => (
@@ -185,14 +185,7 @@ const ClubsList = memo(({
   }
 
   if (userClubs.length === 0) {
-    return (
-      <div className="text-center py-4">
-        <p className="text-xs text-gray-500 mb-2">Henüz kulüp üyeliğiniz yok</p>
-        <Link href="/clubs" className="text-xs text-blue-600 hover:underline">
-          Kulüplere gözat →
-        </Link>
-      </div>
-    )
+    return null // Let parent handle empty state
   }
 
   const visibleClubs = userClubs.slice(visibleRange.start, visibleRange.end)
@@ -304,16 +297,11 @@ const Sidebar = memo(() => {
 
     const now = Date.now()
     const timeSinceLastFetch = now - lastFetchRef.current
-    const shouldFetch = (clubs.length === 0 || cacheStatus === 'empty') && 
+    
+    // Only fetch if we have no clubs and not currently loading
+    const shouldFetch = clubs.length === 0 && 
                        !isLoading && 
                        timeSinceLastFetch > 1000 // Prevent rapid refetches
-
-    // Always show stale data immediately if available
-    if (cacheStatus === 'stale' && clubs.length > 0) {
-      console.log('📊 Sidebar: Showing stale data while fresh data loads')
-      // Don't fetch again if we already have stale data showing
-      return
-    }
 
     if (shouldFetch && retryCountRef.current < MAX_RETRIES) {
       console.log('🏢 Sidebar: Fetching clubs (smart fetch)', { cacheStatus, clubsLength: clubs.length })
@@ -419,20 +407,25 @@ const Sidebar = memo(() => {
         {!isLoading && userClubs.length === 0 && clubs.length === 0 && (
           <div className="text-center py-4">
             <p className="text-xs text-gray-500 mb-2">
-              {retryCountRef.current >= MAX_RETRIES 
-                ? 'Bağlantı sorunu - Kulüpler yüklenemedi'
-                : 'Kulüpler yükleniyor...'
-              }
+              Kulüp verisi yok
             </p>
-            {retryCountRef.current < MAX_RETRIES && (
-              <button 
-                onClick={handleRetry}
-                className="text-xs text-blue-600 hover:underline"
-                disabled={isLoading}
-              >
-                Tekrar dene
-              </button>
-            )}
+            <button 
+              onClick={handleRetry}
+              className="text-xs text-blue-600 hover:underline"
+              disabled={isLoading}
+            >
+              Yenile
+            </button>
+          </div>
+        )}
+
+        {/* Show when user has no club memberships but clubs exist */}
+        {!isLoading && userClubs.length === 0 && clubs.length > 0 && (
+          <div className="text-center py-4">
+            <p className="text-xs text-gray-500 mb-2">Henüz kulüp üyeliğiniz yok</p>
+            <Link href="/clubs" className="text-xs text-blue-600 hover:underline">
+              Kulüplere gözat →
+            </Link>
           </div>
         )}
 
