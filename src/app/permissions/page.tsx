@@ -2,8 +2,19 @@
 import PermissionManager from '@/components/admin/PermissionManager';
 import MainLayout from '@/components/layout/MainLayout';
 import PermissionGuard from '@/components/admin/PermissionGuard';
+import { createClient } from '@/utils/supabase/server';
+import { redirect } from 'next/navigation';
 
-export default function PermissionsPage() {
+export default async function PermissionsPage() {
+  // 🔒 Server-side authentication check
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  // Redirect to login if not authenticated
+  if (!user || error) {
+    redirect('/login');
+  }
+
   return (
     <MainLayout>
       <PermissionGuard requiredRole="admin">
