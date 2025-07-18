@@ -248,15 +248,16 @@ const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | 
         sessionManager.clearCache()
         stateManager.reset()
         
-        // 🔥 SAFE REDIRECT: Only if not already on public route
+        // 🔥 IMMEDIATE REDIRECT: Force immediate navigation to login
         if (typeof window !== 'undefined') {
           const currentPath = window.location.pathname
           const publicRoutes = ['/login', '/register', '/auth/confirm']
           const isOnPublicRoute = publicRoutes.some(route => currentPath.startsWith(route))
           
           if (!isOnPublicRoute) {
-            console.log('🔄 Auth: Redirecting to login from:', currentPath)
-            router.push('/login')
+            console.log('🔄 Auth: Signed out - immediate redirect from:', currentPath)
+            // Use replace instead of push for cleaner history
+            window.location.replace('/login')
           }
         }
         
@@ -367,17 +368,16 @@ const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | 
       
       await supabase.auth.signOut()
       
-      // Force navigation after signout
-      setTimeout(() => {
-        window.location.href = '/login'
-      }, 100)
+      // ✅ FIX: Immediate navigation after signout
+      console.log('✅ Auth: Logout successful, redirecting immediately')
+      window.location.replace('/login')
       
     } catch (error) {
       console.error('💥 Auth: Logout error:', error)
       // Force logout even on error
       sessionManager.clearCache()
       stateManager.reset()
-      window.location.href = '/login'
+      window.location.replace('/login')
     }
   }, [supabase])
 

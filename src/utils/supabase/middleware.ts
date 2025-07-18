@@ -36,13 +36,24 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    !request.nextUrl.pathname.startsWith('/register')
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
+  // ✅ FIX: Handle both authentication states
+  const currentPath = request.nextUrl.pathname
+  const isLoginPage = currentPath.startsWith('/login')
+  const isAuthPage = currentPath.startsWith('/auth')
+  const isRegisterPage = currentPath.startsWith('/register')
+  const isPublicRoute = isLoginPage || isAuthPage || isRegisterPage
+
+  // If user is authenticated and trying to access login page, redirect to dashboard
+  if (user && isLoginPage) {
+    console.log('🔄 Middleware: Authenticated user accessing login, redirecting to dashboard')
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
+  }
+
+  // If user is not authenticated and trying to access protected routes, redirect to login
+  if (!user && !isPublicRoute) {
+    console.log('🔄 Middleware: Unauthenticated user accessing protected route, redirecting to login')
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
