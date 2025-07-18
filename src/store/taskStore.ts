@@ -14,6 +14,7 @@ interface TaskStore {
   error: string | null;
   lastFetched: number | null;
   cacheStatus: 'fresh' | 'stale' | 'empty';
+  retryCount: number;
   
   // Actions
   setTasks: (tasks: Task[]) => void;
@@ -66,6 +67,7 @@ export const useTaskStore = create<TaskStore>()(
       error: null,
       lastFetched: null,
       cacheStatus: 'empty',
+      retryCount: 0,
 
       setTasks: (tasks) => {
         const cacheKey = getCacheKey();
@@ -209,8 +211,10 @@ export const useTaskStore = create<TaskStore>()(
           if (existingTasks.length > 0) {
             // Retry after 5 seconds for stale data
             setTimeout(() => {
+          
               const retryState = get();
-              if (retryState.cacheStatus === 'stale' && !retryState.isLoading) {
+             if (retryState.cacheStatus === 'stale' && !retryState.isLoading && retryState.retryCount < 3) {
+               set({ retryCount: retryState.retryCount + 1 });
                 console.log('🔄 TaskStore: Auto-retry after error');
                 retryState.fetchTasks(clubId, true);
               }
