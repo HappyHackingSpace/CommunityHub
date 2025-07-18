@@ -23,7 +23,7 @@ Modern web application for club management and community organization.
 
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone https://github.com/HappyHackingSpace/CommunityHub.git
 cd community-platform
 
 # Install dependencies
