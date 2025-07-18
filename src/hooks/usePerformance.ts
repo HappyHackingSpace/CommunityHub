@@ -90,13 +90,17 @@ export function useThrottledCallback<T extends (...args: any[]) => any>(
   delay: number
 ): T {
   const lastCall = useRef(0);
+  const lastResult = useRef<ReturnType<T> | undefined>(undefined);
   
   return useCallback((...args: Parameters<T>) => {
     const now = Date.now();
     if (now - lastCall.current >= delay) {
       lastCall.current = now;
-      return callback(...args);
+      const result = callback(...args);
+      lastResult.current = result;
+      return result;
     }
+    return lastResult.current;
   }, [callback, delay]) as T;
 }
 
