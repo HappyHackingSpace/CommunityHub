@@ -55,8 +55,13 @@ export default function Header() {
   const hasStaleData = taskCacheStatus === 'stale' || clubCacheStatus === 'stale' || meetingCacheStatus === 'stale';
   const isRefreshing = taskIsLoading || clubIsLoading || meetingIsLoading;
 
-  const handleRefreshAll = async () => {
-    await forceRefreshAll();
+   const handleRefreshAll = async () => {
+    try {
+      await forceRefreshAll();
+    } catch (error) {
+      console.error('Failed to refresh cache:', error);
+     
+    }
   };
 
   return (
