@@ -16,6 +16,9 @@ export class GlobalCacheManager {
   private refreshIntervals: Map<string, NodeJS.Timeout> = new Map();
   private retryAttempts: Map<string, number> = new Map();
   private isOnline: boolean = true;
+   private onlineHandler: () => void;
+  private offlineHandler: () => void;
+  private visibilityHandler: () => void;
 
   private constructor(config: Partial<CacheManagerConfig> = {}) {
     this.config = {
@@ -26,9 +29,28 @@ export class GlobalCacheManager {
       ...config
     };
 
+     this.onlineHandler = () => {
+      console.log('🌐 GlobalCacheManager: Network reconnected');
+      this.isOnline = true;
+      this.refreshAllStaleData();
+    };
+    this.offlineHandler = () => {
+      console.log('📴 GlobalCacheManager: Network disconnected');
+      this.isOnline = false;
+      this.stopAllAutoRefresh();
+    };
+    this.visibilityHandler = () => {
+      if (document.visibilityState === 'visible' && this.isOnline) {
+        console.log('👁️ GlobalCacheManager: Tab became visible, checking stale data');
+        this.refreshAllStaleData();
+      }
+    };
+
     this.setupNetworkMonitoring();
     this.setupVisibilityHandling();
   }
+
+
 
   static getInstance(config?: Partial<CacheManagerConfig>): GlobalCacheManager {
     if (!GlobalCacheManager.instance) {
@@ -41,30 +63,16 @@ export class GlobalCacheManager {
   private setupNetworkMonitoring(): void {
     if (typeof window !== 'undefined') {
       this.isOnline = navigator.onLine;
-      
-      window.addEventListener('online', () => {
-        console.log('🌐 GlobalCacheManager: Network reconnected');
-        this.isOnline = true;
-        this.refreshAllStaleData();
-      });
 
-      window.addEventListener('offline', () => {
-        console.log('📴 GlobalCacheManager: Network disconnected');
-        this.isOnline = false;
-        this.stopAllAutoRefresh();
-      });
+      window.addEventListener('online', this.onlineHandler);
+      window.addEventListener('offline', this.offlineHandler);
     }
   }
 
   // 🚀 VISIBILITY HANDLING: Refresh when tab becomes visible
   private setupVisibilityHandling(): void {
     if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && this.isOnline) {
-          console.log('👁️ GlobalCacheManager: Tab became visible, checking stale data');
-          this.refreshAllStaleData();
-        }
-      });
+     document.addEventListener('visibilitychange', this.visibilityHandler);
     }
   }
 
@@ -233,12 +241,12 @@ export class GlobalCacheManager {
     this.retryAttempts.clear();
     
     if (typeof window !== 'undefined') {
-      window.removeEventListener('online', this.refreshAllStaleData);
-      window.removeEventListener('offline', this.stopAllAutoRefresh);
+      window.removeEventListener('online', this.onlineHandler);
+      window.removeEventListener('offline', this.offlineHandler);
     }
     
     if (typeof document !== 'undefined') {
-      document.removeEventListener('visibilitychange', this.refreshAllStaleData);
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
     }
   }
 }
