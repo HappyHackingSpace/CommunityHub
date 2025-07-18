@@ -37,7 +37,7 @@ function MainLayout({ children }: MainLayoutProps) {
   }, []);
 
   // 🚀 PERFORMANCE: Smart data fetching with network awareness
-  const fetchInitialData = useCallback(async () => {
+   const fetchInitialData = useCallback(async () => {
     if (!isAuthenticated || !user || dataFetchedRef.current) return;
     console.log('🔄 MainLayout: Starting initial data fetch');
     const startTime = performance.now();
