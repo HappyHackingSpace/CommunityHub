@@ -1,7 +1,9 @@
 import MainLayout from '@/components/layout/MainLayout';
+import AuthRedirect from '@/components/auth/AuthRedirect';
 
 export default function DashboardPage() {
   return (
+    <AuthRedirect redirectType="unauthenticated">
       <MainLayout>
         <div className="space-y-6">
           <div>
@@ -52,5 +54,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </MainLayout>
+    </AuthRedirect>
   );
 }

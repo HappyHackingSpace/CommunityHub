@@ -1,21 +1,35 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useClubStore } from '@/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Users, Calendar, CheckSquare, Plus } from 'lucide-react';
+import { Users, Calendar, CheckSquare, Plus, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ClubList() {
   const { user, isAdmin, isLeader } = useAuth();
-  const { clubs, isLoading, fetchClubs } = useClubStore();
+  const { clubs, isLoading, error, fetchClubs, cacheStatus } = useClubStore();
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   useEffect(() => {
     fetchClubs();
   }, [fetchClubs]);
+
+  // Loading timeout mechanism
+  useEffect(() => {
+    if (isLoading) {
+      const timer = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 10000); // 10 seconds timeout
+
+      return () => clearTimeout(timer);
+    } else {
+      setLoadingTimeout(false);
+    }
+  }, [isLoading]);
 
   // Tüm kulüpleri göster
   const displayClubs = clubs;
@@ -38,21 +52,87 @@ export default function ClubList() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !clubs.length) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...Array(6)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Kulüpler</h1>
+            <p className="text-gray-600">Kulüpler yükleniyor...</p>
+          </div>
+        </div>
+
+        {loadingTimeout ? (
+          <div className="text-center py-12">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-md mx-auto">
+              <h3 className="text-lg font-medium text-yellow-800 mb-2">
+                Yükleme uzun sürüyor
+              </h3>
+              <p className="text-yellow-700 mb-4">
+                Kulüpler yüklenirken bir sorun oluşmuş olabilir. Sayfayı yeniden deneyin.
+              </p>
+              <Button 
+                onClick={() => {
+                  setLoadingTimeout(false);
+                  fetchClubs(true);
+                }}
+                variant="outline"
+                className="border-yellow-300 text-yellow-800 hover:bg-yellow-100"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Yeniden Dene
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardHeader>
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Show error if there's an error and no clubs loaded
+  if (error && !clubs.length) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Kulüpler</h1>
+            <p className="text-gray-600">Kulüpler yüklenirken hata oluştu</p>
+          </div>
+        </div>
+
+        <div className="text-center py-12">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+            <h3 className="text-lg font-medium text-red-800 mb-2">
+              Yükleme Hatası
+            </h3>
+            <p className="text-red-700 mb-4">
+              {error}
+            </p>
+            <Button 
+              onClick={() => fetchClubs(true)}
+              variant="outline"
+              className="border-red-300 text-red-800 hover:bg-red-100"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Yeniden Dene
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
