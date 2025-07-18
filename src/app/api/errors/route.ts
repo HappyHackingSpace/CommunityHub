@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/utils/supabase/server'
 
 interface ErrorReport {
   errorId: string
@@ -34,56 +35,30 @@ export async function POST(request: NextRequest) {
       retryCount: errorData.retryCount
     })
 
-    // TODO: Forward to error tracking service
-    // Examples of error tracking services you can integrate:
-    
-    // Option 1: Sentry
-    // if (process.env.SENTRY_DSN) {
-    //   const Sentry = require('@sentry/nextjs')
-    //   Sentry.captureException(new Error(errorData.message), {
-    //     tags: {
-    //       errorId: errorData.errorId,
-    //       userId: errorData.userId,
-    //     },
-    //     extra: {
-    //       stack: errorData.stack,
-    //       componentStack: errorData.componentStack,
-    //       url: errorData.url,
-    //       userAgent: errorData.userAgent,
-    //       retryCount: errorData.retryCount,
-    //     }
-    //   })
-    // }
+    // Store error in Supabase for tracking and analysis
+    try {
+      const supabase = await createClient()
+      
+      const { error: dbError } = await supabase.from('error_logs').insert({
+        error_id: errorData.errorId,
+        message: errorData.message,
+        stack: errorData.stack,
+        component_stack: errorData.componentStack,
+        timestamp: new Date(errorData.timestamp).toISOString(),
+        url: errorData.url,
+        user_agent: errorData.userAgent,
+        user_id: errorData.userId,
+        retry_count: errorData.retryCount,
+        created_at: new Date().toISOString()
+      })
 
-    // Option 2: LogRocket
-    // if (process.env.LOGROCKET_APP_ID) {
-    //   // LogRocket typically handles errors client-side
-    //   // but you can use their API to send server-side data
-    // }
-
-    // Option 3: Custom logging service (e.g., database, external API)
-    // await saveErrorToDatabase(errorData)
-    // await sendToExternalService(errorData)
-
-    // Option 4: Store in Supabase (since the project uses Supabase)
-    // const { createClient } = require('@supabase/supabase-js')
-    // const supabase = createClient(
-    //   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    //   process.env.SUPABASE_SERVICE_ROLE_KEY!
-    // )
-    // 
-    // await supabase.from('error_logs').insert({
-    //   error_id: errorData.errorId,
-    //   message: errorData.message,
-    //   stack: errorData.stack,
-    //   component_stack: errorData.componentStack,
-    //   timestamp: new Date(errorData.timestamp).toISOString(),
-    //   url: errorData.url,
-    //   user_agent: errorData.userAgent,
-    //   user_id: errorData.userId,
-    //   retry_count: errorData.retryCount,
-    //   created_at: new Date().toISOString()
-    // })
+      if (dbError) {
+        console.error('Failed to store error in database:', dbError)
+      }
+    } catch (dbError) {
+      console.error('Database connection failed:', dbError)
+      // Continue processing even if database storage fails
+    }
 
     return NextResponse.json(
       { 
