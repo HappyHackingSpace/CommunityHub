@@ -39,33 +39,34 @@ function MainLayout({ children }: MainLayoutProps) {
   // 🚀 PERFORMANCE: Smart data fetching with network awareness
   const fetchInitialData = useCallback(async () => {
     if (!isAuthenticated || !user || dataFetchedRef.current) return;
-
     console.log('🔄 MainLayout: Starting initial data fetch');
-    const endMeasure = performance.now();
-
+    const startTime = performance.now();
     try {
       // 🚀 PERFORMANCE: Parallel data fetching
       const fetchPromises = [];
-
       // Fetch clubs only if empty or stale
       if (clubs.length === 0 || cacheStatus === 'empty') {
         console.log('📊 MainLayout: Fetching clubs');
         fetchPromises.push(fetchClubs());
       }
-
       // Fetch notifications only if empty
       if (notifications.length === 0) {
         console.log('📊 MainLayout: Fetching notifications');
         fetchPromises.push(fetchNotifications(user.id));
       }
-
       // Execute all fetches in parallel
       if (fetchPromises.length > 0) {
-        await Promise.allSettled(fetchPromises);
+        const results = await Promise.allSettled(fetchPromises);
+        
+        // Log any failures for debugging
+        results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            console.error(`❌ MainLayout: Fetch ${index} failed:`, result.reason);
+          }
+        });
       }
-
       dataFetchedRef.current = true;
-      const duration = performance.now() - endMeasure;
+      const duration = performance.now() - startTime;
       
       console.log(`✅ MainLayout: Initial data fetch completed in ${duration.toFixed(2)}ms`);
     } catch (error) {
@@ -238,21 +239,31 @@ export function useLayoutContext() {
   return context;
 }
 
-function LayoutProvider({ children, isOnline, connectionType, cacheStatus }: any) {
+interface LayoutProviderProps {
+  children: React.ReactNode;
+  isOnline: boolean;
+  connectionType: string;
+  cacheStatus: string;
+}
+function LayoutProvider(
+  { children, isOnline, connectionType, cacheStatus }: LayoutProviderProps
+) {
   const contextValue = useMemo(() => {
-    const performanceMode: 'fast' | 'normal' | 'slow' = 
-      !isOnline ? 'slow' :
-      connectionType === 'slow-2g' || connectionType === '2g' ? 'slow' :
-      connectionType === '3g' ? 'normal' : 'fast';
-
+    const performanceMode: 'fast' | 'normal' | 'slow' =
+      !isOnline
+        ? 'slow'
+        : connectionType === 'slow-2g' || connectionType === '2g'
+        ? 'slow'
+        : connectionType === '3g'
+        ? 'normal'
+        : 'fast';
     return {
       isOnline,
       connectionType,
       cacheStatus,
-      performanceMode
+      performanceMode,
     };
   }, [isOnline, connectionType, cacheStatus]);
-
   return (
     <LayoutContext.Provider value={contextValue}>
       {children}
