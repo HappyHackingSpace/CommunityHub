@@ -25,6 +25,9 @@ interface TaskStore {
   fetchTasks: (clubId?: string, force?: boolean) => Promise<void>;
   fetchTasksByUser: (userId: string, force?: boolean) => Promise<void>;
   clearCache: () => void;
+  backgroundSync: (clubId?: string, userId?: string) => Promise<void>;
+  refreshIfStale: (clubId?: string, userId?: string) => Promise<void>;
+  invalidateCache: () => void;
 }
 
 // Cache configuration
@@ -107,10 +110,11 @@ export const useTaskStore = create<TaskStore>()(
 
         console.log('📋 TaskStore.fetchTasks called', { force, clubId, currentCount: state.tasks.length });
 
-        // Check cache first
+        // Check cache first (only if not forced)
         if (!force) {
           const { tasks: cachedTasks, isStale, isVeryStale } = getCachedTasks(cacheKey);
           
+          // Return fresh cache immediately
           if (cachedTasks && !isStale) {
             console.log('✅ TaskStore: Using fresh cache');
             set({ 
@@ -121,27 +125,49 @@ export const useTaskStore = create<TaskStore>()(
             return;
           }
           
+          // For stale cache: return stale data but ALWAYS fetch fresh data
           if (cachedTasks && isStale && !isVeryStale) {
-            console.log('⚠️ TaskStore: Using stale cache');
+            console.log('⚠️ TaskStore: Using stale cache, fetching fresh data...');
             set({ 
               tasks: cachedTasks, 
               cacheStatus: 'stale',
-              error: null 
+              error: null,
+              isLoading: true // Show loading indicator for fresh data
             });
-            // Continue to fetch fresh data
+            // Continue to fetch fresh data below
+          } else if (!cachedTasks || isVeryStale) {
+            // No cache or very stale - show loading
+            set({ isLoading: true, error: null, cacheStatus: 'empty' });
           }
+        } else {
+          // Force refresh - always show loading
+          set({ isLoading: true, error: null });
         }
 
-        if (state.isLoading && !force) return;
+        // Prevent duplicate requests (unless forced)
+        if (state.isLoading && !force && state.cacheStatus !== 'stale') return;
 
-        set({ isLoading: true, error: null });
-        
         try {
           const url = clubId ? `/api/tasks?clubId=${clubId}` : '/api/tasks';
-          const response = await fetch(url);
+          console.log('🌐 TaskStore: Fetching from API:', url);
+          
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            // Add timeout to prevent hanging
+            signal: AbortSignal.timeout(10000) // 10 second timeout
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
           const result = await response.json();
           
           if (result.success) {
+            console.log('✅ TaskStore: Fresh data fetched successfully', { count: result.data.length });
             setCachedTasks(cacheKey, result.data);
             set({ 
               tasks: result.data, 
@@ -151,24 +177,44 @@ export const useTaskStore = create<TaskStore>()(
               error: null
             });
           } else {
-            throw new Error(result.error);
+            throw new Error(result.error || 'API returned unsuccessful response');
           }
         } catch (error) {
           console.error('💥 TaskStore: Network error:', error);
           
-          const existingTasks = state.tasks;
+          const currentState = get();
+          const existingTasks = currentState.tasks;
+          
+          // If we have existing data (even stale), keep showing it with error message
           if (existingTasks.length > 0) {
             set({ 
               isLoading: false,
               cacheStatus: 'stale',
-              error: 'Bağlantı sorunu - eski veriler gösteriliyor'
+              error: error instanceof Error && error.name === 'AbortError' 
+                ? 'Bağlantı zaman aşımı - eski veriler gösteriliyor'
+                : 'Bağlantı sorunu - eski veriler gösteriliyor'
             });
           } else {
+            // No existing data - show error state
             set({ 
-              error: 'Görevler yüklenemedi - internet bağlantınızı kontrol edin', 
+              error: error instanceof Error && error.name === 'AbortError'
+                ? 'Bağlantı zaman aşımı - sayfayı yeniden deneyin'
+                : 'Görevler yüklenemedi - internet bağlantınızı kontrol edin', 
               isLoading: false,
               cacheStatus: 'empty'
             });
+          }
+          
+          // Retry mechanism for stale data scenarios
+          if (existingTasks.length > 0) {
+            // Retry after 5 seconds for stale data
+            setTimeout(() => {
+              const retryState = get();
+              if (retryState.cacheStatus === 'stale' && !retryState.isLoading) {
+                console.log('🔄 TaskStore: Auto-retry after error');
+                retryState.fetchTasks(clubId, true);
+              }
+            }, 5000);
           }
         }
       },
@@ -177,11 +223,15 @@ export const useTaskStore = create<TaskStore>()(
         const state = get();
         const cacheKey = getCacheKey(undefined, userId);
 
-        // Check cache first
+        console.log('📋 TaskStore.fetchTasksByUser called', { force, userId });
+
+        // Check cache first (only if not forced)
         if (!force) {
           const { tasks: cachedTasks, isStale, isVeryStale } = getCachedTasks(cacheKey);
           
+          // Return fresh cache immediately
           if (cachedTasks && !isStale) {
+            console.log('✅ TaskStore: Using fresh user cache');
             set({ 
               tasks: cachedTasks, 
               cacheStatus: 'fresh',
@@ -190,24 +240,49 @@ export const useTaskStore = create<TaskStore>()(
             return;
           }
           
+          // For stale cache: return stale data but ALWAYS fetch fresh data
           if (cachedTasks && isStale && !isVeryStale) {
+            console.log('⚠️ TaskStore: Using stale user cache, fetching fresh data...');
             set({ 
               tasks: cachedTasks, 
               cacheStatus: 'stale',
-              error: null 
+              error: null,
+              isLoading: true // Show loading indicator for fresh data
             });
+            // Continue to fetch fresh data below
+          } else if (!cachedTasks || isVeryStale) {
+            // No cache or very stale - show loading
+            set({ isLoading: true, error: null, cacheStatus: 'empty' });
           }
+        } else {
+          // Force refresh - always show loading
+          set({ isLoading: true, error: null });
         }
 
-        if (state.isLoading && !force) return;
+        // Prevent duplicate requests (unless forced)
+        if (state.isLoading && !force && state.cacheStatus !== 'stale') return;
 
-        set({ isLoading: true, error: null });
-        
         try {
-          const response = await fetch(`/api/tasks?userId=${userId}`);
+          const url = `/api/tasks?userId=${userId}`;
+          console.log('🌐 TaskStore: Fetching user tasks from API:', url);
+          
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            // Add timeout to prevent hanging
+            signal: AbortSignal.timeout(10000) // 10 second timeout
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
           const result = await response.json();
           
           if (result.success) {
+            console.log('✅ TaskStore: Fresh user data fetched successfully', { count: result.data.length });
             setCachedTasks(cacheKey, result.data);
             set({ 
               tasks: result.data, 
@@ -217,24 +292,44 @@ export const useTaskStore = create<TaskStore>()(
               error: null
             });
           } else {
-            throw new Error(result.error);
+            throw new Error(result.error || 'API returned unsuccessful response');
           }
         } catch (error) {
-          console.error('💥 TaskStore: Network error:', error);
+          console.error('💥 TaskStore: Network error in fetchTasksByUser:', error);
           
-          const existingTasks = state.tasks;
+          const currentState = get();
+          const existingTasks = currentState.tasks;
+          
+          // If we have existing data (even stale), keep showing it with error message
           if (existingTasks.length > 0) {
             set({ 
               isLoading: false,
               cacheStatus: 'stale',
-              error: 'Bağlantı sorunu - eski veriler gösteriliyor'
+              error: error instanceof Error && error.name === 'AbortError' 
+                ? 'Bağlantı zaman aşımı - eski veriler gösteriliyor'
+                : 'Bağlantı sorunu - eski veriler gösteriliyor'
             });
           } else {
+            // No existing data - show error state
             set({ 
-              error: 'Görevler yüklenemedi - internet bağlantınızı kontrol edin', 
+              error: error instanceof Error && error.name === 'AbortError'
+                ? 'Bağlantı zaman aşımı - sayfayı yeniden deneyin'
+                : 'Görevler yüklenemedi - internet bağlantınızı kontrol edin', 
               isLoading: false,
               cacheStatus: 'empty'
             });
+          }
+          
+          // Retry mechanism for stale data scenarios
+          if (existingTasks.length > 0) {
+            // Retry after 5 seconds for stale data
+            setTimeout(() => {
+              const retryState = get();
+              if (retryState.cacheStatus === 'stale' && !retryState.isLoading) {
+                console.log('🔄 TaskStore: Auto-retry user tasks after error');
+                retryState.fetchTasksByUser(userId, true);
+              }
+            }, 5000);
           }
         }
       },
@@ -247,6 +342,79 @@ export const useTaskStore = create<TaskStore>()(
           error: null,
           cacheStatus: 'empty'
         });
+      },
+
+      // 🚀 PERFORMANCE: Background sync without affecting UI
+      backgroundSync: async (clubId?: string, userId?: string) => {
+        const state = get();
+        // Don't interfere if already loading
+        if (state.isLoading) return;
+
+        try {
+          console.log('🔄 TaskStore: Background sync started');
+          const url = clubId 
+            ? `/api/tasks?clubId=${clubId}` 
+            : userId 
+            ? `/api/tasks?userId=${userId}`
+            : '/api/tasks';
+            
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(8000) // Shorter timeout for background
+          });
+          
+          if (!response.ok) return; // Silently fail for background sync
+          
+          const result = await response.json();
+          if (result.success) {
+            const cacheKey = getCacheKey(clubId, userId);
+            setCachedTasks(cacheKey, result.data);
+            
+            // Only update state if data actually changed
+            const currentTasks = state.tasks;
+            const hasChanges = JSON.stringify(currentTasks) !== JSON.stringify(result.data);
+            
+            if (hasChanges) {
+              console.log('✅ TaskStore: Background sync updated data');
+              set({ 
+                tasks: result.data,
+                lastFetched: Date.now(),
+                cacheStatus: 'fresh',
+                error: null
+              });
+            }
+          }
+        } catch (error) {
+          console.warn('⚠️ TaskStore: Background sync failed silently:', error);
+          // Don't update error state for background sync failures
+        }
+      },
+
+      // 🚀 PERFORMANCE: Refresh data if cache is stale
+      refreshIfStale: async (clubId?: string, userId?: string) => {
+        const state = get();
+        const cacheKey = getCacheKey(clubId, userId);
+        const { isStale } = getCachedTasks(cacheKey);
+        
+        if (isStale || state.cacheStatus === 'stale') {
+          console.log('🔄 TaskStore: Refreshing stale cache');
+          if (userId) {
+            await state.fetchTasksByUser(userId, true);
+          } else {
+            await state.fetchTasks(clubId, true);
+          }
+        }
+      },
+
+      // 🚀 PERFORMANCE: Force cache invalidation
+      invalidateCache: () => {
+        memoryCache.clear();
+        set({ 
+          cacheStatus: 'empty',
+          lastFetched: null 
+        });
+        console.log('🗑️ TaskStore: Cache invalidated');
       },
     }),
     {
