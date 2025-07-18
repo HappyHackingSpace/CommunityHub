@@ -44,16 +44,16 @@ export default function TaskList({ clubId, userId }: TaskListProps) {
       fetchTasks(clubId, true); // Force refresh
     } else if (userId) {
       fetchTasksByUser(userId, true);
-    } else if (user) {
+    } else if (user?.id) {
       fetchTasksByUser(user.id, true);
     }
   };
 
   // Handle retry from stale state
-  const handleRetryStale = () => {
+ const handleRetryStale = () => {
     if (clubId) {
       refreshIfStale(clubId);
-    } else {
+    } else if (userId || user?.id) {
       refreshIfStale(undefined, userId || user?.id);
     }
   };
