@@ -17,6 +17,7 @@ interface ClubStore {
   error: string | null;
   lastFetched: number | null;
   cacheStatus: 'fresh' | 'stale' | 'empty';
+  retryCount: number;
   
   // Actions
   setClubs: (clubs: Club[]) => void;
@@ -38,6 +39,8 @@ const CACHE_TTL = 15 * 60 * 1000 // 15 minutes (extended from 5)
 const STALE_THRESHOLD = 10 * 60 * 1000 // 10 minutes (data is considered stale but still usable)
 const BACKGROUND_SYNC_INTERVAL = 5 * 60 * 1000 // 5 minutes (less frequent)
 const memoryCache = new Map<string, ClubCache>()
+const MAX_RETRY_ATTEMPTS = 3;
+const INITIAL_RETRY_DELAY = 2000; // 2 seconds
 
 // 🚀 PERFORMANCE: Cache utilities
 const getCacheKey = (userId?: string) => `clubs_${userId || 'all'}`
@@ -70,6 +73,7 @@ export const useClubStore = create<ClubStore>()(
       error: null,
       lastFetched: null,
       cacheStatus: 'empty',
+      retryCount: 0,
 
       setClubs: (clubs) => {
         const cacheKey = getCacheKey()
@@ -232,17 +236,30 @@ export const useClubStore = create<ClubStore>()(
               cacheStatus: 'empty'
             })
           }
+
+
           
           // Retry mechanism for stale data scenarios
           if (existingClubs.length > 0) {
-            setTimeout(() => {
-              const retryState = get()
-              if (retryState.cacheStatus === 'stale' && !retryState.isLoading) {
-                console.log('🔄 ClubStore: Auto-retry after error')
-                retryState.fetchClubs(true)
+            const currentRetryCount = get().retryCount || 0;
+            if (currentRetryCount >= MAX_RETRY_ATTEMPTS) {
+              console.log('🛑 ClubStore: Max retry attempts reached');
+               set({ retryCount: 0 });
+               return
               }
-            }, 5000)
-          }
+              const retryDelay = INITIAL_RETRY_DELAY * Math.pow(2, currentRetryCount);
+  setTimeout(() => {
+    const retryState = get();
+    if (retryState.cacheStatus === 'stale' && !retryState.isLoading) {
+      console.log(`🔄 ClubStore: Auto-retry attempt ${currentRetryCount + 1}/${MAX_RETRY_ATTEMPTS}`);
+      set({ retryCount: currentRetryCount + 1 });
+      retryState.fetchClubs(true);
+    }
+  }, retryDelay);
+} else {
+  // Reset retry count on successful fetch or when there’s no stale data
+  set({ retryCount: 0 });
+}
         }
       },
 
