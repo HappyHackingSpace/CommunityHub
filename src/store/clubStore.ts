@@ -17,6 +17,7 @@ interface ClubStore {
   error: string | null;
   lastFetched: number | null;
   cacheStatus: 'fresh' | 'stale' | 'empty';
+  retryCount: number;
   
   // Actions
   setClubs: (clubs: Club[]) => void;
@@ -38,6 +39,8 @@ const CACHE_TTL = 15 * 60 * 1000 // 15 minutes (extended from 5)
 const STALE_THRESHOLD = 10 * 60 * 1000 // 10 minutes (data is considered stale but still usable)
 const BACKGROUND_SYNC_INTERVAL = 5 * 60 * 1000 // 5 minutes (less frequent)
 const memoryCache = new Map<string, ClubCache>()
+const MAX_RETRY_ATTEMPTS = 3;
+const INITIAL_RETRY_DELAY = 2000; // 2 seconds
 
 // 🚀 PERFORMANCE: Cache utilities
 const getCacheKey = (userId?: string) => `clubs_${userId || 'all'}`
@@ -70,6 +73,7 @@ export const useClubStore = create<ClubStore>()(
       error: null,
       lastFetched: null,
       cacheStatus: 'empty',
+      retryCount: 0,
 
       setClubs: (clubs) => {
         const cacheKey = getCacheKey()
@@ -125,57 +129,45 @@ export const useClubStore = create<ClubStore>()(
         const state = get()
         const cacheKey = getCacheKey()
 
-        console.log('🏢 ClubStore.fetchClubs called', { force, currentCount: state.clubs.length, cacheStatus: state.cacheStatus })
+        console.log('🏢 ClubStore.fetchClubs called', { force, currentCount: state.clubs.length })
 
-        // 🚀 CACHE LAYER 1: Memory cache check with improved stale handling
+        // 🚀 CACHE LAYER 1: Memory cache check
         if (!force) {
           const { clubs: cachedClubs, isStale, isVeryStale } = getCachedClubs(cacheKey)
           
-          // Use fresh cache immediately
+          // Return fresh cache immediately
           if (cachedClubs && !isStale) {
-            console.log('✅ ClubStore: Using fresh memory cache')
+            console.log('✅ ClubStore: Using fresh cache')
             set({ 
               clubs: cachedClubs, 
               cacheStatus: 'fresh',
-              error: null 
+              error: null,
+              isLoading: false // Ensure loading is false
             })
             return
           }
-          
+
           // Use stale cache but trigger background refresh
           if (cachedClubs && isStale && !isVeryStale) {
-            console.log('⚠️ ClubStore: Using stale cache, triggering background refresh')
+            console.log('⚠️ ClubStore: Using stale cache, fetching fresh data...')
             set({ 
               clubs: cachedClubs, 
               cacheStatus: 'stale',
-              error: null 
+              error: null,
+              isLoading: false // Don't show loading for stale cache
             })
-            // Trigger background refresh without blocking UI
-            setTimeout(() => {
-              get().backgroundSync()
-            }, 100)
-            return
+            // Continue to fetch fresh data below but don't block UI
+          } else if (!cachedClubs || isVeryStale) {
+            // No cache or very stale - show loading
+            set({ isLoading: true, error: null, cacheStatus: 'empty' })
           }
-
-          // Use very stale cache only if no fresh data available, but show as stale
-          if (cachedClubs && isVeryStale) {
-            console.log('⚠️ ClubStore: Using very stale cache as fallback')
-            set({ 
-              clubs: cachedClubs, 
-              cacheStatus: 'stale',
-              error: null 
-            })
-            // Continue to fetch fresh data below
-          }
+        } else {
+          // Force refresh - always show loading
+          set({ isLoading: true, error: null })
         }
 
-        // 🚀 CACHE LAYER 2: Prevent duplicate requests
-        if (state.isLoading && !force) {
-          console.log('⏳ ClubStore: Already loading, skipping')
-          return
-        }
-
-        set({ isLoading: true, error: null })
+        // Prevent duplicate requests (unless forced) - but allow background refresh for stale cache
+        if (state.isLoading && !force) return
 
         try {
           console.log('🏢 ClubStore: Making Supabase query')
@@ -222,21 +214,52 @@ export const useClubStore = create<ClubStore>()(
           console.error('💥 ClubStore: Network error:', error)
           
           // Smart error handling - keep existing data if available
-          const existingClubs = state.clubs
+          const currentState = get()
+          const existingClubs = currentState.clubs
+          
+          // Always set loading to false, regardless of error type
           if (existingClubs.length > 0) {
             console.log('🔄 ClubStore: Network error, keeping existing data as stale')
             set({ 
               isLoading: false,
               cacheStatus: 'stale',
-              error: 'Bağlantı sorunu - eski veriler gösteriliyor'
+              error: error instanceof Error && error.name === 'AbortError'
+                ? 'Bağlantı zaman aşımı - eski veriler gösteriliyor'
+                : 'Bağlantı sorunu - eski veriler gösteriliyor'
             })
           } else {
             set({ 
-              error: 'Kulüpler yüklenemedi - internet bağlantınızı kontrol edin', 
-              isLoading: false,
+              error: error instanceof Error && error.name === 'AbortError'
+                ? 'Bağlantı zaman aşımı - sayfayı yeniden deneyin'
+                : 'Kulüpler yüklenemedi - internet bağlantınızı kontrol edin',
+              isLoading: false, // Crucial: Always set loading to false
               cacheStatus: 'empty'
             })
           }
+
+
+          
+          // Retry mechanism for stale data scenarios
+          if (existingClubs.length > 0) {
+            const currentRetryCount = get().retryCount || 0;
+            if (currentRetryCount >= MAX_RETRY_ATTEMPTS) {
+              console.log('🛑 ClubStore: Max retry attempts reached');
+               set({ retryCount: 0 });
+               return
+              }
+              const retryDelay = INITIAL_RETRY_DELAY * Math.pow(2, currentRetryCount);
+  setTimeout(() => {
+    const retryState = get();
+    if (retryState.cacheStatus === 'stale' && !retryState.isLoading) {
+      console.log(`🔄 ClubStore: Auto-retry attempt ${currentRetryCount + 1}/${MAX_RETRY_ATTEMPTS}`);
+      set({ retryCount: currentRetryCount + 1 });
+      retryState.fetchClubs(true);
+    }
+  }, retryDelay);
+} else {
+  // Reset retry count on successful fetch or when there’s no stale data
+  set({ retryCount: 0 });
+}
         }
       },
 

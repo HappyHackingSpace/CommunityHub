@@ -28,6 +28,9 @@ interface MeetingStore {
   fetchMeetings: (clubId?: string, userId?: string, force?: boolean) => Promise<void>;
   fetchMeetingById: (id: string) => Promise<void>;
   updateMeetingResponse: (meetingId: string, response: 'accepted' | 'declined') => Promise<void>;
+  backgroundSync: (clubId?: string, userId?: string) => Promise<void>;
+  refreshIfStale: (clubId?: string, userId?: string) => Promise<void>;
+  invalidateCache: () => void;
 }
 
 // Cache configuration
@@ -110,10 +113,11 @@ export const useMeetingStore = create<MeetingStore>()(
 
         console.log('📅 MeetingStore.fetchMeetings called', { force, clubId, userId, currentCount: state.meetings.length });
 
-        // Check cache first
+        // Check cache first (only if not forced)
         if (!force) {
           const { meetings: cachedMeetings, isStale, isVeryStale } = getCachedMeetings(cacheKey);
           
+          // Return fresh cache immediately
           if (cachedMeetings && !isStale) {
             console.log('✅ MeetingStore: Using fresh cache');
             set({ 
@@ -124,30 +128,53 @@ export const useMeetingStore = create<MeetingStore>()(
             return;
           }
           
+          // For stale cache: return stale data but ALWAYS fetch fresh data
           if (cachedMeetings && isStale && !isVeryStale) {
-            console.log('⚠️ MeetingStore: Using stale cache');
+            console.log('⚠️ MeetingStore: Using stale cache, fetching fresh data...');
             set({ 
               meetings: cachedMeetings, 
               cacheStatus: 'stale',
-              error: null 
+              error: null,
+              isLoading: true // Show loading indicator for fresh data
             });
-            // Continue to fetch fresh data
+            // Continue to fetch fresh data below
+          } else if (!cachedMeetings || isVeryStale) {
+            // No cache or very stale - show loading
+            set({ isLoading: true, error: null, cacheStatus: 'empty' });
           }
+        } else {
+          // Force refresh - always show loading
+          set({ isLoading: true, error: null });
         }
 
-        if (state.isLoading && !force) return;
+        // Prevent duplicate requests (unless forced)
+        if (state.isLoading && !force && state.cacheStatus !== 'stale') return;
 
-        set({ isLoading: true, error: null });
-        
         try {
           const params = new URLSearchParams();
           if (clubId) params.append('clubId', clubId);
           if (userId) params.append('userId', userId);
           
-          const response = await fetch(`/api/meetings?${params}`);
+          const url = `/api/meetings?${params}`;
+          console.log('🌐 MeetingStore: Fetching from API:', url);
+          
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            // Add timeout to prevent hanging
+            signal: AbortSignal.timeout(10000) // 10 second timeout
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
           const result = await response.json();
           
           if (result.success) {
+            console.log('✅ MeetingStore: Fresh data fetched successfully', { count: result.data.length });
             setCachedMeetings(cacheKey, result.data);
             set({ 
               meetings: result.data, 
@@ -157,24 +184,44 @@ export const useMeetingStore = create<MeetingStore>()(
               error: null
             });
           } else {
-            throw new Error(result.error);
+            throw new Error(result.error || 'API returned unsuccessful response');
           }
         } catch (error) {
           console.error('💥 MeetingStore: Network error:', error);
           
-          const existingMeetings = state.meetings;
+          const currentState = get();
+          const existingMeetings = currentState.meetings;
+          
+          // If we have existing data (even stale), keep showing it with error message
           if (existingMeetings.length > 0) {
             set({ 
               isLoading: false,
               cacheStatus: 'stale',
-              error: 'Bağlantı sorunu - eski veriler gösteriliyor'
+              error: error instanceof Error && error.name === 'AbortError' 
+                ? 'Bağlantı zaman aşımı - eski veriler gösteriliyor'
+                : 'Bağlantı sorunu - eski veriler gösteriliyor'
             });
           } else {
+            // No existing data - show error state
             set({ 
-              error: 'Toplantılar yüklenemedi - internet bağlantınızı kontrol edin', 
+              error: error instanceof Error && error.name === 'AbortError'
+                ? 'Bağlantı zaman aşımı - sayfayı yeniden deneyin'
+                : 'Toplantılar yüklenemedi - internet bağlantınızı kontrol edin', 
               isLoading: false,
               cacheStatus: 'empty'
             });
+          }
+          
+          // Retry mechanism for stale data scenarios
+          if (existingMeetings.length > 0) {
+            // Retry after 5 seconds for stale data
+            setTimeout(() => {
+              const retryState = get();
+              if (retryState.cacheStatus === 'stale' && !retryState.isLoading) {
+                console.log('🔄 MeetingStore: Auto-retry after error');
+                retryState.fetchMeetings(clubId, userId, true);
+              }
+            }, 5000);
           }
         }
       },
@@ -186,61 +233,168 @@ export const useMeetingStore = create<MeetingStore>()(
         // Check if meeting already exists in memory
         const existingMeeting = state.meetings.find(meeting => meeting.id === id);
         if (existingMeeting) {
-          console.log('✅ MeetingStore: Using existing meeting from memory');
+          console.log('✅ MeetingStore: Meeting already in memory');
           return;
         }
 
         set({ isLoading: true, error: null });
         
         try {
-          const response = await fetch(`/api/meetings/${id}`);
+          const response = await fetch(`/api/meetings/${id}`, {
+            signal: AbortSignal.timeout(10000)
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
           const result = await response.json();
           
           if (result.success) {
+            // Add to meetings list
             set((state) => ({
-              meetings: state.meetings.map(m => 
-                m.id === id ? result.data : m
-              ),
-              isLoading: false
+              meetings: [...state.meetings, result.data],
+              isLoading: false,
+              error: null
             }));
+            
+            // Update cache
+            const cacheKey = getCacheKey();
+            const updatedMeetings = [...state.meetings, result.data];
+            setCachedMeetings(cacheKey, updatedMeetings);
           } else {
-            throw new Error(result.error);
+            throw new Error(result.error || 'Meeting not found');
           }
         } catch (error) {
-          set({ error: 'Toplantı bilgileri yüklenemedi', isLoading: false });
+          console.error('💥 MeetingStore: Error fetching meeting by ID:', error);
+          set({ 
+            error: error instanceof Error && error.name === 'AbortError'
+              ? 'Bağlantı zaman aşımı'
+              : 'Toplantı bilgileri yüklenemedi', 
+            isLoading: false 
+          });
         }
       },
 
       updateMeetingResponse: async (meetingId: string, response: 'accepted' | 'declined') => {
+        const state = get();
+        if (state.isLoading) return;
+
+        set({ isLoading: true, error: null });
+        
         try {
-          const res = await fetch(`/api/meetings/${meetingId}/response`, {
+          const apiResponse = await fetch(`/api/meetings/${meetingId}/response`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ response })
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ response }),
+            signal: AbortSignal.timeout(10000)
           });
           
-          const result = await res.json();
+          if (!apiResponse.ok) {
+            throw new Error(`HTTP ${apiResponse.status}: ${apiResponse.statusText}`);
+          }
+          
+          const result = await apiResponse.json();
           
           if (result.success) {
-            set((state) => ({
-              meetings: state.meetings.map(meeting => {
-                if (meeting.id === meetingId) {
-                  return {
-                    ...meeting,
-                    participants: meeting.participants?.map(p =>
-                      p.userId === result.userId ? { ...p, response } : p
-                    ) || []
-                  };
-                }
-                return meeting;
-              })
-            }));
-          } else {
-            set({ error: result.error });
+  // Create updated meetings array first
+  const currentState = get();
+  const updatedMeetings = currentState.meetings.map(meeting =>
+    meeting.id === meetingId
+      ? { ...meeting, userResponse: response }
+      : meeting
+  );
+  // Update meeting in local state
+  set((state) => ({
+    meetings: updatedMeetings,
+    isLoading: false,
+    error: null
+  }));
+  // Update cache
+  const cacheKey = getCacheKey();
+  setCachedMeetings(cacheKey, updatedMeetings);
+} else {
+            throw new Error(result.error || 'Failed to update response');
           }
         } catch (error) {
-          set({ error: 'Yanıt güncellenemedi' });
+          console.error('💥 MeetingStore: Error updating meeting response:', error);
+          set({ 
+            error: error instanceof Error && error.name === 'AbortError'
+              ? 'Bağlantı zaman aşımı'
+              : 'Yanıt güncellenemedi', 
+            isLoading: false 
+          });
         }
+      },
+
+      // 🚀 PERFORMANCE: Background sync without affecting UI
+      backgroundSync: async (clubId?: string, userId?: string) => {
+        const state = get();
+        // Don't interfere if already loading
+        if (state.isLoading) return;
+
+        try {
+          console.log('🔄 MeetingStore: Background sync started');
+          const params = new URLSearchParams();
+          if (clubId) params.append('clubId', clubId);
+          if (userId) params.append('userId', userId);
+          
+          const url = `/api/meetings?${params}`;
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(8000) // Shorter timeout for background
+          });
+          
+          if (!response.ok) return; // Silently fail for background sync
+          
+          const result = await response.json();
+          if (result.success) {
+            const cacheKey = getCacheKey(clubId, userId);
+            setCachedMeetings(cacheKey, result.data);
+            
+            // Only update state if data actually changed
+            const currentMeetings = state.meetings;
+            const hasChanges = JSON.stringify(currentMeetings) !== JSON.stringify(result.data);
+            
+            if (hasChanges) {
+              console.log('✅ MeetingStore: Background sync updated data');
+              set({ 
+                meetings: result.data,
+                lastFetched: Date.now(),
+                cacheStatus: 'fresh',
+                error: null
+              });
+            }
+          }
+        } catch (error) {
+          console.warn('⚠️ MeetingStore: Background sync failed silently:', error);
+          // Don't update error state for background sync failures
+        }
+      },
+
+      // 🚀 PERFORMANCE: Refresh data if cache is stale
+      refreshIfStale: async (clubId?: string, userId?: string) => {
+        const state = get();
+        const cacheKey = getCacheKey(clubId, userId);
+        const { isStale } = getCachedMeetings(cacheKey);
+        
+        if (isStale || state.cacheStatus === 'stale') {
+          console.log('🔄 MeetingStore: Refreshing stale cache');
+          await state.fetchMeetings(clubId, userId, true);
+        }
+      },
+
+      // 🚀 PERFORMANCE: Force cache invalidation
+      invalidateCache: () => {
+        memoryCache.clear();
+        set({ 
+          cacheStatus: 'empty',
+          lastFetched: null 
+        });
+        console.log('🗑️ MeetingStore: Cache invalidated');
       },
 
       clearCache: () => {

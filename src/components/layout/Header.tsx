@@ -12,12 +12,26 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Bell, LogOut, Settings, User } from 'lucide-react';
+import { Bell, LogOut, Settings, User, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import NotificationCenter from '@/components/notification/NotificationCenter';
+import { useGlobalCacheManager } from '@/lib/cache-manager';
+import { useTaskStore } from '@/store/taskStore';
+import { useClubStore } from '@/store/clubStore';
+import { useMeetingStore } from '@/store/meetingStore';
 
 export default function Header() {
   const { user, isAdmin, isLeader, logout } = useAuth();
   const { unreadCount } = useNotificationStore();
+  const { forceRefreshAll } = useGlobalCacheManager();
+  
+  // Get cache statuses
+  const taskCacheStatus = useTaskStore(state => state.cacheStatus);
+  const clubCacheStatus = useClubStore(state => state.cacheStatus);
+  const meetingCacheStatus = useMeetingStore(state => state.cacheStatus);
+  
+  const taskIsLoading = useTaskStore(state => state.isLoading);
+  const clubIsLoading = useClubStore(state => state.isLoading);
+  const meetingIsLoading = useMeetingStore(state => state.isLoading);
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
@@ -37,6 +51,19 @@ export default function Header() {
     }
   };
 
+  // Check if any cache is stale
+  const hasStaleData = taskCacheStatus === 'stale' || clubCacheStatus === 'stale' || meetingCacheStatus === 'stale';
+  const isRefreshing = taskIsLoading || clubIsLoading || meetingIsLoading;
+
+   const handleRefreshAll = async () => {
+    try {
+      await forceRefreshAll();
+    } catch (error) {
+      console.error('Failed to refresh cache:', error);
+     
+    }
+  };
+
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -50,6 +77,27 @@ export default function Header() {
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* Cache Status Indicator */}
+          {hasStaleData && (
+            <Button
+              onClick={handleRefreshAll}
+              variant="ghost"
+              size="sm"
+              disabled={isRefreshing}
+              className="flex items-center space-x-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+              title="Veriler güncel değil - yenilemek için tıklayın"
+            >
+              {isRefreshing ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <WifiOff className="h-4 w-4" />
+              )}
+              <span className="hidden md:inline text-xs">
+                {isRefreshing ? 'Yenileniyor...' : 'Eski Veri'}
+              </span>
+            </Button>
+          )}
+
           {/* Notification Center */}
           <NotificationCenter />
 
