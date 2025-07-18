@@ -250,23 +250,34 @@ export const useClubStore = create<ClubStore>()(
         set({ cacheStatus: 'empty' });
       },
 
-      joinClub: async (clubId: string, userId: string) => {
+         joinClub: async (clubId: string, userId: string) => {
+        const originalClub = get().data.find(c => c.id === clubId);
+        if (!originalClub) return;
+        
+        // Optimistic update
+        const updatedClub = {
+          memberIds: [...originalClub.memberIds, userId],
+          memberCount: originalClub.memberCount + 1
+        };
+        get().updateItem(clubId, updatedClub);
+        
         try {
           const response = await fetch('/api/clubs/join', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ clubId, userId }),
           });
-
-          if (response.ok) {
-            // Update local state optimistically
+          if (!response.ok) {
+            // Rollback optimistic update
             get().updateItem(clubId, {
-              memberIds: [...(get().data.find(c => c.id === clubId)?.memberIds || []), userId],
-              memberCount: (get().data.find(c => c.id === clubId)?.memberCount || 0) + 1
+              memberIds: originalClub.memberIds,
+              memberCount: originalClub.memberCount
             });
+            throw new Error('Failed to join club');
           }
         } catch (error) {
           console.error('Join club error:', error);
+          set({ error: 'Kulübe katılma işlemi başarısız' });
         }
       },
 
@@ -386,7 +397,7 @@ export interface TaskStore extends BaseStoreState<Task>, BaseStoreActions<Task> 
 export const useTaskStore = create<TaskStore>()(
   persist(
     (set, get) => ({
-      ...createBaseStore<Task>('task', 2 * 60 * 1000)(set, get),
+      ...createBaseStore<Task>('task', 2 * 60 * 1000, (data) => appCache.setTasks(data))(set, get),
 
       fetchTasks: async (clubId?: string) => {
         const state = get();
