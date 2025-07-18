@@ -128,7 +128,20 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    // Persist the metadata changes to the database
+    const supabase = createClient();
+    const { error: updateError } = await supabase
+      .from('activities')
+      .update({ metadata: updatedMetadata })
+      .eq('id', notificationId);
 
+    if (updateError) {
+      console.error('Database update error:', updateError);
+      return NextResponse.json(
+        { success: false, error: 'Bildirim güncellenemedi' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
