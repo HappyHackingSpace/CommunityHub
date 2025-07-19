@@ -57,8 +57,6 @@ export class DatabaseService {
 
   // Clubs
   static async getClubs(userId?: string) {
-    console.log('DatabaseService.getClubs called - returning all clubs')
-    
     const supabase = this.getClient()
     let query = supabase
       .from('clubs')
@@ -69,13 +67,7 @@ export class DatabaseService {
       `)
       .eq('is_active', true)
 
-    if (userId) {
-      console.log('User context provided:', userId)
-    }
-
     const { data, error } = await query
-    
-    console.log('DatabaseService.getClubs raw result:', { data, error })
     
     // Transform data to match frontend expectations
     const transformedData = data?.map(club => ({
@@ -84,8 +76,6 @@ export class DatabaseService {
       memberCount: club.club_members?.length || 0,
       memberIds: club.club_members?.map((m: Tables['club_members']['Row']) => m.user_id) || []
     }))
-
-    console.log('DatabaseService.getClubs transformed data:', transformedData)
 
     return { data: transformedData, error }
   }

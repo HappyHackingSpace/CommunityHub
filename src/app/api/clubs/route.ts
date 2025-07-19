@@ -19,13 +19,11 @@ export const GET = withAuth(async (request: NextRequest, user) => {
     const { data, error } = await EnhancedDatabaseService.getClubs(options, user.id);
     
     if (error) {
-      console.error('Clubs fetch error:', error);
       return ApiResponse.error('Kulüpler yüklenemedi');
     }
 
     return ApiResponse.success(data?.data || [], undefined, data?.pagination);
   } catch (error) {
-    console.error('Clubs API error:', error);
     return ApiResponse.error('Kulüpler yüklenemedi');
   }
 });

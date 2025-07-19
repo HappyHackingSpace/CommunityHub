@@ -11,10 +11,7 @@ export function usePerformanceMonitor(name: string, deps: any[] = []) {
     startTimeRef.current = performance.now();
     
     return () => {
-      if (startTimeRef.current) {
-        const duration = performance.now() - startTimeRef.current;
-        console.log(`⚡ Performance [${name}]: ${duration.toFixed(2)}ms`);
-      }
+      // Silent performance tracking
     };
   }, deps);
 }

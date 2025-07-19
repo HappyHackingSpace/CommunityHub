@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     // Check if user profile exists
     const { data: userProfile, error: profileError } = await supabase
       .from('users')
-      .select('id, email, role, club_id, is_active, name')
+      .select('id, email, role, is_active, name')
       .eq('id', user.id)
       .single();
     

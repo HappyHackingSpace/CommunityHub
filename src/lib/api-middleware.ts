@@ -38,7 +38,7 @@ export async function authenticateRequest(request: NextRequest): Promise<{
     // Get user profile from database
     const { data: userProfile, error: profileError } = await supabase
       .from('users')
-      .select('id, email, role, club_id, is_active, name')
+      .select('id, email, role, is_active, name')
       .eq('id', user.id)
       .single();
 
@@ -54,7 +54,7 @@ export async function authenticateRequest(request: NextRequest): Promise<{
             role: 'member',
             is_active: true
           })
-          .select('id, email, role, club_id, is_active, name')
+          .select('id, email, role, is_active, name')
           .single();
 
         if (createError || !newProfile) {
@@ -65,8 +65,7 @@ export async function authenticateRequest(request: NextRequest): Promise<{
           user: {
             id: newProfile.id,
             email: newProfile.email,
-            role: newProfile.role,
-            clubId: newProfile.club_id
+            role: newProfile.role
           },
           error: null
         };
@@ -86,8 +85,7 @@ export async function authenticateRequest(request: NextRequest): Promise<{
       user: {
         id: userProfile.id,
         email: userProfile.email,
-        role: userProfile.role,
-        clubId: userProfile.club_id
+        role: userProfile.role
       },
       error: null
     };
@@ -213,7 +211,6 @@ export function withAuth(
       // Call the actual handler
       return await handler(request, user, ...args);
     } catch (error) {
-      console.error('API error:', error);
       return ApiResponse.error('Internal server error');
     }
   };

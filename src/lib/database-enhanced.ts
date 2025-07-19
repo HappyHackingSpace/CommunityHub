@@ -135,7 +135,7 @@ export class EnhancedDatabaseService {
     if (userId) {
       const { data: user } = await supabase
         .from('users')
-        .select('role, club_id')
+        .select('role')
         .eq('id', userId)
         .single();
 
@@ -217,12 +217,21 @@ export class EnhancedDatabaseService {
     if (userId) {
       const { data: user } = await supabase
         .from('users')
-        .select('role, club_id')
+        .select('role')
         .eq('id', userId)
         .single();
 
-      if (user?.role === 'club_leader' && user.club_id !== id) {
-        return { data: null, error: { message: 'Access denied' } };
+      if (user?.role === 'club_leader') {
+        // Check if this user is the leader of the requested club
+        const { data: club } = await supabase
+          .from('clubs')
+          .select('leader_id')
+          .eq('id', id)
+          .single();
+        
+        if (club?.leader_id !== userId) {
+          return { data: null, error: { message: 'Access denied' } };
+        }
       }
     }
 
@@ -273,12 +282,21 @@ export class EnhancedDatabaseService {
     if (userId) {
       const { data: user } = await supabase
         .from('users')
-        .select('role, club_id')
+        .select('role')
         .eq('id', userId)
         .single();
 
-      if (user?.role === 'club_leader' && clubId && user.club_id !== clubId) {
-        return { data: null, error: { message: 'Access denied' } };
+      if (user?.role === 'club_leader' && clubId) {
+        // Check if this user is the leader of the requested club
+        const { data: club } = await supabase
+          .from('clubs')
+          .select('leader_id')
+          .eq('id', clubId)
+          .single();
+        
+        if (club?.leader_id !== userId) {
+          return { data: null, error: { message: 'Access denied' } };
+        }
       }
     }
 
@@ -347,12 +365,21 @@ export class EnhancedDatabaseService {
     if (userId) {
       const { data: user } = await supabase
         .from('users')
-        .select('role, club_id')
+        .select('role')
         .eq('id', userId)
         .single();
 
-      if (user?.role === 'club_leader' && clubId && user.club_id !== clubId) {
-        return { data: null, error: { message: 'Access denied' } };
+      if (user?.role === 'club_leader' && clubId) {
+        // Check if this user is the leader of the requested club
+        const { data: club } = await supabase
+          .from('clubs')
+          .select('leader_id')
+          .eq('id', clubId)
+          .single();
+        
+        if (club?.leader_id !== userId) {
+          return { data: null, error: { message: 'Access denied' } };
+        }
       }
     }
 
@@ -417,15 +444,32 @@ export class EnhancedDatabaseService {
     if (userId) {
       const { data: user } = await supabase
         .from('users')
-        .select('role, club_id')
+        .select('role')
         .eq('id', userId)
         .single();
 
       if (user?.role === 'club_leader') {
-        if (clubId && user.club_id !== clubId) {
-          return { data: null, error: { message: 'Access denied' } };
-        } else if (!clubId) {
-          query = query.eq('club_id', user.club_id);
+        if (clubId) {
+          // Check if this user is the leader of the requested club
+          const { data: club } = await supabase
+            .from('clubs')
+            .select('leader_id')
+            .eq('id', clubId)
+            .single();
+          
+          if (club?.leader_id !== userId) {
+            return { data: null, error: { message: 'Access denied' } };
+          }
+        } else {
+          // Filter by clubs this user leads
+          const { data: clubs } = await supabase
+            .from('clubs')
+            .select('id')
+            .eq('leader_id', userId);
+          
+          if (clubs && clubs.length > 0) {
+            query = query.in('club_id', clubs.map(c => c.id));
+          }
         }
       }
     }
@@ -495,15 +539,32 @@ export class EnhancedDatabaseService {
     if (userId) {
       const { data: user } = await supabase
         .from('users')
-        .select('role, club_id')
+        .select('role')
         .eq('id', userId)
         .single();
 
       if (user?.role === 'club_leader') {
-        if (clubId && user.club_id !== clubId) {
-          return { data: null, error: { message: 'Access denied' } };
-        } else if (!clubId) {
-          query = query.eq('club_id', user.club_id);
+        if (clubId) {
+          // Check if this user is the leader of the requested club
+          const { data: club } = await supabase
+            .from('clubs')
+            .select('leader_id')
+            .eq('id', clubId)
+            .single();
+          
+          if (club?.leader_id !== userId) {
+            return { data: null, error: { message: 'Access denied' } };
+          }
+        } else {
+          // Filter by clubs this user leads
+          const { data: clubs } = await supabase
+            .from('clubs')
+            .select('id')
+            .eq('leader_id', userId);
+          
+          if (clubs && clubs.length > 0) {
+            query = query.in('club_id', clubs.map(c => c.id));
+          }
         }
       } else if (user?.role === 'member') {
         // Members see only their tasks
