@@ -1,5 +1,5 @@
 // src/app/settings/page.tsx
-import MainLayout from '@/components/layout/MainLayout';
+import {MainLayout} from '@/components/layout/MainLayout';
 import PermissionGuard from '@/components/admin/PermissionGuard';
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';

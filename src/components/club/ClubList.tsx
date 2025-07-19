@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useClubStore } from '@/store';
+import { useClubsApi } from '@/hooks/useSimpleApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,12 +11,12 @@ import Link from 'next/link';
 
 export default function ClubList() {
   const { user, isAdmin, isLeader } = useAuth();
-  const { clubs, isLoading, error, fetchClubs, cacheStatus } = useClubStore();
+  const { clubs, isLoading, error, fetchClubs } = useClubsApi();
   const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   useEffect(() => {
     fetchClubs();
-  }, [fetchClubs]);
+  }, []); // Removed fetchClubs from dependency array - only fetch once on mount
 
   // Loading timeout mechanism
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function ClubList() {
               <Button 
                 onClick={() => {
                   setLoadingTimeout(false);
-                  fetchClubs(true);
+                  fetchClubs();
                 }}
                 variant="outline"
                 className="border-yellow-300 text-yellow-800 hover:bg-yellow-100"
@@ -124,7 +124,7 @@ export default function ClubList() {
               {error}
             </p>
             <Button 
-              onClick={() => fetchClubs(true)}
+              onClick={() => fetchClubs()}
               variant="outline"
               className="border-red-300 text-red-800 hover:bg-red-100"
             >

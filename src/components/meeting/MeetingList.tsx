@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useMeetingStore } from '@/store';
+import { useMeetingsApi } from '@/hooks/useSimpleApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,13 +18,15 @@ interface MeetingListProps {
 
 export default function MeetingList({ clubId, showActions = true, filter = 'all' }: MeetingListProps) {
   const { user } = useAuth();
-  const { meetings, isLoading, fetchMeetings, updateMeetingResponse } = useMeetingStore();
+  const { meetings, isLoading, fetchMeetings, updateMeeting } = useMeetingsApi();
 
   useEffect(() => {
     if (user) {
-      fetchMeetings(clubId, user.id);
+      const options: any = {};
+      if (clubId) options.clubId = clubId;
+      fetchMeetings(options);
     }
-  }, [clubId, user, fetchMeetings]);
+  }, [clubId, user]); // Removed fetchMeetings from dependency array
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -71,7 +73,7 @@ export default function MeetingList({ clubId, showActions = true, filter = 'all'
 
   const handleResponse = async (meetingId: string, response: 'accepted' | 'declined') => {
     if (!user) return;
-    await updateMeetingResponse(meetingId, response);
+    await updateMeeting(meetingId, { response });
   };
 
   if (isLoading) {

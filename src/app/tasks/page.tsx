@@ -1,5 +1,5 @@
 
-import MainLayout from '@/components/layout/MainLayout';
+import {MainLayout} from '@/components/layout/MainLayout';
 import TaskList from '@/components/task/TaskList';
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';

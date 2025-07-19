@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useFileStore } from '@/store';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useFilesApi } from '@/hooks/useSimpleApi';
+import { Card, CardContent } from '@/components/ui/card';
+
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -39,27 +41,30 @@ export default function FileManager({ clubId }: FileManagerProps) {
   const { user, isAdmin, isLeader } = useAuth();
   const { 
     files, 
-    folders, 
-    currentFolder, 
-    isLoading, 
-    error,
+    folders,
+    filesLoading,
+    foldersLoading,
+    filesError,
+    foldersError,
     fetchFiles, 
-    fetchFolders, 
-    setCurrentFolder,
+    fetchFolders,
     deleteFile 
-  } = useFileStore();
+  } = useFilesApi();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [currentFolder, setCurrentFolder] = useState<any | null>(null);
 
   const canUpload = isAdmin || isLeader;
+  const isLoading = filesLoading || foldersLoading;
+  const error = filesError || foldersError;
 
   useEffect(() => {
-    fetchFiles(clubId, currentFolder?.id);
-    fetchFolders(clubId, currentFolder?.id);
-  }, [clubId, currentFolder, fetchFiles, fetchFolders]);
+    fetchFiles(clubId, { parentId: currentFolder?.id });
+    fetchFolders(clubId, { parentId: currentFolder?.id });
+  }, [clubId, currentFolder]); // Removed fetch functions from dependency array
 
   const filteredFiles = files.filter(file =>
     file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

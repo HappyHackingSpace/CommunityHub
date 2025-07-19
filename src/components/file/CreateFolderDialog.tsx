@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useFileStore } from '@/store';
+import { useFilesApi } from '@/hooks/useSimpleApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -14,7 +14,7 @@ interface CreateFolderDialogProps {
 }
 
 export default function CreateFolderDialog({ clubId, parentId, onSuccess }: CreateFolderDialogProps) {
-  const { createFolder } = useFileStore();
+  const { createFolder } = useFilesApi();
   const [folderName, setFolderName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

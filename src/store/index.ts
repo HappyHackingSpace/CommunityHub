@@ -1,8 +1,3 @@
 
-
-export { useClubStore } from './clubStore';
-export { useTaskStore } from './taskStore';
-export { useNotificationStore } from './notificationStore';
-export { useMeetingStore } from './meetingStore';
-
-export { useFileStore } from './fileStore';
+// src/store/index.ts - Simple Store Exports (Recommended)
+export * from './simple-store';

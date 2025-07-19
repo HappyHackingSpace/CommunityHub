@@ -1,5 +1,5 @@
 
-import MainLayout from '@/components/layout/MainLayout';
+import {MainLayout} from '@/components/layout/MainLayout';
 import MeetingsPageContent from '@/components/meeting/MeetingsPageContent';
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';

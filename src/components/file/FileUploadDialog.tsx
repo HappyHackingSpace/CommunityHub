@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { useFileStore } from '@/store';
+import { useFilesApi } from '@/hooks/useSimpleApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,7 +18,7 @@ interface FileUploadDialogProps {
 }
 
 export default function FileUploadDialog({ clubId, folderId, onSuccess }: FileUploadDialogProps) {
-  const { uploadFile, isLoading } = useFileStore();
+  const { uploadFile, filesLoading } = useFilesApi();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [descriptions, setDescriptions] = useState<Record<string, string>>({});
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -32,7 +32,7 @@ export default function FileUploadDialog({ clubId, folderId, onSuccess }: FileUp
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     maxSize: 25 * 1024 * 1024, // 25MB
-    disabled: isLoading
+    disabled: filesLoading
   });
 
   const removeFile = (index: number) => {
@@ -61,7 +61,13 @@ export default function FileUploadDialog({ clubId, folderId, onSuccess }: FileUp
         
         setUploadProgress((i / totalFiles) * 100);
         
-        await uploadFile(file, clubId, folderId, description);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('clubId', clubId);
+        if (folderId) formData.append('folderId', folderId);
+        if (description) formData.append('description', description);
+        
+        await uploadFile(formData);
       }
       
       setUploadProgress(100);
@@ -98,7 +104,7 @@ export default function FileUploadDialog({ clubId, folderId, onSuccess }: FileUp
             isDragActive 
               ? "border-blue-400 bg-blue-50" 
               : "border-gray-300 hover:border-gray-400",
-            isLoading && "pointer-events-none opacity-50"
+            filesLoading && "pointer-events-none opacity-50"
           )}
         >
           <input {...getInputProps()} />
@@ -136,7 +142,7 @@ export default function FileUploadDialog({ clubId, folderId, onSuccess }: FileUp
                       variant="ghost"
                       size="sm"
                       onClick={() => removeFile(index)}
-                      disabled={isLoading}
+                      disabled={filesLoading}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -148,7 +154,7 @@ export default function FileUploadDialog({ clubId, folderId, onSuccess }: FileUp
                     onChange={(e) => updateDescription(file.name, e.target.value)}
                     className="text-sm"
                     rows={2}
-                    disabled={isLoading}
+                    disabled={filesLoading}
                   />
                 </div>
               ))}
@@ -157,7 +163,7 @@ export default function FileUploadDialog({ clubId, folderId, onSuccess }: FileUp
         )}
 
         {/* Upload Progress */}
-        {isLoading && (
+        {filesLoading && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Yükleniyor...</span>
@@ -176,14 +182,14 @@ export default function FileUploadDialog({ clubId, folderId, onSuccess }: FileUp
 
         {/* Actions */}
         <div className="flex items-center justify-end space-x-3">
-          <Button variant="outline" onClick={onSuccess} disabled={isLoading}>
+          <Button variant="outline" onClick={onSuccess} disabled={filesLoading}>
             İptal
           </Button>
           <Button 
             onClick={handleUpload} 
-            disabled={selectedFiles.length === 0 || isLoading}
+            disabled={selectedFiles.length === 0 || filesLoading}
           >
-            {isLoading ? 'Yükleniyor...' : `${selectedFiles.length} Dosya Yükle`}
+            {filesLoading ? 'Yükleniyor...' : `${selectedFiles.length} Dosya Yükle`}
           </Button>
         </div>
       </div>

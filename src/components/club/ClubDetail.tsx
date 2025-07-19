@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useClubStore } from '@/store';
+import { useClubsApi, useTasksApi } from '@/hooks/useSimpleApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, Settings, Plus, Calendar, CheckSquare, FileText } from 'lucide-react';
 import MeetingList from '../meeting/MeetingList';
-import { useTaskStore } from '@/store/taskStore';
 import TaskList from '../task/TaskList';
 import FileManager from '../file/FileManager';
 
@@ -20,13 +19,19 @@ interface ClubDetailProps {
 
 export default function ClubDetail({ clubId }: ClubDetailProps) {
   const { user, isLeader, isAdmin } = useAuth();
-  const { currentClub, isLoading, fetchClubById } = useClubStore();
-  const { tasks, fetchTasks } = useTaskStore();
+  const { clubs, isLoading: clubsLoading, fetchClubs } = useClubsApi();
+  const { tasks, fetchTasks, isLoading: tasksLoading } = useTasksApi();
+  
+  // Find current club from clubs array
+  const currentClub = clubs.find(club => club.id === clubId);
+  const isLoading = clubsLoading || tasksLoading;
   
   useEffect(() => {
-    fetchClubById(clubId);
-    fetchTasks(clubId);
-  }, [clubId, fetchClubById, fetchTasks]);
+    if (clubs.length === 0) {
+      fetchClubs();
+    }
+    fetchTasks({ clubId });
+  }, [clubId, clubs.length]); // Removed fetch functions from dependency array
 
   const isClubLeader = currentClub?.leaderId === user?.id;
   const canManage = isAdmin || isClubLeader;

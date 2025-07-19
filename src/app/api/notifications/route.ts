@@ -1,22 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DatabaseService } from '@/lib/database';
-import { createClient } from '@/lib/supabase-client';
+import { authenticateRequest } from '@/lib/api-middleware';
 
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const type = searchParams.get('type');
-    
-    if (!userId) {
+    // Authentication
+    const { user, error: authError } = await authenticateRequest(request);
+    if (authError || !user) {
       return NextResponse.json(
-        { success: false, error: 'User ID gerekli' },
-        { status: 400 }
+        { success: false, error: authError || 'Authentication required' },
+        { status: 401 }
       );
     }
 
-    const { data, error } = await DatabaseService.getActivities(userId, type || undefined);
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get('type');
+
+    const { data, error } = await DatabaseService.getActivities(user.id, type || undefined);
     
     if (error) {
       console.error('Notifications fetch error:', error);
@@ -29,12 +30,12 @@ export async function GET(request: NextRequest) {
     // Transform activities to notifications format
     const notifications = data?.map(activity => ({
       id: activity.id,
-      userId: userId,
+      userId: user.id,
       title: activity.title,
       message: activity.content || '',
       type: activity.type === 'notification' ? 'general' : 
             activity.type === 'meeting' ? 'meeting' : 'club',
-      isRead: activity.metadata?.read_by?.includes(userId) || false,
+      isRead: activity.metadata?.read_by?.includes(user.id) || false,
       createdAt: activity.created_at,
       actionUrl: activity.metadata?.action_url || null,
     })) || [];

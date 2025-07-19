@@ -1,6 +1,7 @@
 
 import FilesPageContent from '@/components/file/FilesPageContent';
-import MainLayout from '@/components/layout/MainLayout';
+import { MainLayout } from '@/components/layout/MainLayout';
+
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 

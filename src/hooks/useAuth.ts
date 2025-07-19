@@ -1,11 +1,10 @@
-// src/hooks/useAuth.ts - RACE CONDITION FREE VERSION
+// src/hooks/useAuth.ts - SIMPLIFIED VERSION (No Complex Caching)
 'use client'
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-client'
-import type { User } from '@supabase/supabase-js'
-import { appCache } from '@/lib/cache' 
+import type { User } from '@supabase/supabase-js' 
 
 interface AuthUser {
   id: string
@@ -83,10 +82,15 @@ class AuthStateManager extends EventTarget {
   }
   
   setState(updates: Partial<AuthState>): void {
+    const prevState = { ...this.currentState }
     this.currentState = { ...this.currentState, ...updates }
-    this.dispatchEvent(new CustomEvent('stateChange', { 
-      detail: this.currentState 
-    }))
+    
+    // Only dispatch if state actually changed
+    if (JSON.stringify(prevState) !== JSON.stringify(this.currentState)) {
+      this.dispatchEvent(new CustomEvent('stateChange', { 
+        detail: this.currentState 
+      }))
+    }
   }
   
   reset(): void {
@@ -119,16 +123,29 @@ export function useAuth() {
 
 
 const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | null> => {
-    const cachedResult = appCache.getAuthUser(authUser.id)
-    if (cachedResult.data && !cachedResult.isStale) {
-      return cachedResult.data
+    console.log('🔍 Auth: Fetching profile for user:', {
+      id: authUser.id,
+      email: authUser.email,
+      hasMetadata: !!authUser.user_metadata,
+      emailConfirmed: !!authUser.email_confirmed_at
+    })
+    
+    // Simple session cache (no complex caching)
+    const cached = sessionManager.getCachedUser(authUser.id);
+    if (cached) {
+      console.log('✅ Auth: Using cached profile for:', authUser.email)
+      return cached;
     }
 
-    if (fetchInProgressRef.current) return null
+    if (fetchInProgressRef.current) {
+      console.log('⏳ Auth: Profile fetch already in progress, skipping')
+      return null
+    }
 
     fetchInProgressRef.current = true
     
     try {
+      console.log('🔍 Auth: Querying database for user profile...')
       const { data: userData, error } = await supabase
         .from('users')
         .select('*')
@@ -136,7 +153,29 @@ const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | 
         .eq('is_active', true)
         .single()
 
+      if (error) {
+        console.error('❌ Auth: Profile fetch error:', {
+          code: error.code,
+          message: error.message,
+          details: error.details
+        })
+        
+        // If user doesn't exist, try to create one
+        if (error.code === 'PGRST116') {
+          console.log('🔄 Auth: User profile not found, creating...')
+          return await createUserProfile(authUser)
+        }
+        return null
+      }
+
       if (userData) {
+        console.log('✅ Auth: Profile found in database:', {
+          id: userData.id,
+          email: userData.email,
+          role: userData.role,
+          isActive: userData.is_active
+        })
+        
         const userProfile: AuthUser = {
           id: userData.id,
           email: userData.email,
@@ -147,15 +186,20 @@ const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | 
           permissions: userData.permissions || []
         }
         
-        appCache.setAuthUser(authUser.id, userProfile)
+        // Cache in simple session manager
+        sessionManager.setCachedUser(authUser.id, userProfile);
         return userProfile
       }
       
+      console.log('❌ Auth: No user data returned from database')
+      return null
+    } catch (error) {
+      console.error('💥 Auth: Profile fetch exception:', error)
       return null
     } finally {
       fetchInProgressRef.current = false
     }
-  }, [supabase])
+  }, [supabase])  // createUserProfile will be added when it's defined
 
   // 🚀 PERFORMANCE: Profile creator with smart role detection
   const createUserProfile = useCallback(async (authUser: User): Promise<AuthUser | null> => {
@@ -222,7 +266,14 @@ const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | 
   const handleAuthStateChange = useCallback(async (event: string, session: any) => {
     if (!mountedRef.current) return
 
-    console.log('🔄 Auth: State change:', event, session?.user?.id)
+    console.log('🔄 Auth: State change:', event, {
+      userId: session?.user?.id,
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userEmail: session?.user?.email,
+      tokenValid: !!session?.access_token,
+      expiresAt: session?.expires_at ? new Date(session.expires_at * 1000).toISOString() : null
+    })
 
     try {
       if (event === 'SIGNED_IN' && session?.user) {
@@ -230,12 +281,18 @@ const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | 
         
         const userProfile = await fetchUserProfile(session.user)
         if (userProfile && mountedRef.current) {
+          console.log('✅ Auth: User profile loaded successfully:', {
+            userId: userProfile.id,
+            role: userProfile.role,
+            isActive: userProfile.isActive
+          })
           stateManager.setState({
             user: userProfile,
             isLoading: false,
             initialized: true
           })
         } else {
+          console.error('❌ Auth: Failed to load user profile')
           stateManager.setState({
             user: null,
             isLoading: false,
@@ -245,6 +302,7 @@ const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | 
         }
         
       } else if (event === 'SIGNED_OUT') {
+        console.log('👋 Auth: User signed out, clearing cache')
         sessionManager.clearCache()
         stateManager.reset()
         
@@ -268,16 +326,26 @@ const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | 
         
       } else if (event === 'INITIAL_SESSION') {
         if (session?.user) {
+          console.log('🔍 Auth: Initial session found, loading profile...')
           stateManager.setState({ isLoading: true })
           const userProfile = await fetchUserProfile(session.user)
           if (userProfile && mountedRef.current) {
+            console.log('✅ Auth: Initial profile loaded:', userProfile.email)
             stateManager.setState({
               user: userProfile,
               isLoading: false,
               initialized: true
             })
+          } else {
+            console.error('❌ Auth: Initial profile load failed')
+            stateManager.setState({
+              user: null,
+              isLoading: false,
+              initialized: true
+            })
           }
         } else {
+          console.log('🔍 Auth: No initial session found')
           stateManager.setState({
             user: null,
             isLoading: false,
@@ -304,7 +372,65 @@ const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | 
     stateManager.setState({ isLoading: true })
 
     try {
-      const { data: { session }, error } = await supabase.auth.getSession()
+      let { data: { session }, error } = await supabase.auth.getSession()
+      
+      // 🔍 DEBUG: Session inspection
+      console.log('🔍 Auth: Session debug:', {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        userId: session?.user?.id,
+        userEmail: session?.user?.email,
+        accessToken: session?.access_token ? 'exists' : 'missing',
+        refreshToken: session?.refresh_token ? 'exists' : 'missing',
+        tokenExpiry: session?.expires_at ? new Date(session.expires_at * 1000).toISOString() : 'no expiry',
+        error: error
+      })
+      
+      // 🔍 DEBUG: Cookie and localStorage inspection
+      if (typeof window !== 'undefined') {
+        const cookies = document.cookie.split(';').map(c => c.trim())
+        const supabaseCookies = cookies.filter(c => c.includes('supabase'))
+        console.log('🔍 Auth: Supabase cookies found:', supabaseCookies.length, supabaseCookies)
+        
+        // Check localStorage for Supabase session
+        const storageKey = `sb-${process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0] }-auth-token`
+        const storedSession = localStorage.getItem(storageKey)
+        console.log('🔍 Auth: LocalStorage session:', {
+          key: storageKey,
+          hasStored: !!storedSession,
+          storedLength: storedSession?.length || 0
+        })
+        
+        // 🔥 FIX: If we have cookies but no session/storage, storage is corrupted
+        if (supabaseCookies.length > 0 && !session?.user && !storedSession) {
+          console.log('� Auth: Storage corruption detected - clearing localStorage and forcing refresh...')
+          
+          // Clear all localStorage
+          Object.keys(localStorage).forEach(key => {
+            if (key.includes('supabase') || key.includes('sb-')) {
+              localStorage.removeItem(key)
+              console.log('🧹 Auth: Cleared localStorage key:', key)
+            }
+          })
+          
+          // Force refresh session from cookies
+          try {
+            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+            if (refreshData.session && !refreshError) {
+              console.log('✅ Auth: Storage corruption fixed - session restored')
+              session = refreshData.session
+            } else {
+              console.log('❌ Auth: Could not restore session from cookies:', refreshError)
+              // Clear cookies too
+              document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+              });
+            }
+          } catch (refreshErr) {
+            console.log('💥 Auth: Session restore exception:', refreshErr)
+          }
+        }
+      }
       
       if (error) {
         console.error('❌ Auth: Session error:', error)
@@ -328,14 +454,31 @@ const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | 
     }
   }, [handleAuthStateChange, supabase])
 
-  // 🚀 PERFORMANCE: Global state subscription
+  // 🚀 PERFORMANCE: Global state subscription with timeout
   useEffect(() => {
     mountedRef.current = true
+
+    // Force initialization timeout to prevent infinite loading
+    const initTimeout = setTimeout(() => {
+      if (mountedRef.current && !stateManager.getState().initialized) {
+        console.warn('⚠️ Auth: Initialization timeout - forcing initialization')
+        stateManager.setState({
+          user: null,
+          isLoading: false,
+          initialized: true,
+          error: null
+        })
+      }
+    }, 10000) // 10 second timeout
 
     // Subscribe to global state changes
     const handleStateChange = (event: any) => {
       if (mountedRef.current) {
         setState(event.detail)
+        // Clear timeout if we get initialized
+        if (event.detail.initialized) {
+          clearTimeout(initTimeout)
+        }
       }
     }
     
@@ -346,6 +489,7 @@ const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | 
       initializeAuth()
     } else {
       setState(stateManager.getState())
+      clearTimeout(initTimeout)
     }
 
     // Subscribe to auth state changes
@@ -353,6 +497,7 @@ const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | 
 
     return () => {
       mountedRef.current = false
+      clearTimeout(initTimeout)
       stateManager.removeEventListener('stateChange', handleStateChange)
       subscription.unsubscribe()
     }
@@ -397,6 +542,49 @@ const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | 
     }
   }, [state.user, fetchUserProfile, supabase])
 
+  // 🔥 NEW: Manual session restore for cookie/session mismatch
+  const restoreSession = useCallback(async () => {
+    console.log('🔄 Auth: Attempting manual session restore...')
+    
+    try {
+      // First clear corrupted localStorage
+      if (typeof window !== 'undefined') {
+        console.log('🧹 Auth: Clearing potentially corrupted localStorage...')
+        Object.keys(localStorage).forEach(key => {
+          if (key.includes('supabase') || key.includes('sb-')) {
+            localStorage.removeItem(key)
+            console.log('🗑️ Auth: Removed localStorage key:', key)
+          }
+        })
+      }
+      
+      // Then try refreshing the session from cookies
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+      
+      if (refreshData.session && !refreshError) {
+        console.log('✅ Auth: Manual session restore successful')
+        await handleAuthStateChange('SIGNED_IN', refreshData.session)
+        return true
+      } else {
+        console.log('❌ Auth: Manual session restore failed:', refreshError)
+        
+        // If refresh fails, clear cookies and force login
+        if (typeof window !== 'undefined') {
+          document.cookie.split(";").forEach(function(c) { 
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+          });
+          console.log('🧹 Auth: Cleared all cookies due to session restore failure')
+        }
+        
+        await supabase.auth.signOut()
+        return false
+      }
+    } catch (error) {
+      console.error('💥 Auth: Session restore exception:', error)
+      return false
+    }
+  }, [supabase, handleAuthStateChange])
+
   // 🚀 PERFORMANCE: Memoized computed values
   const computedValues = useMemo(() => ({
     isAuthenticated: !!state.user,
@@ -412,6 +600,7 @@ const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | 
     ...state,
     ...computedValues,
     logout,
-    refreshProfile
+    refreshProfile,
+    restoreSession
   }
 }

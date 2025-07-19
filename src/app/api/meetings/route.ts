@@ -1,62 +1,85 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '@/lib/database';
+// src/app/api/meetings/route.ts - Secure & Paginated Meetings API
+import { NextRequest } from 'next/server';
+import { EnhancedDatabaseService } from '@/lib/database-enhanced';
+import { withAuth, ApiResponse, parsePagination, authorizeUser } from '@/lib/api-middleware';
 
-export async function GET(request: NextRequest) {
+// 🔒 GET /api/meetings - Get paginated meetings with authentication
+export const GET = withAuth(async (request: NextRequest, user) => {
   try {
+    const { page, limit } = parsePagination(request);
     const { searchParams } = new URL(request.url);
     const clubId = searchParams.get('clubId');
-    const userId = searchParams.get('userId');
-    
-    const { data, error } = await DatabaseService.getMeetings({
+
+    const options = {
+      page,
+      limit,
       clubId: clubId || undefined,
-      userId: userId || undefined,
-    });
-    
-    if (error) {
-      console.error('Meetings fetch error:', error);
-      return NextResponse.json(
-        { success: false, error: 'Toplantılar yüklenemedi' },
-        { status: 500 }
-      );
+      sortBy: searchParams.get('sortBy') || undefined,
+      sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'asc', // Upcoming meetings first
+    };
+
+    // If clubId is specified, check authorization
+    if (clubId) {
+      const { authorized, error: authError } = authorizeUser(user, undefined, undefined, clubId);
+      if (!authorized) {
+        return ApiResponse.forbidden(authError);
+      }
     }
 
-    return NextResponse.json({
-      success: true,
-      data: data || []
-    });
+    const { data, error } = await EnhancedDatabaseService.getMeetings(options, user.id);
+
+    if (error) {
+      console.error('Meetings fetch error:', error);
+      return ApiResponse.error('Toplantılar yüklenemedi');
+    }
+
+    return ApiResponse.success(data?.data || [], undefined, data?.pagination);
   } catch (error) {
     console.error('Meetings API error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Toplantılar yüklenemedi' },
-      { status: 500 }
-    );
+    return ApiResponse.error('Toplantılar yüklenemedi');
   }
-}
+});
 
-export async function POST(request: NextRequest) {
+// 🔒 POST /api/meetings - Create new meeting (admin or club leader only)
+export const POST = withAuth(async (request: NextRequest, user) => {
   try {
     const body = await request.json();
-    
-    const { data, error } = await DatabaseService.createMeeting(body);
+    const { title, description, meeting_date, start_time, end_time, location, club_id } = body;
+
+    // Validation
+    if (!title || !meeting_date || !start_time || !club_id) {
+      return ApiResponse.badRequest('Toplantı başlığı, tarih, saat ve kulüp ID gerekli');
+    }
+
+    // Check authorization for the club
+    const { authorized, error: authError } = authorizeUser(user, undefined, ['admin', 'club_leader'], club_id);
+    if (!authorized) {
+      return ApiResponse.forbidden(authError);
+    }
+
+    // Prepare meeting data
+    const meetingData = {
+      title,
+      description,
+      meeting_date,
+      start_time,
+      end_time,
+      location,
+      club_id,
+      created_by: user.id,
+      created_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await EnhancedDatabaseService.createMeeting(meetingData);
 
     if (error) {
       console.error('Meeting creation error:', error);
-      return NextResponse.json(
-        { success: false, error: 'Toplantı oluşturulamadı' },
-        { status: 500 }
-      );
+      return ApiResponse.error('Toplantı oluşturulamadı');
     }
 
-    return NextResponse.json({
-      success: true,
-      data,
-      message: 'Toplantı oluşturuldu'
-    });
+    return ApiResponse.success(data, 'Toplantı başarıyla oluşturuldu');
   } catch (error) {
     console.error('Meeting creation API error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Toplantı oluşturulamadı' },
-      { status: 500 }
-    );
+    return ApiResponse.error('Toplantı oluşturulamadı');
   }
-}
+}, { allowedRoles: ['admin', 'club_leader'] });

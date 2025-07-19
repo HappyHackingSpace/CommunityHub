@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useMeetingStore, useClubStore } from '@/store';
+import { useMeetingsApi, useClubsApi } from '@/hooks/useSimpleApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,8 +19,8 @@ interface MeetingFormProps {
 
 export default function MeetingForm({ clubId, onSuccess, onCancel }: MeetingFormProps) {
   const { user } = useAuth();
-  const { addMeeting } = useMeetingStore();
-  const { clubs } = useClubStore();
+  const { createMeeting, isLoading } = useMeetingsApi();
+  const { clubs } = useClubsApi();
   
   const [formData, setFormData] = useState({
     title: '',
@@ -34,7 +34,6 @@ export default function MeetingForm({ clubId, onSuccess, onCancel }: MeetingForm
     participants: [] as string[]
   });
   
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const selectedClub = clubs.find(c => c.id === formData.clubId);
@@ -44,7 +43,6 @@ export default function MeetingForm({ clubId, onSuccess, onCancel }: MeetingForm
     e.preventDefault();
     if (!user) return;
 
-    setIsSubmitting(true);
     setError(null);
 
     try {
@@ -63,43 +61,14 @@ export default function MeetingForm({ clubId, onSuccess, onCancel }: MeetingForm
         location: formData.location || null,
         status: 'scheduled' as const,
         agenda: [],
-        recurrence: null
+        recurrence: null,
+        participants: formData.participants
       };
 
-      const response = await fetch('/api/meetings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(meetingData),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        // Add participants
-        if (formData.participants.length > 0) {
-          await Promise.all(
-            formData.participants.map(participantId =>
-              fetch('/api/meetings/participants', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  meeting_id: result.data.id,
-                  user_id: participantId
-                }),
-              })
-            )
-          );
-        }
-
-        addMeeting(result.data);
-        onSuccess?.();
-      } else {
-        setError(result.error);
-      }
+      await createMeeting(meetingData);
+      onSuccess?.();
     } catch (err) {
       setError('Toplantı oluşturulurken hata oluştu');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -267,8 +236,8 @@ export default function MeetingForm({ clubId, onSuccess, onCancel }: MeetingForm
                 </SelectTrigger>
                 <SelectContent>
                   {availableParticipants
-                    .filter(id => !formData.participants.includes(id) && id !== user?.id)
-                    .map((userId) => (
+                    .filter((id: string) => !formData.participants.includes(id) && id !== user?.id)
+                    .map((userId: string) => (
                       <SelectItem key={userId} value={userId}>
                         Kullanıcı {userId}
                       </SelectItem>
@@ -304,8 +273,8 @@ export default function MeetingForm({ clubId, onSuccess, onCancel }: MeetingForm
                 İptal
               </Button>
             )}
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Oluşturuluyor...' : 'Toplantı Oluştur'}
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Oluşturuluyor...' : 'Toplantı Oluştur'}
             </Button>
           </div>
         </form>
