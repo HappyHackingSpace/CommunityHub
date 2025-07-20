@@ -9,9 +9,7 @@ export function createClient() {
       auth: {
         persistSession: false,     
         autoRefreshToken: true,    
-        detectSessionInUrl: true,  
-        storage: undefined,        
-        debug: false  // Disable GoTrueClient debug logs
+        detectSessionInUrl: true,       
       }
     }
   )

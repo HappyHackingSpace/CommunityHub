@@ -1,4 +1,4 @@
-// src/lib/database-enhanced.ts - Optimized Database Service with Pagination
+
 import { createClient } from '@/utils/supabase/server';
 import { Database } from '@/types/database';
 
@@ -49,11 +49,11 @@ export class EnhancedDatabaseService {
         }
       });
 
-      // Apply user-specific filtering if needed
+     
       if (userId && tableName !== 'users') {
-        // For club-related data, filter by user's club or public data
+      
         if (['clubs', 'files', 'meetings', 'tasks'].includes(tableName)) {
-          // This will be handled in specific methods
+      
         }
       }
 
@@ -425,14 +425,15 @@ export class EnhancedDatabaseService {
         id,
         title,
         description,
-        meeting_date,
         start_time,
         end_time,
         location,
         club_id,
-        created_by,
+        organizer_id,
+        status,
+        participants,
         created_at,
-        users!meetings_created_by_fkey(name)
+        updated_at
       `, { count: 'exact' });
 
     // Apply filters
@@ -478,7 +479,7 @@ export class EnhancedDatabaseService {
     if (sortBy) {
       query = query.order(sortBy, { ascending: sortOrder === 'asc' });
     } else {
-      query = query.order('meeting_date', { ascending: true });
+      query = query.order('start_time', { ascending: true });
     }
 
     // Apply pagination

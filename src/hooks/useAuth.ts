@@ -26,17 +26,29 @@ interface AuthState {
   error: string | null
 }
 
-// 🔥 MINIMAL: Simple auth hook with cookie-only approach
+// 🌍 GLOBAL STATE VARIABLES - Singleton pattern to prevent multiple initializations
+let globalAuthInitialized = false
+let globalAuthState: AuthState = {
+  user: null,
+  isLoading: true,
+  initialized: false,
+  error: null
+}
+let globalListeners = new Set<(state: AuthState) => void>()
+let globalSubscription: any = null
+
+// 📢 Notify all components when global auth state changes
+function notifyGlobalListeners() {
+  globalListeners.forEach(listener => listener(globalAuthState))
+}
+
+// 🔥 MINIMAL: Simple auth hook with cookie-only approach (Global Singleton)
 export function useAuth() {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    isLoading: true,
-    initialized: false,
-    error: null
-  })
+  // 🌍 Use global state instead of local state to prevent multiple initializations
+  const [state, setState] = useState<AuthState>(globalAuthState)
   
   const router = useRouter()
-  const supabase = useMemo(() => createClient(), []) // Memorize supabase client
+  const supabase = createClient() 
 
   // 🔍 User profile fetcher
   const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | null> => {
@@ -64,36 +76,40 @@ export function useAuth() {
     }
   }, [supabase])
 
-  // 🔥 MINIMAL: Auth state handler (cookie-based)
+  // 🔥 MINIMAL: Auth state handler (cookie-based) - Global state updates
   const handleAuthStateChange = useCallback(async (event: string, session: any) => {
     try {
       if (event === 'SIGNED_IN' && session?.user) {
-        setState(prev => ({ ...prev, isLoading: true, error: null }))
+        // Update global state and notify all listeners
+        globalAuthState = { ...globalAuthState, isLoading: true, error: null }
+        notifyGlobalListeners()
         
         const userProfile = await fetchUserProfile(session.user)
         if (userProfile) {
-          setState({
+          globalAuthState = {
             user: userProfile,
             isLoading: false,
             initialized: true,
             error: null
-          })
+          }
         } else {
-          setState({
+          globalAuthState = {
             user: null,
             isLoading: false,
             initialized: true,
             error: 'Profile could not be loaded'
-          })
+          }
         }
+        notifyGlobalListeners()
         
       } else if (event === 'SIGNED_OUT') {
-        setState({
+        globalAuthState = {
           user: null,
           isLoading: false,
           initialized: true,
           error: null
-        })
+        }
+        notifyGlobalListeners()
         
         // 🔄 Redirect to login (cookie will be cleared automatically)
         if (typeof window !== 'undefined') {
@@ -110,118 +126,134 @@ export function useAuth() {
         if (session?.user) {
           const userProfile = await fetchUserProfile(session.user)
           if (userProfile) {
-            setState({
+            globalAuthState = {
               user: userProfile,
               isLoading: false,
               initialized: true,
               error: null
-            })
+            }
           } else {
-            setState({
+            globalAuthState = {
               user: null,
               isLoading: false,
               initialized: true,
               error: null
-            })
+            }
           }
         } else {
-          setState({
+          globalAuthState = {
             user: null,
             isLoading: false,
             initialized: true,
             error: null
-          })
+          }
         }
+        notifyGlobalListeners()
       }
       
     } catch (error) {
       console.error('💥 Auth: State change error:', error)
-      setState(prev => ({
-        ...prev,
+      globalAuthState = {
+        ...globalAuthState,
         error: 'Authentication error occurred',
         isLoading: false,
         initialized: true
-      }))
+      }
+      notifyGlobalListeners()
     }
   }, [fetchUserProfile])
 
-  // 🚀 Initialize auth (cookie-based session check)
+  // 🚀 Initialize auth (cookie-based session check) with global guard
   const initializeAuth = useCallback(async () => {
-    if (state.initialized) return; // Prevent re-initialization
+    // 🛡️ Guard: Only initialize if not already done globally
+    if (globalAuthInitialized) return
+    
+    globalAuthInitialized = true
     
     try {
-      // 🍪 Get session from cookies (no localStorage involved)
       const { data: { session }, error } = await supabase.auth.getSession()
       
       if (error) {
-        setState({
+        globalAuthState = {
           user: null,
           isLoading: false,
           initialized: true,
           error: 'Session initialization failed'
-        })
+        }
+        notifyGlobalListeners()
         return
       }
 
       await handleAuthStateChange('INITIAL_SESSION', session)
       
     } catch (error) {
-      setState({
+      globalAuthState = {
         user: null,
         isLoading: false,
         initialized: true,
         error: 'Auth initialization failed'
-      })
+      }
+      notifyGlobalListeners()
     }
-  }, [state.initialized, supabase, handleAuthStateChange])
+  }, [supabase, handleAuthStateChange])
 
-  // 🔄 Auth event listener
-  useEffect(() => {
-    // Initialize auth only once
-    if (!state.initialized) {
-      initializeAuth()
-    }
+ useEffect(() => {
+  // 🌍 Add this component's setState to global listeners
+  globalListeners.add(setState)
+  
+  // 🚀 Only initialize auth if not already done globally
+  if (!globalAuthInitialized) {
+    initializeAuth()
     
-    // Listen to auth state changes (cookie-based)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    // Create global subscription only once
+    globalSubscription = supabase.auth.onAuthStateChange(
       (event, session) => {
         handleAuthStateChange(event, session)
       }
     )
+  }
 
-    return () => {
-      subscription.unsubscribe()
+  // Cleanup function - remove this component from listeners
+  return () => {
+    globalListeners.delete(setState)
+    
+    // Only cleanup subscription if no more listeners
+    if (globalListeners.size === 0 && globalSubscription) {
+      globalSubscription.data.subscription.unsubscribe()
+      globalSubscription = null
+      globalAuthInitialized = false // Reset for next time
     }
-  }, [supabase]) // Only depend on supabase, remove initializeAuth and handleAuthStateChange
+  }
+}, []) 
 
-  // 🚪 Logout function
   const logout = useCallback(async () => {
     try {
       await supabase.auth.signOut()
-      // State will be updated by the auth listener
+ 
     } catch (error) {
       console.error('❌ Auth: Logout error:', error)
     }
   }, [supabase])
 
-  // 🔄 Refresh profile
+
   const refreshProfile = useCallback(async () => {
-    if (!state.user) return
+    if (!globalAuthState.user) return
     
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
         const freshProfile = await fetchUserProfile(session.user)
         if (freshProfile) {
-          setState(prev => ({ ...prev, user: freshProfile }))
+          globalAuthState = { ...globalAuthState, user: freshProfile }
+          notifyGlobalListeners()
         }
       }
     } catch (error) {
       console.error('❌ Auth: Profile refresh failed:', error)
     }
-  }, [state.user, fetchUserProfile, supabase])
+  }, [fetchUserProfile, supabase])
 
-  // 🎯 Computed values
+
   const computedValues = useMemo(() => ({
     isAuthenticated: !!state.user,
     isAdmin: state.user?.role === 'admin',

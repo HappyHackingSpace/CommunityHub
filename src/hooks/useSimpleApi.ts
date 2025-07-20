@@ -1,4 +1,4 @@
-// src/hooks/useSimpleApi.ts - Ultra Simple API Hooks (No Caching!)
+// src/hooks/useSimpleApi.ts - Ultra Simple API Hooks (No Caching!) - FIXED Multiple Calls
 import { useCallback } from 'react';
 import { useClubs, useFiles, useFolders, useMeetings, useTasks, useNotifications } from '@/store/simple-store';
 
@@ -10,24 +10,50 @@ interface ApiOptions {
   [key: string]: any;
 }
 
-// 🔄 Base API call function
+// 🌍 GLOBAL API CALL TRACKING - Prevent multiple simultaneous calls
+const globalApiCalls = new Map<string, Promise<any>>();
+
+// 🔄 Base API call function with deduplication
 async function apiCall(url: string, options: RequestInit = {}) {
-  const response = await fetch(url, {
-    ...options,
-    credentials: 'include', // Include cookies for authentication
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(result.error || 'API call failed');
+  // Create unique key for this API call
+  const callKey = `${options.method || 'GET'}-${url}-${JSON.stringify(options.body || '')}`;
+  
+  // If this exact call is already in progress, return the existing promise
+  if (globalApiCalls.has(callKey)) {
+    return globalApiCalls.get(callKey);
   }
 
-  return result;
+  // Create new API call promise
+  const apiPromise = (async () => {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        credentials: 'include', // Include cookies for authentication
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        // 🇹🇷 Handle Turkish error messages properly
+        const errorMessage = result.error || result.message || 'API çağrısı başarısız oldu';
+        throw new Error(errorMessage);
+      }
+
+      return result;
+    } finally {
+      // Remove from global tracking when done
+      globalApiCalls.delete(callKey);
+    }
+  })();
+
+  // Track this call
+  globalApiCalls.set(callKey, apiPromise);
+  
+  return apiPromise;
 }
 
 // 🏢 Clubs API Hook (Super Simple!)
@@ -235,11 +261,17 @@ export function useFilesApi() {
   };
 }
 
-// 📅 Meetings API Hook (Super Simple!)
+// 📅 Meetings API Hook (Super Simple!) - FIXED Multiple Calls
 export function useMeetingsApi() {
   const meetingsHook = useMeetings();
 
   const fetchMeetings = useCallback(async (options: ApiOptions = {}) => {
+    // 🛡️ Prevent multiple simultaneous calls
+    if (meetingsHook.isLoading) {
+      console.log('🔄 Meetings: Skipping duplicate API call (already loading)');
+      return;
+    }
+
     try {
       meetingsHook.setLoading(true);
       meetingsHook.setError(null);
@@ -253,7 +285,7 @@ export function useMeetingsApi() {
       meetingsHook.setMeetings(result.data, result.pagination);
       return result;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to fetch meetings';
+      const message = error instanceof Error ? error.message : 'Toplantılar yüklenemedi';
       meetingsHook.setError(message);
       throw error;
     } finally {
