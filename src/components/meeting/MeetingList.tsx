@@ -26,7 +26,7 @@ export default function MeetingList({ clubId, showActions = true, filter = 'all'
       if (clubId) options.clubId = clubId;
       fetchMeetings(options);
     }
-  }, [clubId, user]); // Removed fetchMeetings from dependency array
+  }, [clubId, user?.id]); // 🔧 FIXED: Use user.id instead of user object, removed fetchMeetings
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -50,7 +50,7 @@ export default function MeetingList({ clubId, showActions = true, filter = 'all'
 
   const filteredMeetings = meetings.filter(meeting => {
     const now = new Date();
-    const meetingStart = new Date(meeting.startTime);
+    const meetingStart = new Date(meeting.start_time); // 🔧 Fixed: use start_time instead of startTime
     
     switch (filter) {
       case 'upcoming':
@@ -58,7 +58,7 @@ export default function MeetingList({ clubId, showActions = true, filter = 'all'
       case 'past':
         return meetingStart < now || meeting.status === 'completed';
       case 'organized':
-        return meeting.organizerId === user?.id;
+        return meeting.organizer_id === user?.id; // 🔧 Fixed: use organizer_id instead of organizerId
       default:
         return true;
     }
@@ -113,7 +113,7 @@ export default function MeetingList({ clubId, showActions = true, filter = 'all'
     <div className="space-y-4">
       {meetings.map((meeting) => {
         const userResponse = user ? getUserResponse(meeting, user.id) : 'pending';
-        const isOrganizer = meeting.organizerId === user?.id;
+        const isOrganizer = meeting.organizer_id === user?.id; // 🔧 Fixed: use organizer_id
         
         return (
           <Card key={meeting.id} className="hover:shadow-md transition-shadow">
@@ -135,12 +135,12 @@ export default function MeetingList({ clubId, showActions = true, filter = 'all'
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center text-gray-600">
                     <Calendar className="mr-2 h-4 w-4" />
-                    {format(new Date(meeting.startTime), 'dd MMMM yyyy', { locale: tr })}
+                    {format(new Date(meeting.start_time), 'dd MMMM yyyy', { locale: tr })}
                   </div>
                   <div className="flex items-center text-gray-600">
                     <Clock className="mr-2 h-4 w-4" />
-                    {format(new Date(meeting.startTime), 'HH:mm', { locale: tr })} - 
-                    {format(new Date(meeting.endTime), 'HH:mm', { locale: tr })}
+                    {format(new Date(meeting.start_time), 'HH:mm', { locale: tr })} - 
+                    {meeting.end_time && format(new Date(meeting.end_time), 'HH:mm', { locale: tr })}
                   </div>
                   <div className="flex items-center text-gray-600">
                     <Users className="mr-2 h-4 w-4" />

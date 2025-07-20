@@ -44,11 +44,11 @@ export const GET = withAuth(async (request: NextRequest, user) => {
 export const POST = withAuth(async (request: NextRequest, user) => {
   try {
     const body = await request.json();
-    const { title, description, meeting_date, start_time, end_time, location, club_id } = body;
+    const { title, description, start_time, end_time, location, club_id } = body;
 
     // Validation
-    if (!title || !meeting_date || !start_time || !club_id) {
-      return ApiResponse.badRequest('Toplantı başlığı, tarih, saat ve kulüp ID gerekli');
+    if (!title || !start_time || !club_id) {
+      return ApiResponse.badRequest('Toplantı başlığı, başlangıç zamanı ve kulüp ID gerekli');
     }
 
     // Check authorization for the club
@@ -61,13 +61,13 @@ export const POST = withAuth(async (request: NextRequest, user) => {
     const meetingData = {
       title,
       description,
-      meeting_date,
       start_time,
       end_time,
       location,
       club_id,
-      created_by: user.id,
-      created_at: new Date().toISOString(),
+      organizer_id: user.id,
+      status: 'scheduled' as const,
+      participants: [],
     };
 
     const { data, error } = await EnhancedDatabaseService.createMeeting(meetingData);
