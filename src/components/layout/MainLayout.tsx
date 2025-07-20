@@ -17,12 +17,9 @@ const MemoizedHeader = memo(Header);
 
 export function MainLayout({ children }: MainLayoutProps) {
   const { user, isAuthenticated, initialized } = useAuth();
-  
-  console.log('🏠 MainLayout render:', { isAuthenticated, initialized, user: user?.email });
 
   // Don't render layout if not authenticated or not initialized
   if (!initialized) {
-    console.log('⏳ MainLayout: Waiting for auth initialization...');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -34,7 +31,6 @@ export function MainLayout({ children }: MainLayoutProps) {
   }
 
   if (!isAuthenticated) {
-    console.log('🔒 MainLayout: User not authenticated, should redirect to login');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -44,8 +40,6 @@ export function MainLayout({ children }: MainLayoutProps) {
       </div>
     );
   }
-
-  console.log('✅ MainLayout: Rendering layout for authenticated user:', user?.email);
 
   return (
     <div className="flex h-screen bg-gray-50">
