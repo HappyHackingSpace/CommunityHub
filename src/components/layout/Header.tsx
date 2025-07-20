@@ -5,11 +5,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNotificationsApi, useTasksApi, useClubsApi, useMeetingsApi } from '@/hooks/useSimpleApi';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Bell, LogOut, Settings, User, RefreshCw } from 'lucide-react';
@@ -69,7 +69,7 @@ export default function Header() {
             </Badge>
           )}
         </div>
-        
+
         <div className="flex items-center space-x-4">
           {/* Manual Refresh Button */}
           <Button
@@ -89,8 +89,6 @@ export default function Header() {
           {/* Notification Center */}
           <NotificationCenter />
 
-      
-          
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -104,14 +102,14 @@ export default function Header() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem>
+              {/* <DropdownMenuItem>
                 <User className="mr-2 h-4 w-4" />
                 Profil
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
                 Ayarlar
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
               <DropdownMenuItem onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Çıkış Yap
