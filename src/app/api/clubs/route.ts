@@ -36,6 +36,10 @@ export const POST = withAuth(async (request: NextRequest, user) => {
   try {
     const body = await request.json();
     const { name, description, type = 'social' } = body;
+     const allowedTypes = ['social', 'academic', 'sports', 'cultural'];
+    if (type && !allowedTypes.includes(type)) {
+      return ApiResponse.badRequest('Geçersiz kulüp tipi');
+    }
 
     // Validation
     if (!name || !description) {
