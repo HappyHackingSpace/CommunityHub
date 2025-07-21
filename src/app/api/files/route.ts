@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 import { EnhancedDatabaseService } from '@/lib/database-enhanced';
 import { withAuth, ApiResponse, parsePagination, authorizeUser } from '@/lib/api-middleware';
 import { CloudinaryService } from '@/lib/cloudinary';
+import { randomBytes } from 'crypto';
 
 // 🔧 Helper function to determine file type from MIME type
 function getFileType(mimeType: string): 'document' | 'image' | 'video' | 'other' {
@@ -84,11 +85,12 @@ export const POST = withAuth(async (request: NextRequest, user) => {
 
     // Upload to Cloudinary
     const buffer = Buffer.from(await file.arrayBuffer());
-    const uploadResult = await CloudinaryService.uploadFile(buffer, {
-      resource_type: 'auto',
-      folder: `clubs/${clubId}`,
-      public_id: `${Date.now()}-${file.name}`,
-    });
+    const uniqueId = randomBytes(8).toString('hex');
+const uploadResult = await CloudinaryService.uploadFile(buffer, {
+  resource_type: 'auto',
+  folder: `clubs/${clubId}`,
+  public_id: `${Date.now()}-${uniqueId}-${file.name.replace(/[^a-zA-Z0-9-_]/g, '_')}`,
+});
 
     if (!uploadResult) {
       return ApiResponse.error('Dosya yüklenemedi');
