@@ -46,9 +46,25 @@ export const POST = withAuth(async (request: NextRequest, user) => {
     const body = await request.json();
     const { title, description, start_time, end_time, location, club_id } = body;
 
-    // Validation
-    if (!title || !start_time || !club_id) {
+   if (!title || !start_time || !club_id) {
       return ApiResponse.badRequest('Toplantı başlığı, başlangıç zamanı ve kulüp ID gerekli');
+    }
+    // Validate dates
+    const startDate = new Date(start_time);
+    if (isNaN(startDate.getTime())) {
+      return ApiResponse.badRequest('Geçersiz başlangıç zamanı formatı');
+    }
+    if (startDate < new Date()) {
+      return ApiResponse.badRequest('Başlangıç zamanı gelecekte olmalıdır');
+    }
+    if (end_time) {
+      const endDate = new Date(end_time);
+      if (isNaN(endDate.getTime())) {
+        return ApiResponse.badRequest('Geçersiz bitiş zamanı formatı');
+      }
+      if (endDate <= startDate) {
+        return ApiResponse.badRequest('Bitiş zamanı başlangıç zamanından sonra olmalıdır');
+      }
     }
 
     // Check authorization for the club
