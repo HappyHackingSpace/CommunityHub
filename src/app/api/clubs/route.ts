@@ -9,12 +9,15 @@ export const GET = withAuth(async (request: NextRequest, user) => {
     const { page, limit } = parsePagination(request);
     const { searchParams } = new URL(request.url);
     
-    const options = {
-      page,
-      limit,
-      sortBy: searchParams.get('sortBy') || undefined,
-      sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
-    };
+   const searchSortBy = searchParams.get('sortBy');
+      const allowedSortFields = ['id', 'name', 'description', 'leader_id', 'type', 'is_active', 'created_at'];
+      const sortBy = allowedSortFields.includes(searchSortBy || '') ? searchSortBy! : undefined;
+      const options = {
+        page,
+        limit,
+        sortBy,
+        sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
+      };
 
     const { data, error } = await EnhancedDatabaseService.getClubs(options, user.id);
     
