@@ -26,7 +26,7 @@ interface AuthState {
   error: string | null
 }
 
-// 🌍 GLOBAL STATE VARIABLES - Singleton pattern to prevent multiple initializations
+
 let globalAuthInitialized = false
 let globalAuthState: AuthState = {
   user: null,
@@ -42,13 +42,15 @@ function notifyGlobalListeners() {
   globalListeners.forEach(listener => listener(globalAuthState))
 }
 
+const supabaseClient = createClient();
+
 // 🔥 MINIMAL: Simple auth hook with cookie-only approach (Global Singleton)
 export function useAuth() {
   // 🌍 Use global state instead of local state to prevent multiple initializations
   const [state, setState] = useState<AuthState>(globalAuthState)
   
-  const router = useRouter()
-  const supabase = createClient() 
+  
+  const supabase = supabaseClient
 
   // 🔍 User profile fetcher
   const fetchUserProfile = useCallback(async (authUser: User): Promise<AuthUser | null> => {
