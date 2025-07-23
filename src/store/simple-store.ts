@@ -1,5 +1,6 @@
 // src/store/simple-store.ts - Ultra Simple State Management (No Caching!)
 import { create } from 'zustand';
+import { Club, FileItem, Folder, Meeting, Task, Notification } from '@/types/index';
 
 // 📊 Pagination interface
 export interface Pagination {
@@ -20,18 +21,18 @@ interface ListState<T> {
 // 🏪 Simple Store Interface - NO CACHING!
 export interface SimpleStore {
   // Data states
-  clubs: ListState<any>;
-  files: ListState<any>;
-  folders: ListState<any>;
-  meetings: ListState<any>;
-  tasks: ListState<any>;
-  notifications: ListState<any>;
+  clubs: ListState<Club>;
+  files: ListState<FileItem>;
+  folders: ListState<Folder>;
+  meetings: ListState<Meeting>;
+  tasks: ListState<Task>;
+  notifications: ListState<Notification>;
 
   // Selected items
-  selectedClub: any;
-  selectedFile: any;
-  selectedMeeting: any;
-  selectedTask: any;
+  selectedClub: Club | null;
+  selectedFile: FileItem | null;
+  selectedMeeting: Meeting | null;
+  selectedTask: Task | null;
 
   // Actions
   setClubs: (data: any[], pagination?: Pagination) => void;
@@ -92,7 +93,38 @@ const createDefaultListState = <T>(): ListState<T> => ({
   pagination: null,
 });
 
-// 🏪 Create the simple store
+// � Generic factory for entity state management
+const createEntityActions = <T>(entityName: string, set: any) => {
+  const capitalizedEntity = entityName.charAt(0).toUpperCase() + entityName.slice(1);
+  const singularEntity = entityName.endsWith('s') ? entityName.slice(0, -1) : entityName;
+  const capitalizedSingular = singularEntity.charAt(0).toUpperCase() + singularEntity.slice(1);
+
+  return {
+    [`set${capitalizedEntity}`]: (data: T[], pagination?: Pagination) =>
+      set((state: any) => ({
+        [entityName]: { ...state[entityName], items: data, pagination: pagination || null, isLoading: false, error: null },
+      })),
+    [`set${capitalizedEntity}Loading`]: (loading: boolean) =>
+      set((state: any) => ({ [entityName]: { ...state[entityName], isLoading: loading } })),
+    [`set${capitalizedEntity}Error`]: (error: string | null) =>
+      set((state: any) => ({ [entityName]: { ...state[entityName], error, isLoading: false } })),
+    [`add${capitalizedSingular}`]: (item: T) =>
+      set((state: any) => ({ [entityName]: { ...state[entityName], items: [item, ...state[entityName].items] } })),
+    [`update${capitalizedSingular}`]: (id: string, updates: Partial<T>) =>
+      set((state: any) => ({
+        [entityName]: {
+          ...state[entityName],
+          items: state[entityName].items.map((item: any) => item.id === id ? { ...item, ...updates } : item),
+        },
+      })),
+    [`delete${capitalizedSingular}`]: (id: string) =>
+      set((state: any) => ({
+        [entityName]: { ...state[entityName], items: state[entityName].items.filter((item: any) => item.id !== id) },
+      })),
+  };
+};
+
+// �🏪 Create the simple store
 export const useSimpleStore = create<SimpleStore>((set) => ({
   // Initialize states
   clubs: createDefaultListState(),
@@ -107,155 +139,13 @@ export const useSimpleStore = create<SimpleStore>((set) => ({
   selectedMeeting: null,
   selectedTask: null,
 
-  // Clubs
-  setClubs: (data, pagination) =>
-    set((state) => ({
-      clubs: { ...state.clubs, items: data, pagination: pagination || null, isLoading: false, error: null },
-    })),
-  setClubsLoading: (loading) =>
-    set((state) => ({ clubs: { ...state.clubs, isLoading: loading } })),
-  setClubsError: (error) =>
-    set((state) => ({ clubs: { ...state.clubs, error, isLoading: false } })),
-  addClub: (item) =>
-    set((state) => ({ clubs: { ...state.clubs, items: [item, ...state.clubs.items] } })),
-  updateClub: (id, updates) =>
-    set((state) => ({
-      clubs: {
-        ...state.clubs,
-        items: state.clubs.items.map((item: any) =>
-          item.id === id ? { ...item, ...updates } : item
-        ),
-      },
-    })),
-  deleteClub: (id) =>
-    set((state) => ({
-      clubs: { ...state.clubs, items: state.clubs.items.filter((item: any) => item.id !== id) },
-    })),
-
-  // Files
-  setFiles: (data, pagination) =>
-    set((state) => ({
-      files: { ...state.files, items: data, pagination: pagination || null, isLoading: false, error: null },
-    })),
-  setFilesLoading: (loading) =>
-    set((state) => ({ files: { ...state.files, isLoading: loading } })),
-  setFilesError: (error) =>
-    set((state) => ({ files: { ...state.files, error, isLoading: false } })),
-  addFile: (item) =>
-    set((state) => ({ files: { ...state.files, items: [item, ...state.files.items] } })),
-  updateFile: (id, updates) =>
-    set((state) => ({
-      files: {
-        ...state.files,
-        items: state.files.items.map((item: any) =>
-          item.id === id ? { ...item, ...updates } : item
-        ),
-      },
-    })),
-  deleteFile: (id) =>
-    set((state) => ({
-      files: { ...state.files, items: state.files.items.filter((item: any) => item.id !== id) },
-    })),
-
-  // Folders
-  setFolders: (data, pagination) =>
-    set((state) => ({
-      folders: { ...state.folders, items: data, pagination: pagination || null, isLoading: false, error: null },
-    })),
-  setFoldersLoading: (loading) =>
-    set((state) => ({ folders: { ...state.folders, isLoading: loading } })),
-  setFoldersError: (error) =>
-    set((state) => ({ folders: { ...state.folders, error, isLoading: false } })),
-  addFolder: (item) =>
-    set((state) => ({ folders: { ...state.folders, items: [item, ...state.folders.items] } })),
-  updateFolder: (id, updates) =>
-    set((state) => ({
-      folders: {
-        ...state.folders,
-        items: state.folders.items.map((item: any) =>
-          item.id === id ? { ...item, ...updates } : item
-        ),
-      },
-    })),
-  deleteFolder: (id) =>
-    set((state) => ({
-      folders: { ...state.folders, items: state.folders.items.filter((item: any) => item.id !== id) },
-    })),
-
-  // Meetings
-  setMeetings: (data, pagination) =>
-    set((state) => ({
-      meetings: { ...state.meetings, items: data, pagination: pagination || null, isLoading: false, error: null },
-    })),
-  setMeetingsLoading: (loading) =>
-    set((state) => ({ meetings: { ...state.meetings, isLoading: loading } })),
-  setMeetingsError: (error) =>
-    set((state) => ({ meetings: { ...state.meetings, error, isLoading: false } })),
-  addMeeting: (item) =>
-    set((state) => ({ meetings: { ...state.meetings, items: [item, ...state.meetings.items] } })),
-  updateMeeting: (id, updates) =>
-    set((state) => ({
-      meetings: {
-        ...state.meetings,
-        items: state.meetings.items.map((item: any) =>
-          item.id === id ? { ...item, ...updates } : item
-        ),
-      },
-    })),
-  deleteMeeting: (id) =>
-    set((state) => ({
-      meetings: { ...state.meetings, items: state.meetings.items.filter((item: any) => item.id !== id) },
-    })),
-
-  // Tasks
-  setTasks: (data, pagination) =>
-    set((state) => ({
-      tasks: { ...state.tasks, items: data, pagination: pagination || null, isLoading: false, error: null },
-    })),
-  setTasksLoading: (loading) =>
-    set((state) => ({ tasks: { ...state.tasks, isLoading: loading } })),
-  setTasksError: (error) =>
-    set((state) => ({ tasks: { ...state.tasks, error, isLoading: false } })),
-  addTask: (item) =>
-    set((state) => ({ tasks: { ...state.tasks, items: [item, ...state.tasks.items] } })),
-  updateTask: (id, updates) =>
-    set((state) => ({
-      tasks: {
-        ...state.tasks,
-        items: state.tasks.items.map((item: any) =>
-          item.id === id ? { ...item, ...updates } : item
-        ),
-      },
-    })),
-  deleteTask: (id) =>
-    set((state) => ({
-      tasks: { ...state.tasks, items: state.tasks.items.filter((item: any) => item.id !== id) },
-    })),
-
-  // Notifications
-  setNotifications: (data, pagination) =>
-    set((state) => ({
-      notifications: { ...state.notifications, items: data, pagination: pagination || null, isLoading: false, error: null },
-    })),
-  setNotificationsLoading: (loading) =>
-    set((state) => ({ notifications: { ...state.notifications, isLoading: loading } })),
-  setNotificationsError: (error) =>
-    set((state) => ({ notifications: { ...state.notifications, error, isLoading: false } })),
-  addNotification: (item) =>
-    set((state) => ({ notifications: { ...state.notifications, items: [item, ...state.notifications.items] } })),
-  updateNotification: (id, updates) =>
-    set((state) => ({
-      notifications: {
-        ...state.notifications,
-        items: state.notifications.items.map((item: any) =>
-          item.id === id ? { ...item, ...updates } : item
-        ),
-      },
-    })),
-  deleteNotification: (id) =>
-    set((state) => ({
-      notifications: { ...state.notifications, items: state.notifications.items.filter((item: any) => item.id !== id) },
-    })),
+  // Generic entity actions
+  ...createEntityActions<Club>('clubs', set),
+  ...createEntityActions<FileItem>('files', set),
+  ...createEntityActions<Folder>('folders', set),
+  ...createEntityActions<Meeting>('meetings', set),
+  ...createEntityActions<Task>('tasks', set),
+  ...createEntityActions<Notification>('notifications', set),
 
   // Selected items
   setSelectedClub: (item) => set(() => ({ selectedClub: item })),
@@ -276,7 +166,7 @@ export const useSimpleStore = create<SimpleStore>((set) => ({
       selectedMeeting: null,
       selectedTask: null,
     })),
-}));
+} as SimpleStore));
 
 // 🔗 Simple hooks for specific data types (no caching logic!)
 export const useClubs = () => {
