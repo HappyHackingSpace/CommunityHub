@@ -42,13 +42,13 @@ export default function Sidebar() {
   const { user, isAdmin, isLeader, isAuthenticated, initialized } = useAuth()
   const { clubs, fetchClubs, isLoading } = useClubsApi()
 
-  // Fetch clubs when component mounts
-  useEffect(() => {
+
+ useEffect(() => {
     if (isAuthenticated && initialized && user && clubs.length === 0 && !isLoading) {
       fetchClubs()
     }
-  }, [isAuthenticated, initialized, user, clubs.length, isLoading]) // Removed fetchClubs from dependency array
-
+  }, [isAuthenticated, initialized, user, clubs.length, isLoading, fetchClubs])
+  
   // Filter user clubs
   const userClubs = useMemo(() => {
     if (!user || !clubs || clubs.length === 0) {
