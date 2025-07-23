@@ -1,8 +1,8 @@
-// src/components/layout/Header.tsx
+// src/components/layout/Header.tsx - SIMPLIFIED
 'use client';
 
 import { useAuth } from '@/hooks/useAuth';
-import { useNotificationStore } from '@/store';
+import { useNotificationsApi, useTasksApi, useClubsApi, useMeetingsApi } from '@/hooks/useSimpleApi';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -12,26 +12,21 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Bell, LogOut, Settings, User, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { Bell, LogOut, Settings, User, RefreshCw } from 'lucide-react';
 import NotificationCenter from '@/components/notification/NotificationCenter';
-import { useGlobalCacheManager } from '@/lib/cache-manager';
-import { useTaskStore } from '@/store/taskStore';
-import { useClubStore } from '@/store/clubStore';
-import { useMeetingStore } from '@/store/meetingStore';
 
 export default function Header() {
-  const { user, isAdmin, isLeader, logout } = useAuth();
-  const { unreadCount } = useNotificationStore();
-  const { forceRefreshAll } = useGlobalCacheManager();
+  const { user, logout } = useAuth();
+  const { notifications } = useNotificationsApi();
+  const { fetchTasks, isLoading: tasksLoading } = useTasksApi();
+  const { fetchClubs, isLoading: clubsLoading } = useClubsApi();
+  const { fetchMeetings, isLoading: meetingsLoading } = useMeetingsApi();
   
-  // Get cache statuses
-  const taskCacheStatus = useTaskStore(state => state.cacheStatus);
-  const clubCacheStatus = useClubStore(state => state.cacheStatus);
-  const meetingCacheStatus = useMeetingStore(state => state.cacheStatus);
+  // Calculate unread notifications
+  const unreadCount = notifications.filter(n => !n.is_read).length;
   
-  const taskIsLoading = useTaskStore(state => state.isLoading);
-  const clubIsLoading = useClubStore(state => state.isLoading);
-  const meetingIsLoading = useMeetingStore(state => state.isLoading);
+  // Check if any data is being refreshed
+  const isRefreshing = tasksLoading || clubsLoading || meetingsLoading;
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
@@ -51,16 +46,15 @@ export default function Header() {
     }
   };
 
-  // Check if any cache is stale
-  const hasStaleData = taskCacheStatus === 'stale' || clubCacheStatus === 'stale' || meetingCacheStatus === 'stale';
-  const isRefreshing = taskIsLoading || clubIsLoading || meetingIsLoading;
-
-   const handleRefreshAll = async () => {
+  const handleRefreshAll = async () => {
     try {
-      await forceRefreshAll();
+      await Promise.all([
+        fetchTasks(),
+        fetchClubs(),
+        fetchMeetings()
+      ]);
     } catch (error) {
-      console.error('Failed to refresh cache:', error);
-     
+      console.error('Failed to refresh data:', error);
     }
   };
 
@@ -77,42 +71,23 @@ export default function Header() {
         </div>
 
         <div className="flex items-center space-x-4">
-          {/* Cache Status Indicator */}
-          {hasStaleData && (
-            <Button
-              onClick={handleRefreshAll}
-              variant="ghost"
-              size="sm"
-              disabled={isRefreshing}
-              className="flex items-center space-x-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-              title="Veriler güncel değil - yenilemek için tıklayın"
-            >
-              {isRefreshing ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <WifiOff className="h-4 w-4" />
-              )}
-              <span className="hidden md:inline text-xs">
-                {isRefreshing ? 'Yenileniyor...' : 'Eski Veri'}
-              </span>
-            </Button>
-          )}
+          {/* Manual Refresh Button */}
+          <Button
+            onClick={handleRefreshAll}
+            variant="ghost"
+            size="sm"
+            disabled={isRefreshing}
+            className="flex items-center space-x-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+            title="Verileri yenile"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden md:inline text-xs">
+              {isRefreshing ? 'Yenileniyor...' : 'Yenile'}
+            </span>
+          </Button>
 
           {/* Notification Center */}
           <NotificationCenter />
-
-           {/* Notification Bell */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            {unreadCount > 0 && (
-              <Badge
-                variant="destructive"
-                className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 text-xs"
-              >
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </Badge>
-            )}
-          </Button>
 
           {/* User Menu */}
           <DropdownMenu>

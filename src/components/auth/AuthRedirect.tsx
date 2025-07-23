@@ -1,9 +1,8 @@
-// src/components/auth/AuthRedirect.tsx
 'use client'
 
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface AuthRedirectProps {
   children: React.ReactNode
@@ -18,57 +17,113 @@ export default function AuthRedirect({
   redirectType = 'authenticated',
   fallbackComponent 
 }: AuthRedirectProps) {
-  const { isAuthenticated, initialized } = useAuth()
+  const { isAuthenticated, initialized, isLoading, error } = useAuth()
   const router = useRouter()
+  const redirectedRef = useRef(false)
+  const [forceReady, setForceReady] = useState(false)
 
+  // Force ready after timeout
   useEffect(() => {
-    if (!initialized) return
+    const timeout = setTimeout(() => {
+      if (!initialized && !forceReady) {
+        setForceReady(true)
+      }
+    }, 8000)
 
-    // Giriş yapmış kullanıcıyı login sayfasından yönlendir
+    return () => clearTimeout(timeout)
+  }, [initialized, forceReady])
+
+  // Handle redirects
+  useEffect(() => {
+    if ((!initialized && !forceReady) || redirectedRef.current) return
+
+   if (process.env.NODE_ENV === 'development') {
+    console.log('🔄 AuthRedirect:', { redirectType, isAuthenticated, initialized, forceReady })
+}
+
     if (redirectType === 'authenticated' && isAuthenticated) {
-      console.log('🔄 AuthRedirect: Authenticated user accessing login page, redirecting to:', redirectTo)
-      router.push(redirectTo)
+      if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 AuthRedirect: Authenticated user on login page, redirecting to:', redirectTo)
+      }
+      redirectedRef.current = true
+      router.replace(redirectTo)
       return
     }
 
-    // Giriş yapmamış kullanıcıyı protected sayfalardan yönlendir
     if (redirectType === 'unauthenticated' && !isAuthenticated) {
-      console.log('🔄 AuthRedirect: Unauthenticated user accessing protected page, redirecting to login')
-      router.push('/login')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 AuthRedirect: Unauthenticated user on protected page, redirecting to login')
+      }
+      redirectedRef.current = true
+      router.replace('/login')
       return
     }
-  }, [isAuthenticated, initialized, redirectTo, redirectType, router])
+  }, [isAuthenticated, initialized, forceReady, redirectTo, redirectType, router])
 
-  // İlk yüklenme sırasında loading göster
-  if (!initialized) {
+  // Reset redirect flag when auth state changes
+  useEffect(() => {
+    redirectedRef.current = false
+  }, [isAuthenticated])
+
+  // Show loading during initialization
+  if (!initialized && !forceReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Yükleniyor...</p>
+          <p className="text-gray-600">Cookie-based auth initializing...</p>
+          
+          {/* Debug info in development */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 text-xs text-gray-400">
+              Debug: init={String(initialized)}, loading={String(isLoading)}, auth={String(isAuthenticated)}, error={error}
+            </div>
+          )}
         </div>
       </div>
     )
   }
 
-  // Redirect durumunda fallback component göster veya loading
-  if (redirectType === 'authenticated' && isAuthenticated) {
-    return fallbackComponent || (
+  // Show error state
+  if (error && (initialized || forceReady)) {
+    return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Yönlendiriliyor...</p>
+          <p className="text-red-600 mb-4">Auth error: {error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+          >
+            Retry
+          </button>
         </div>
       </div>
     )
   }
 
-  if (redirectType === 'unauthenticated' && !isAuthenticated) {
+  // Show fallback during redirects
+  if (redirectedRef.current) {
     return fallbackComponent || (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Giriş sayfasına yönlendiriliyor...</p>
+          <p className="text-gray-600">Redirecting...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Determine if children should render
+  const shouldRenderChildren = 
+    (redirectType === 'authenticated' && !isAuthenticated) ||
+    (redirectType === 'unauthenticated' && isAuthenticated)
+
+  if (!shouldRenderChildren) {
+    return fallbackComponent || (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting...</p>
         </div>
       </div>
     )

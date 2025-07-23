@@ -1,5 +1,6 @@
-import MainLayout from '@/components/layout/MainLayout';
+
 import AuthRedirect from '@/components/auth/AuthRedirect';
+import { MainLayout } from '@/components/layout/MainLayout';
 
 export default function DashboardPage() {
   return (

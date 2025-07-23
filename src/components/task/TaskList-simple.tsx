@@ -10,11 +10,24 @@ import { Calendar, User, Clock, FileText, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useTasksApi } from '@/hooks/useSimpleApi';
+import { Task } from '@/types';
 
 interface TaskListProps {
   clubId?: string;
   userId?: string;
 }
+
+
+ interface TaskAttachment {
+   id: string;
+   name: string;
+   url?: string;
+ }
+
+ interface TaskFetchOptions {
+   clubId?: string;
+   userId?: string;
+ }
 
 export default function TaskList({ clubId, userId }: TaskListProps) {
   const { user } = useAuth();
@@ -26,7 +39,7 @@ export default function TaskList({ clubId, userId }: TaskListProps) {
   } = useTasksApi();
 
   useEffect(() => {
-    const options: any = {};
+     const options: TaskFetchOptions = {};
     if (clubId) {
       options.clubId = clubId;
     } else if (userId) {
@@ -37,9 +50,8 @@ export default function TaskList({ clubId, userId }: TaskListProps) {
     fetchTasks(options);
   }, [clubId, userId, user]); // Removed fetchTasks from dependency array
 
-  // Handle refresh button click
-  const handleRefresh = () => {
-    const options: any = {};
+  const buildFetchOptions = () => {
+    const options: TaskFetchOptions = {};
     if (clubId) {
       options.clubId = clubId;
     } else if (userId) {
@@ -47,7 +59,13 @@ export default function TaskList({ clubId, userId }: TaskListProps) {
     } else if (user?.id) {
       options.userId = user.id;
     }
-    fetchTasks(options);
+    return options;
+  };
+  useEffect(() => {
+    fetchTasks(buildFetchOptions());
+  }, [clubId, userId, user]);
+  const handleRefresh = () => {
+    fetchTasks(buildFetchOptions());
   };
 
   const getStatusColor = (status: string) => {
@@ -161,7 +179,7 @@ export default function TaskList({ clubId, userId }: TaskListProps) {
       </div>
 
       {/* Tasks list */}
-      {tasks.map((task: any) => (
+      {tasks.map((task: Task) => (
         <Card key={task.id} className="hover:shadow-md transition-shadow">
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
@@ -182,32 +200,32 @@ export default function TaskList({ clubId, userId }: TaskListProps) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-500">
               <div className="flex items-center space-x-2">
                 <User className="h-4 w-4" />
-                <span>Atanan: {task.assignee_name || 'Belirlenmemiş'}</span>
+                <span>Atanan: {task.assignedTo || 'Belirlenmemiş'}</span>
               </div>
               
               <div className="flex items-center space-x-2">
                 <Calendar className="h-4 w-4" />
                 <span>
-                  Başlangıç: {task.start_date ? format(new Date(task.start_date), 'dd MMM yyyy', { locale: tr }) : 'Belirlenmemiş'}
+                  Başlangıç: {task.createdAt ? format(new Date(task.createdAt), 'dd MMM yyyy', { locale: tr }) : 'Belirlenmemiş'}
                 </span>
               </div>
               
               <div className="flex items-center space-x-2">
                 <Clock className="h-4 w-4" />
                 <span>
-                  Bitiş: {task.due_date ? format(new Date(task.due_date), 'dd MMM yyyy', { locale: tr }) : 'Belirlenmemiş'}
+                  Bitiş: {task.dueDate ? format(new Date(task.dueDate), 'dd MMM yyyy', { locale: tr }) : 'Belirlenmemiş'}
                 </span>
               </div>
             </div>
 
-            {task.attachments && task.attachments.length > 0 && (
+            {task.files && task.files.length > 0 && (
               <div className="mt-4">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Ekler:</h4>
                 <div className="flex flex-wrap gap-2">
-                  {task.attachments.map((attachment: any, index: number) => (
+                  {task.files.map((file, index) => (
                     <Badge key={index} variant="outline" className="text-xs">
                       <FileText className="mr-1 h-3 w-3" />
-                      {attachment.name}
+                      {file.name}
                     </Badge>
                   ))}
                 </div>

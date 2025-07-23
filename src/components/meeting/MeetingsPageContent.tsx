@@ -63,13 +63,39 @@ const [showCreateForm, setShowCreateForm] = useState(false);
           )}
         </TabsList>
 
-        <TabsContent value={activeTab} className="space-y-4">
+        <TabsContent value="all" className="space-y-4">
           {viewMode === 'calendar' ? (
             <MeetingCalendar />
           ) : (
-            <MeetingList filter={activeTab as any} />
+            <MeetingList filter="all" />
           )}
         </TabsContent>
+
+        <TabsContent value="upcoming" className="space-y-4">
+          {viewMode === 'calendar' ? (
+            <MeetingCalendar />
+          ) : (
+            <MeetingList filter="upcoming" />
+          )}
+        </TabsContent>
+
+        <TabsContent value="past" className="space-y-4">
+          {viewMode === 'calendar' ? (
+            <MeetingCalendar />
+          ) : (
+            <MeetingList filter="past" />
+          )}
+        </TabsContent>
+
+        {canCreateMeeting && (
+          <TabsContent value="organized" className="space-y-4">
+            {viewMode === 'calendar' ? (
+              <MeetingCalendar />
+            ) : (
+              <MeetingList filter="organized" />
+            )}
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

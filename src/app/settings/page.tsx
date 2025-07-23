@@ -1,8 +1,19 @@
 // src/app/settings/page.tsx
-import MainLayout from '@/components/layout/MainLayout';
+import {MainLayout} from '@/components/layout/MainLayout';
 import PermissionGuard from '@/components/admin/PermissionGuard';
+import { createClient } from '@/utils/supabase/server';
+import { redirect } from 'next/navigation';
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  // 🔒 Server-side authentication check
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  // Redirect to login if not authenticated
+  if (!user || error) {
+    redirect('/login');
+  }
+
   return (
     <MainLayout>
       <PermissionGuard allowedRoles={['admin', 'club_leader']}>

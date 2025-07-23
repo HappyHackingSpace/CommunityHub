@@ -1,8 +1,28 @@
-// src/hooks/usePerformance.ts - SIMPLIFIED PERFORMANCE HOOKS
+
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 
+export function usePerformanceMonitor(name: string, deps: any[] = []) {
+  const startTimeRef = useRef<number | null>(null);
+  useEffect(() => {
+    startTimeRef.current = performance.now();
+    
+    return () => {
+      if (startTimeRef.current !== null) {
+        const duration = performance.now() - startTimeRef.current;
+        console.log(`[Performance] ${name}: ${duration.toFixed(2)}ms`);
+      }
+    };
+  }, deps);
+  const measure = useCallback(() => {
+    if (startTimeRef.current !== null) {
+      return performance.now() - startTimeRef.current;
+    }
+    return 0;
+  }, []);
+  return { measure };
+}
 
 // 🌐 Simple network status hook
 export function useNetworkStatus() {
@@ -29,18 +49,9 @@ export function useNetworkStatus() {
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
 
-    let connection: any = null;
-    if ('connection' in navigator) {
-      connection = (navigator as any).connection;
-      connection?.addEventListener('change', updateConnectionType);
-    }
-
     return () => {
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOnlineStatus);
-      if (connection) {
-        connection.removeEventListener('change', updateConnectionType);
-      }
     };
   }, []);
 

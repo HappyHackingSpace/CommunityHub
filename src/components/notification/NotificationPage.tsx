@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useNotificationStore } from '@/store/notificationStore';
+import { useNotificationsApi } from '@/hooks/useSimpleApi';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,21 +25,24 @@ export default function NotificationPage() {
   const { user } = useAuth();
   const { 
     notifications, 
-    unreadCount, 
     isLoading, 
+    error,
     fetchNotifications, 
     markAsRead, 
     markAllAsRead,
     deleteNotification 
-  } = useNotificationStore();
+  } = useNotificationsApi();
   
   const [activeTab, setActiveTab] = useState('all');
 
+  // Calculate unread count
+ const unreadCount = notifications.filter(n => !n.is_read).length;
+
   useEffect(() => {
     if (user) {
-      fetchNotifications(user.id);
+     fetchNotifications({ userId: user.id });
     }
-  }, [user, fetchNotifications]);
+  }, [user]); 
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -60,24 +63,14 @@ export default function NotificationPage() {
   };
 
   const filteredNotifications = notifications.filter(notification => {
-    if (activeTab === 'unread') return !notification.isRead;
-    if (activeTab === 'read') return notification.isRead;
+    if (activeTab === 'unread') return !notification.is_read;
+    if (activeTab === 'read') return notification.is_read;
     return true;
   });
 
   const handleNotificationClick = async (notificationId: string, actionUrl?: string) => {
     try {
-      await fetch('/api/notifications', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          notificationId,
-          userId: user?.id,
-          action: 'mark_read'
-        }),
-      });
-      
-      markAsRead(notificationId);
+      await markAsRead(notificationId);
       
       if (actionUrl) {
         window.location.href = actionUrl;
@@ -89,23 +82,7 @@ export default function NotificationPage() {
 
   const handleMarkAllAsRead = async () => {
     try {
-      const unreadNotifications = notifications.filter(n => !n.isRead);
-      
-      await Promise.all(
-        unreadNotifications.map(notification =>
-          fetch('/api/notifications', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              notificationId: notification.id,
-              userId: user?.id,
-              action: 'mark_read'
-            }),
-          })
-        )
-      );
-      
-      markAllAsRead();
+      await markAllAsRead();
     } catch (error) {
       console.error('Mark all as read error:', error);
     }
@@ -182,7 +159,7 @@ export default function NotificationPage() {
                 key={notification.id}
                 className={cn(
                   "cursor-pointer hover:shadow-md transition-shadow border-l-4",
-                  !notification.isRead && "bg-blue-50",
+                  !notification.is_read && "bg-blue-50",
                   getNotificationTypeColor(notification.type)
                 )}
                 onClick={() => handleNotificationClick(notification.id, notification.actionUrl)}
@@ -194,7 +171,7 @@ export default function NotificationPage() {
                       <div className="flex-1">
                         <h3 className={cn(
                           "text-sm",
-                          !notification.isRead && "font-semibold text-gray-900"
+                          !notification.is_read && "font-semibold text-gray-900"
                         )}>
                           {notification.title}
                         </h3>
@@ -215,7 +192,7 @@ export default function NotificationPage() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      {!notification.isRead && (
+                      {!notification.is_read && (
                         <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                       )}
                       <Button

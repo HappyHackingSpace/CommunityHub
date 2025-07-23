@@ -45,7 +45,6 @@ export async function updateSession(request: NextRequest) {
 
   // If user is authenticated and trying to access login page, redirect to dashboard
   if (user && isLoginPage) {
-    console.log('🔄 Middleware: Authenticated user accessing login, redirecting to dashboard')
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
@@ -53,7 +52,6 @@ export async function updateSession(request: NextRequest) {
 
   // If user is not authenticated and trying to access protected routes, redirect to login
   if (!user && !isPublicRoute) {
-    console.log('🔄 Middleware: Unauthenticated user accessing protected route, redirecting to login')
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

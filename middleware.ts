@@ -16,12 +16,14 @@ export async function middleware(request: NextRequest) {
 export const config = {
  matcher: [
     '/login',
+    '/clubs/:path*',
     '/files/:path*',
     '/dashboard/:path*',
     '/tasks/:path*',
     '/meetings/:path*',
     '/notifications/:path*',
     '/admin/:path*',
-    '/permissions/:path*'
+    '/permissions/:path*',
+    '/settings/:path*'
  ]
 }

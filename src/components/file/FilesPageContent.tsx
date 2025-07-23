@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useClubStore } from '@/store';
+import { useClubsApi } from '@/hooks/useSimpleApi';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText } from 'lucide-react';
@@ -10,7 +10,7 @@ import FileManager from './FileManager';
 
 export default function FilesPageContent() {
   const { user } = useAuth();
-  const { clubs } = useClubStore();
+  const { clubs } = useClubsApi();
   const [selectedClubId, setSelectedClubId] = useState<string>('');
 
   const userClubs = clubs.filter(club => 

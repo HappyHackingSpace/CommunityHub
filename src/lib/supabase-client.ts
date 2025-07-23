@@ -1,15 +1,24 @@
-// src/lib/supabase-client.ts
 import { createBrowserClient, createServerClient } from '@supabase/ssr'
 
-// Browser client - safe to use anywhere
+
 export function createClient() {
-  return createBrowserClient(
+  const client = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        persistSession: false,     
+        autoRefreshToken: true,    
+        detectSessionInUrl: true,       
+      }
+    }
   )
+  
+ 
+  return client
 }
 
-// Server client for API routes (without next/headers dependency)
+
 export function createServerClientForAPI(req: any, res: any) {
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
