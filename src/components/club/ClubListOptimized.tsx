@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Users, Calendar, CheckSquare, Plus, RefreshCw, Search } from 'lucide-react';
 import Link from 'next/link';
@@ -166,9 +166,14 @@ export default function ClubListOptimized() {
                     value={formData.type}
                     onValueChange={(value) => handleInputChange('type', value)}
                   >
-                    <option value="social">Sosyal</option>
-                    <option value="education">Eğitim</option>
-                    <option value="project">Proje</option>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="social">Sosyal</SelectItem>
+                      <SelectItem value="education">Eğitim</SelectItem>
+                      <SelectItem value="project">Proje</SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
                 <div className="flex justify-end space-x-2">
@@ -201,10 +206,15 @@ export default function ClubListOptimized() {
           />
         </div>
         <div className="flex gap-2">
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <option value="created_at">Oluşturma Tarihi</option>
-            <option value="name">İsim</option>
-            <option value="type">Tip</option>
+         <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="created_at">Oluşturma Tarihi</SelectItem>
+              <SelectItem value="name">İsim</SelectItem>
+              <SelectItem value="type">Tip</SelectItem>
+            </SelectContent>
           </Select>
           <Button
             variant="outline"
