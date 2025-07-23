@@ -10,6 +10,7 @@ export interface Pagination {
   totalPages: number;
 }
 
+
 // 🗃️ Generic list state
 interface ListState<T> {
   items: T[];
@@ -88,7 +89,7 @@ const createDefaultListState = <T>(): ListState<T> => ({
 // 🏪 Create the unified store
 export const useUnifiedStore = create<UnifiedStore>()(
   persist(
-    (set: any, get: any) => ({
+    (set, get) => ({
       // Initialize list states
       clubs: createDefaultListState(),
       files: createDefaultListState(),
