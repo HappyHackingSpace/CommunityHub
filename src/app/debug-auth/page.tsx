@@ -70,11 +70,15 @@ export default function DebugAuthPage() {
               <div>
                 <h3 className="font-medium">LocalStorage:</h3>
                 <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto">
-                  {typeof window !== 'undefined' ? 
+                   {typeof window !== 'undefined' ? 
                     JSON.stringify(
                       Object.keys(localStorage).reduce((acc: any, key) => {
                         if (key.includes('supabase') || key.includes('auth')) {
-                          acc[key] = localStorage.getItem(key);
+                          const value = localStorage.getItem(key);
+                          // Mask sensitive values in debug display
+                          acc[key] = value && value.length > 10
+                            ? value.substring(0, 10) + '...[MASKED]'
+                            : value;
                         }
                         return acc;
                       }, {}), null, 2
@@ -86,7 +90,15 @@ export default function DebugAuthPage() {
               <div>
                 <h3 className="font-medium">Cookies:</h3>
                 <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto">
-                  {typeof window !== 'undefined' ? document.cookie : 'Not available on server'}
+                   {typeof window !== 'undefined'
+                    ? document.cookie
+                        .split(';')
+                        .map(cookie => {
+                          const [name] = cookie.trim().split('=');
+                          return `${name}=[MASKED]`;
+                        })
+                        .join('; ')
+                    : 'Not available on server'}
                 </pre>
               </div>
             </div>
