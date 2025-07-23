@@ -23,14 +23,15 @@ interface ApiResponse<T> {
   pagination?: Pagination;
 }
 
+function capitalize(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 // 🔄 Base API hook
 function useBaseApi() {
   const store = useSimpleStore();
 
-  // Helper to capitalize first letter
-  function capitalize(str: string) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  }
+  
 
   const apiCall = useCallback(async (
     url: string,
@@ -78,10 +79,7 @@ function useBaseApi() {
           fn(false);
         }
       }
-// Helper to capitalize first letter
-function capitalize(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
+
     }
   }, [store]);
 
