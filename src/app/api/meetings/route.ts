@@ -44,7 +44,7 @@ export const GET = withAuth(async (request: NextRequest, user) => {
 export const POST = withAuth(async (request: NextRequest, user) => {
   try {
     const body = await request.json();
-    const { title, description, start_time, end_time, location, club_id } = body;
+    const { title, description, start_time, end_time, location, club_id, participants, recurrence } = body;
 
    if (!title || !start_time || !club_id) {
       return ApiResponse.badRequest('Toplantı başlığı, başlangıç zamanı ve kulüp ID gerekli');
@@ -74,6 +74,7 @@ export const POST = withAuth(async (request: NextRequest, user) => {
     }
 
     // Prepare meeting data
+    // Note: recurrence is not supported in the current schema. If needed, update the schema or handle separately.
     const meetingData = {
       title,
       description,
@@ -83,7 +84,7 @@ export const POST = withAuth(async (request: NextRequest, user) => {
       club_id,
       organizer_id: user.id,
       status: 'scheduled' as const,
-      participants: [],
+      participants: participants || [],
     };
 
     const { data, error } = await EnhancedDatabaseService.createMeeting(meetingData);
