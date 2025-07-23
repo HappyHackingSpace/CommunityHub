@@ -2,8 +2,8 @@
 'use client';
 
 import { useAuth } from '@/hooks/useAuth';
-import { useClubsApi } from '@/hooks/useSimpleApi';
-import { useEffect, useRef, memo, useState } from 'react';
+
+import {  memo } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 

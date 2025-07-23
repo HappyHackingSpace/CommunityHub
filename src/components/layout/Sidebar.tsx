@@ -15,10 +15,8 @@ import {
   CheckSquare, 
   FileText, 
   Settings,
-  Plus,
-  Crown
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+
 
 // Navigation configuration
 const NAVIGATION_CONFIG = [
