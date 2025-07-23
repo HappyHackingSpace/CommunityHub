@@ -1,5 +1,5 @@
 // src/lib/database.ts
-import { createClient } from '@/lib/supabase-client'
+import { createClient } from '@/utils/supabase/client'
 import { Database } from '@/types/database'
 
 type Tables = Database['public']['Tables']

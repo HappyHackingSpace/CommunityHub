@@ -13,5 +13,11 @@ export function createClient() {
     throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable is not set')
   }
 
-  return createBrowserClient(supabaseUrl, supabaseAnonKey)
+  return createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    }
+  })
 }

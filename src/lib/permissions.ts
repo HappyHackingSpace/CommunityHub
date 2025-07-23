@@ -1,5 +1,5 @@
 // src/lib/permissions.ts
-import { createClient } from '@/lib/supabase-client'
+import { createClient } from '@/utils/supabase/client'
 
 export interface UserPermission {
   name: string;
