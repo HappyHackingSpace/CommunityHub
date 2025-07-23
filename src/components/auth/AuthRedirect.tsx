@@ -37,17 +37,23 @@ export default function AuthRedirect({
   useEffect(() => {
     if ((!initialized && !forceReady) || redirectedRef.current) return
 
+   if (process.env.NODE_ENV === 'development') {
     console.log('🔄 AuthRedirect:', { redirectType, isAuthenticated, initialized, forceReady })
+}
 
     if (redirectType === 'authenticated' && isAuthenticated) {
+      if (process.env.NODE_ENV === 'development') {
       console.log('🔄 AuthRedirect: Authenticated user on login page, redirecting to:', redirectTo)
+      }
       redirectedRef.current = true
       router.replace(redirectTo)
       return
     }
 
     if (redirectType === 'unauthenticated' && !isAuthenticated) {
-      console.log('🔄 AuthRedirect: Unauthenticated user on protected page, redirecting to login')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 AuthRedirect: Unauthenticated user on protected page, redirecting to login')
+      }
       redirectedRef.current = true
       router.replace('/login')
       return
