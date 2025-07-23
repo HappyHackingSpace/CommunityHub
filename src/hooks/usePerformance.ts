@@ -3,18 +3,6 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 
-// 🚀 Simple performance monitoring
-export function usePerformanceMonitor(name: string, deps: any[] = []) {
-  const startTimeRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    startTimeRef.current = performance.now();
-    
-    return () => {
-      // Silent performance tracking
-    };
-  }, deps);
-}
 
 // 🌐 Simple network status hook
 export function useNetworkStatus() {
@@ -41,9 +29,18 @@ export function useNetworkStatus() {
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
 
+    let connection: any = null;
+    if ('connection' in navigator) {
+      connection = (navigator as any).connection;
+      connection?.addEventListener('change', updateConnectionType);
+    }
+
     return () => {
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOnlineStatus);
+      if (connection) {
+        connection.removeEventListener('change', updateConnectionType);
+      }
     };
   }, []);
 
