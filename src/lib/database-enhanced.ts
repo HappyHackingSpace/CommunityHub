@@ -35,7 +35,7 @@ export class EnhancedDatabaseService {
     userId?: string
   ): Promise<{ data: PaginatedResult<T> | null; error: any }> {
     try {
-      const supabase = await this.getClient();
+    const supabase = await EnhancedDatabaseService.getClient();
       const { page = 1, limit = 20, sortBy, sortOrder = 'desc', filters = {} } = options;
       const offset = (page - 1) * limit;
 
@@ -50,12 +50,6 @@ export class EnhancedDatabaseService {
       });
 
      
-      if (userId && tableName !== 'users') {
-      
-        if (['clubs', 'files', 'meetings', 'tasks'].includes(tableName)) {
-      
-        }
-      }
 
       // Apply sorting
       if (sortBy) {
