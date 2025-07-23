@@ -23,6 +23,13 @@ interface ApiResponse<T> {
   pagination?: Pagination;
 }
 
+interface UpdateClubData {
+  name?: string;
+  description?: string;
+  type?: string;
+}
+
+
 function capitalize(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
@@ -126,7 +133,7 @@ export function useClubsApi() {
   );
 
 
-  const updateClub = useCallback(async (id: string, updates: any) => {
+  const updateClub = useCallback(async (id: string, updates: UpdateClubData) => {
     try {
       const result = await apiCall(`/api/clubs/${id}`, {
         method: 'PUT',
@@ -139,7 +146,7 @@ export function useClubsApi() {
       console.error('Failed to update club:', error);
       throw error;
     }
-  }, [apiCall, clubsHook]);
+ }, [apiCall, clubsHook]);
 
   const deleteClub = useCallback(async (id: string) => {
     try {
