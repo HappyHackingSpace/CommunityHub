@@ -36,13 +36,13 @@ export default function NotificationPage() {
   const [activeTab, setActiveTab] = useState('all');
 
   // Calculate unread count
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+ const unreadCount = notifications.filter(n => !n.is_read).length;
 
   useEffect(() => {
     if (user) {
-      fetchNotifications({ userId: user.id });
+     fetchNotifications({ userId: user.id });
     }
-  }, [user]); // Removed fetchNotifications from dependency array to prevent infinite loop
+  }, [user]); 
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
