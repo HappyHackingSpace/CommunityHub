@@ -1,19 +1,27 @@
-// src/hooks/usePerformance.ts - SIMPLIFIED PERFORMANCE HOOKS
+
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 
-// 🚀 Simple performance monitoring
 export function usePerformanceMonitor(name: string, deps: any[] = []) {
   const startTimeRef = useRef<number | null>(null);
-
   useEffect(() => {
     startTimeRef.current = performance.now();
     
     return () => {
-      // Silent performance tracking
+      if (startTimeRef.current !== null) {
+        const duration = performance.now() - startTimeRef.current;
+        console.log(`[Performance] ${name}: ${duration.toFixed(2)}ms`);
+      }
     };
   }, deps);
+  const measure = useCallback(() => {
+    if (startTimeRef.current !== null) {
+      return performance.now() - startTimeRef.current;
+    }
+    return 0;
+  }, []);
+  return { measure };
 }
 
 // 🌐 Simple network status hook
