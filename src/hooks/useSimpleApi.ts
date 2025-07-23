@@ -2,6 +2,8 @@
 import { useCallback } from 'react';
 import { useClubs, useFiles, useFolders, useMeetings, useTasks, useNotifications } from '@/store/simple-store';
 
+import stringify from 'fast-json-stable-stringify';
+
 interface ApiOptions {
   page?: number;
   limit?: number;
@@ -15,8 +17,9 @@ const globalApiCalls = new Map<string, Promise<any>>();
 
 // 🔄 Base API call function with deduplication
 async function apiCall(url: string, options: RequestInit = {}) {
-  // Create unique key for this API call
-  const callKey = `${options.method || 'GET'}-${url}-${JSON.stringify(options.body || '')}`;
+  // Create unique key for this API call (deterministic body stringification)
+  const bodyString = options.body && typeof options.body === 'object' ? stringify(options.body) : String(options.body || '');
+  const callKey = `${options.method || 'GET'}-${url}-${bodyString}`;
   
   // If this exact call is already in progress, return the existing promise
   if (globalApiCalls.has(callKey)) {
@@ -266,9 +269,10 @@ export function useMeetingsApi() {
   const meetingsHook = useMeetings();
 
   const fetchMeetings = useCallback(async (options: ApiOptions = {}) => {
-    // 🛡️ Prevent multiple simultaneous calls
     if (meetingsHook.isLoading) {
-      console.log('🔄 Meetings: Skipping duplicate API call (already loading)');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Meetings: Skipping duplicate API call (already loading)');
+      }
       return;
     }
 
