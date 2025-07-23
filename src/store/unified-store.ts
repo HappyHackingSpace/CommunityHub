@@ -2,6 +2,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+import type { Club, FileItem, Meeting, Task, Notification, User } from '@/types/index';
+
 // 📊 Pagination interface
 export interface Pagination {
   page: number;
@@ -23,18 +25,18 @@ interface ListState<T> {
 // 🏪 Unified Store Interface
 interface UnifiedStore {
   // Generic list states
-  clubs: ListState<any>;
-  files: ListState<any>;
-  meetings: ListState<any>;
-  tasks: ListState<any>;
-  notifications: ListState<any>;
-  users: ListState<any>;
+  clubs: ListState<Club>;
+  files: ListState<FileItem>;
+  meetings: ListState<Meeting>;
+  tasks: ListState<Task>;
+  notifications: ListState<Notification>;
+  users: ListState<User>;
 
   // Selected items
-  selectedClub: any;
-  selectedFile: any;
-  selectedMeeting: any;
-  selectedTask: any;
+  selectedClub: Club | null;
+  selectedFile: FileItem | null;
+  selectedMeeting: Meeting | null;
+  selectedTask: Task | null;
 
   // Generic actions
   setListData: <T>(
@@ -91,12 +93,12 @@ export const useUnifiedStore = create<UnifiedStore>()(
   persist(
     (set, get) => ({
       // Initialize list states
-      clubs: createDefaultListState(),
-      files: createDefaultListState(),
-      meetings: createDefaultListState(),
-      tasks: createDefaultListState(),
-      notifications: createDefaultListState(),
-      users: createDefaultListState(),
+      clubs: createDefaultListState<Club>(),
+      files: createDefaultListState<FileItem>(),
+      meetings: createDefaultListState<Meeting>(),
+      tasks: createDefaultListState<Task>(),
+      notifications: createDefaultListState<Notification>(),
+      users: createDefaultListState<User>(),
 
       // Initialize selected items
       selectedClub: null,
@@ -194,7 +196,7 @@ export const useUnifiedStore = create<UnifiedStore>()(
     }),
     {
       name: 'unified-store',
-      partialize: (state) => ({
+      partialize: (state: UnifiedStore) => ({
         // Only persist selected items, not the full lists
         selectedClub: state.selectedClub,
         selectedFile: state.selectedFile,
