@@ -38,7 +38,7 @@ export async function authenticateRequest(request: NextRequest): Promise<{
     // Get user profile from database
     const { data: userProfile, error: profileError } = await supabase
       .from('users')
-      .select('id, email, role, is_active, name')
+      .select('id, email, role, is_active, name, club_id')
       .eq('id', user.id)
       .single();
 
@@ -85,7 +85,8 @@ export async function authenticateRequest(request: NextRequest): Promise<{
       user: {
         id: userProfile.id,
         email: userProfile.email,
-        role: userProfile.role
+        role: userProfile.role,
+        clubId: userProfile.club_id ?? undefined
       },
       error: null
     };
