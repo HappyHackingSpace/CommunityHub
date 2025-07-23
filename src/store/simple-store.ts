@@ -18,7 +18,7 @@ interface ListState<T> {
 }
 
 // 🏪 Simple Store Interface - NO CACHING!
-interface SimpleStore {
+export interface SimpleStore {
   // Data states
   clubs: ListState<any>;
   files: ListState<any>;

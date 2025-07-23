@@ -1,7 +1,9 @@
 // src/hooks/useApi.ts - Unified API Hooks with Store Integration
 import { useCallback } from 'react';
-import { useUnifiedStore, useClubs, useFiles, useMeetings, useTasks, useNotifications } from '@/store/unified-store';
-
+import { useSimpleStore, useClubs, useFiles, useMeetings, useTasks, useNotifications } from '@/store/simple-store';
+import type { SimpleStore } from '@/store/simple-store';
+import type { Club } from '@/types';
+import type { Pagination } from '@/store/simple-store';
 interface ApiOptions {
   page?: number;
   limit?: number;
@@ -10,9 +12,25 @@ interface ApiOptions {
   [key: string]: any;
 }
 
+interface CreateClubData {
+  name: string;
+  description: string;
+  type?: string;
+}
+interface ApiResponse<T> {
+  data: T;
+  message?: string;
+  pagination?: Pagination;
+}
+
 // 🔄 Base API hook
 function useBaseApi() {
-  const store = useUnifiedStore();
+  const store = useSimpleStore();
+
+  // Helper to capitalize first letter
+  function capitalize(str: string) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
 
   const apiCall = useCallback(async (
     url: string,
@@ -21,13 +39,17 @@ function useBaseApi() {
   ) => {
     try {
       if (listName) {
-        store.setListLoading(listName, true);
+        const loadingMethod = `set${capitalize(listName)}Loading` as keyof SimpleStore;
+        const fn = store[loadingMethod] as ((loading: boolean) => void) | undefined;
+        if (typeof fn === 'function') {
+          fn(true);
+        }
       }
 
       const response = await fetch(url, {
         ...options,
         headers: {
-          'Content-Type': 'application/json',
+          ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
           ...options.headers,
         },
       });
@@ -41,13 +63,25 @@ function useBaseApi() {
       return result;
     } catch (error) {
       if (listName) {
-        store.setListError(listName, error instanceof Error ? error.message : 'Unknown error');
+        const errorMethod = `set${capitalize(listName)}Error` as keyof SimpleStore;
+        const fn = store[errorMethod] as ((error: string | null) => void) | undefined;
+        if (typeof fn === 'function') {
+          fn(error instanceof Error ? error.message : 'Unknown error');
+        }
       }
       throw error;
     } finally {
       if (listName) {
-        store.setListLoading(listName, false);
+        const loadingMethod = `set${capitalize(listName)}Loading` as keyof SimpleStore;
+        const fn = store[loadingMethod] as ((loading: boolean) => void) | undefined;
+        if (typeof fn === 'function') {
+          fn(false);
+        }
       }
+// Helper to capitalize first letter
+function capitalize(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
     }
   }, [store]);
 
@@ -75,20 +109,24 @@ export function useClubsApi() {
     }
   }, [apiCall, clubsHook]);
 
-  const createClub = useCallback(async (clubData: { name: string; description: string; type?: string }) => {
-    try {
-      const result = await apiCall('/api/clubs', {
-        method: 'POST',
-        body: JSON.stringify(clubData),
-      });
-      
-      clubsHook.addClub(result.data);
-      return result;
-    } catch (error) {
-      console.error('Failed to create club:', error);
-      throw error;
-    }
-  }, [apiCall, clubsHook]);
+   const createClub = useCallback(
+    async (clubData: CreateClubData): Promise<ApiResponse<Club>> => {
+      try {
+        const result = await apiCall('/api/clubs', {
+          method: 'POST',
+          body: JSON.stringify(clubData),
+        });
+        
+        clubsHook.addClub(result.data);
+        return result;
+      } catch (error) {
+        console.error('Failed to create club:', error);
+        throw error;
+      }
+    },
+    [apiCall, clubsHook]
+  );
+
 
   const updateClub = useCallback(async (id: string, updates: any) => {
     try {
