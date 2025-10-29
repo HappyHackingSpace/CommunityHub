@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  # NestJS Backend Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development  # Use development stage for local development
+    container_name: communityhub-backend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_DATABASE: communityhub
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      GOOGLE_CLIENT_ID: your-google-client-id
+      GOOGLE_CLIENT_SECRET: your-google-client-secret
+      FRONTEND_URL: http://localhost:3001
+    command: ["node", "dist/main.js"]  # Use built version for development too
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - .:/usr/src/app  # For development hot reload
+      - /usr/src/app/node_modules  # Prevent overwriting node_modules
+    networks:
+      - communityhub-network
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: communityhub-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: communityhub
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - communityhub-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d communityhub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for Caching (Optional - for future use)
+  redis:
+    image: redis:7-alpine
+    container_name: communityhub-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - communityhub-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # PgAdmin for Database Management (Development only)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: communityhub-pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@communityhub.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - communityhub-network
+    profiles:
+      - development  # Only runs when development profile is active
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  communityhub-network:
+    driver: bridge
