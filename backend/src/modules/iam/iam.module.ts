@@ -30,6 +30,7 @@ const QueryHandlers = [GetUserHandler];
 
 @Module({
   imports: [
+    ConfigModule,
     TypeOrmModule.forFeature([UserOrmEntity, RoleOrmEntity]),
     CqrsModule,
     PassportModule,

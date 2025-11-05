@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "baseUrl": "./src",
+    "paths": {
+      "*": ["*", "../node_modules/*"]
+    }
+  },
+  "ts-node": {
+    "transpileOnly": true,
+    "require": ["tsconfig-paths/register"]
+  }
+}
