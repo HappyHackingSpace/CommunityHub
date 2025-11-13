@@ -43,6 +43,11 @@ import { SearchPublicTasksQuery } from '../../application/queries/search-public-
 import { SearchAssignedToMeTasksQuery } from '../../application/queries/search-assigned-to-me-tasks/search-assigned-to-me-tasks.query';
 import { SearchAssignedByMeTasksQuery } from '../../application/queries/search-assigned-by-me-tasks/search-assigned-by-me-tasks.query';
 import { TaskStatus } from '../../domain/enums/task-status.enum';
+import { AddAttachmentCommand } from '../../application/commands/add-attachment/add-attachment.command';
+import { AssignMentorCommand } from '../../application/commands/assign-mentor/assign-mentor.command';
+import { RequestHelpCommand } from '../../application/commands/request-help/request-help.command';
+import { RequestTaskHandoverCommand } from '../../application/commands/request-task-handover/request-task-handover.command';
+import { VolunteerForTaskCommand } from '../../application/commands/volunteer-for-task/volunteer-for-task.command';
 
 @Controller('tasks')
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
@@ -66,6 +71,12 @@ export class TasksController {
       dto.assigneeId,
       dto.dueDate ? new Date(dto.dueDate) : undefined,
       dto.visibility,
+      dto.priority,
+      dto.estimatedTime,
+      dto.points,
+      dto.isRecurring,
+      dto.recurringSchedule,
+      dto.requiredSkills,
       dto.tagIds,
     );
     const task = await this.commandBus.execute(command);
@@ -269,6 +280,74 @@ export class TasksController {
     @CurrentUser() currentUser: any,
   ): Promise<void> {
     const command = new DetachTagCommand(id, currentUser.userId, tagId);
+    await this.commandBus.execute(command);
+  }
+
+  // ========== NEW ENDPOINTS ==========
+
+  @Post(':id/attachments')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  async addAttachment(
+    @Param('id') id: string,
+    @Body() dto: any, // CreateAttachmentDto
+    @CurrentUser() currentUser: any,
+  ): Promise<any> {
+    const command = new AddAttachmentCommand(
+      id,
+      currentUser.userId,
+      dto.fileName,
+      dto.fileUrl,
+      dto.fileSize,
+      dto.mimeType,
+    );
+    return await this.commandBus.execute(command);
+  }
+
+  @Post(':id/mentor')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async assignMentor(
+    @Param('id') id: string,
+    @Body() dto: any, // AssignMentorDto
+    @CurrentUser() currentUser: any,
+  ): Promise<void> {
+    const command = new AssignMentorCommand(id, dto.mentorId, currentUser.userId);
+    await this.commandBus.execute(command);
+  }
+
+  @Post(':id/help')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async requestHelp(
+    @Param('id') id: string,
+    @Body() dto: any, // RequestHelpDto
+    @CurrentUser() currentUser: any,
+  ): Promise<void> {
+    const command = new RequestHelpCommand(id, currentUser.userId, dto.message);
+    await this.commandBus.execute(command);
+  }
+
+  @Post(':id/handover')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async requestHandover(
+    @Param('id') id: string,
+    @Body() dto: any, // RequestTaskHandoverDto
+    @CurrentUser() currentUser: any,
+  ): Promise<void> {
+    const command = new RequestTaskHandoverCommand(id, currentUser.userId, dto.reason);
+    await this.commandBus.execute(command);
+  }
+
+  @Post(':id/volunteer')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async volunteerForTask(
+    @Param('id') id: string,
+    @CurrentUser() currentUser: any,
+  ): Promise<void> {
+    const command = new VolunteerForTaskCommand(id, currentUser.userId);
     await this.commandBus.execute(command);
   }
 }

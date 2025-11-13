@@ -11,7 +11,6 @@ import type { ActionButton, NotificationMetadata } from '../../domain/entities';
 @Entity('notifications')
 @Index(['userId', 'createdAt'])
 @Index(['status'])
-@Index(['groupKey'])
 export class NotificationSchema {
   @PrimaryColumn('uuid')
   id: string;

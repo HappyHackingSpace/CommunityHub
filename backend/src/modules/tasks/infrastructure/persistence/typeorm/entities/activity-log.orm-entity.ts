@@ -6,14 +6,19 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { ActivityAction } from '../../../../domain/enums/activity-action.enum';
 import { TaskOrmEntity } from './task.orm-entity';
 
 @Entity('activity_logs')
+@Index(['tenantId'])
 export class ActivityLogOrmEntity {
   @PrimaryColumn('varchar')
   id: string;
+
+  @Column('bigint', { name: 'tenant_id', nullable: true })
+  tenantId: number;
 
   @Column({ name: 'task_id' })
   taskId: string;

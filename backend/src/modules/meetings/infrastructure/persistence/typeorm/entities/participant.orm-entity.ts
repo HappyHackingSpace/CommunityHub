@@ -1,11 +1,15 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { ParticipantStatus } from '../../../../domain/enums/participant-status.enum';
 import { MeetingOrmEntity } from './meeting.orm-entity';
 
 @Entity('meeting_participants')
+@Index(['tenantId'])
 export class ParticipantOrmEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column('bigint', { name: 'tenant_id', nullable: true })
+  tenantId: number;
 
   @Column({ name: 'meeting_id' })
   meetingId: string;

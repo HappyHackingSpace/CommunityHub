@@ -1,6 +1,6 @@
 -- PostgreSQL initialization script for CommunityHub
 
--- Create extensions
+-- Recreate extensions after schema drop
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -28,8 +28,8 @@ SET timezone = 'UTC';
 
 
 -- Print success message
-DO $
+DO $$
 BEGIN
     RAISE NOTICE 'CommunityHub database initialized successfully!';
     RAISE NOTICE 'Roles will be seeded by the application.';
-END $;
+END $$;

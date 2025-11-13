@@ -3,13 +3,22 @@
   "compilerOptions": {
     "module": "commonjs",
     "moduleResolution": "node",
-    "baseUrl": "./src",
+    "resolvePackageJsonExports": false,
+    "baseUrl": "./",
     "paths": {
-      "*": ["*", "../node_modules/*"]
+      "@/*": ["src/*"]
     }
   },
   "ts-node": {
     "transpileOnly": true,
     "require": ["tsconfig-paths/register"]
-  }
+  },
+  "include": [
+    "src/**/*",
+    "database/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

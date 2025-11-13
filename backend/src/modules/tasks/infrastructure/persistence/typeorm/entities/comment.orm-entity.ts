@@ -6,13 +6,18 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { TaskOrmEntity } from './task.orm-entity';
 
 @Entity('comments')
+@Index(['tenantId'])
 export class CommentOrmEntity {
   @PrimaryColumn('varchar')
   id: string;
+
+  @Column('bigint', { name: 'tenant_id', nullable: true })
+  tenantId: number;
 
   @Column({ name: 'task_id' })
   taskId: string;

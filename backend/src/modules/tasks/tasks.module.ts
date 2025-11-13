@@ -9,6 +9,9 @@ import { ActivityLogOrmEntity } from './infrastructure/persistence/typeorm/entit
 import { SubTaskOrmEntity } from './infrastructure/persistence/typeorm/entities/subtask.orm-entity';
 import { TagOrmEntity } from './infrastructure/persistence/typeorm/entities/tag.orm-entity';
 import { AssignmentHistoryOrmEntity } from './infrastructure/persistence/typeorm/entities/assignment-history.orm-entity';
+import { AttachmentOrmEntity } from './infrastructure/persistence/typeorm/entities/attachment.orm-entity';
+import { BadgeOrmEntity } from './infrastructure/persistence/typeorm/entities/badge.orm-entity';
+import { TaskDependencyOrmEntity } from './infrastructure/persistence/typeorm/entities/task-dependency.orm-entity';
 
 // Repositories
 import { TaskRepository } from './infrastructure/persistence/typeorm/repositories/task.repository';
@@ -18,6 +21,9 @@ import { SubTaskRepository } from './infrastructure/persistence/typeorm/reposito
 import { TagRepository } from './infrastructure/persistence/typeorm/repositories/tag.repository';
 import { TaskTagRepository } from './infrastructure/persistence/typeorm/repositories/task-tag.repository';
 import { AssignmentHistoryRepository } from './infrastructure/persistence/typeorm/repositories/assignment-history.repository';
+import { AttachmentRepository } from './infrastructure/persistence/typeorm/repositories/attachment.repository';
+import { BadgeRepository } from './infrastructure/persistence/typeorm/repositories/badge.repository';
+import { TaskDependencyRepository } from './infrastructure/persistence/typeorm/repositories/task-dependency.repository';
 
 // Command Handlers
 import { CreateTaskHandler } from './application/commands/create-task/create-task.handler';
@@ -31,6 +37,11 @@ import { AttachTagsHandler } from './application/commands/attach-tags/attach-tag
 import { DetachTagHandler } from './application/commands/detach-tag/detach-tag.handler';
 import { CreateTagHandler } from './application/commands/create-tag/create-tag.handler';
 import { AssignTaskHandler } from './application/commands/assign-task/assign-task.handler';
+import { AddAttachmentHandler } from './application/commands/add-attachment/add-attachment.handler';
+import { AssignMentorHandler } from './application/commands/assign-mentor/assign-mentor.handler';
+import { RequestHelpHandler } from './application/commands/request-help/request-help.handler';
+import { RequestTaskHandoverHandler } from './application/commands/request-task-handover/request-task-handover.handler';
+import { VolunteerForTaskHandler } from './application/commands/volunteer-for-task/volunteer-for-task.handler';
 
 // Query Handlers
 import { GetTaskHandler } from './application/queries/get-task/get-task.handler';
@@ -43,11 +54,14 @@ import { SearchPublicTasksHandler } from './application/queries/search-public-ta
 import { SearchAssignedToMeTasksHandler } from './application/queries/search-assigned-to-me-tasks/search-assigned-to-me-tasks.handler';
 import { SearchAssignedByMeTasksHandler } from './application/queries/search-assigned-by-me-tasks/search-assigned-by-me-tasks.handler';
 import { GetAssignmentHistoryHandler } from './application/queries/get-assignment-history/get-assignment-history.handler';
+import { GetGamificationLeaderboardHandler } from './application/queries/get-gamification-leaderboard/get-gamification-leaderboard.handler';
+import { GetUserBadgesHandler } from './application/queries/get-user-badges/get-user-badges.handler';
 
 // Controllers
 import { TasksController } from './presentation/controllers/tasks.controller';
 import { SubTasksController } from './presentation/controllers/subtasks.controller';
 import { TagsController } from './presentation/controllers/tags.controller';
+import { GamificationController } from './presentation/controllers/gamification.controller';
 
 const CommandHandlers = [
   CreateTaskHandler,
@@ -61,6 +75,11 @@ const CommandHandlers = [
   DetachTagHandler,
   CreateTagHandler,
   AssignTaskHandler,
+  AddAttachmentHandler,
+  AssignMentorHandler,
+  RequestHelpHandler,
+  RequestTaskHandoverHandler,
+  VolunteerForTaskHandler,
 ];
 
 const QueryHandlers = [
@@ -74,6 +93,8 @@ const QueryHandlers = [
   SearchAssignedToMeTasksHandler,
   SearchAssignedByMeTasksHandler,
   GetAssignmentHistoryHandler,
+  GetGamificationLeaderboardHandler,
+  GetUserBadgesHandler,
 ];
 
 @Module({
@@ -85,10 +106,13 @@ const QueryHandlers = [
       SubTaskOrmEntity,
       TagOrmEntity,
       AssignmentHistoryOrmEntity,
+      AttachmentOrmEntity,
+      BadgeOrmEntity,
+      TaskDependencyOrmEntity,
     ]),
     CqrsModule,
   ],
-  controllers: [TasksController, SubTasksController, TagsController],
+  controllers: [TasksController, SubTasksController, TagsController, GamificationController],
   providers: [
     {
       provide: 'ITaskRepository',
@@ -118,6 +142,18 @@ const QueryHandlers = [
       provide: 'IAssignmentHistoryRepository',
       useClass: AssignmentHistoryRepository,
     },
+    {
+      provide: 'IAttachmentRepository',
+      useClass: AttachmentRepository,
+    },
+    {
+      provide: 'IBadgeRepository',
+      useClass: BadgeRepository,
+    },
+    {
+      provide: 'ITaskDependencyRepository',
+      useClass: TaskDependencyRepository,
+    },
     ...CommandHandlers,
     ...QueryHandlers,
   ],
@@ -129,6 +165,9 @@ const QueryHandlers = [
     'ITagRepository',
     'ITaskTagRepository',
     'IAssignmentHistoryRepository',
+    'IAttachmentRepository',
+    'IBadgeRepository',
+    'ITaskDependencyRepository',
   ],
 })
 export class TasksModule {}

@@ -8,6 +8,9 @@ import { IamModule } from './modules/iam/iam.module';
 import { MeetingsModule } from './modules/meetings/meetings.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ClubsModule } from './modules/clubs/clubs.module';
+import { ActivityFeedModule } from './modules/activity-feed/activity-feed.module';
+import { SecurityModerationModule } from './modules/security-moderation/security-moderation.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DataSource } from 'typeorm';
@@ -28,10 +31,9 @@ import { DataSource } from 'typeorm';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         autoLoadEntities: true,
-        synchronize: false,
-        migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
-        migrationsRun: true, // Automatically run migrations on startup
-      }),
+        synchronize: true,
+        logging: 'all',
+              }),
       inject: [ConfigService],
       dataSourceFactory: async (options) => {
         if (!options) {
@@ -39,9 +41,6 @@ import { DataSource } from 'typeorm';
         }
         const dataSource = new DataSource(options);
         await dataSource.initialize();
-        // Run migrations
-        await dataSource.runMigrations();
-        console.log('✅ Migrations have been run successfully');
         return dataSource;
       },
     }),
@@ -69,6 +68,9 @@ import { DataSource } from 'typeorm';
     MeetingsModule,
     TasksModule,
     NotificationsModule,
+    ClubsModule,
+    ActivityFeedModule,
+    SecurityModerationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

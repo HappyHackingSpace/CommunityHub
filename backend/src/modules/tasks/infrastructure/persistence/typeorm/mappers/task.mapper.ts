@@ -2,6 +2,7 @@ import { Task } from '../../../../domain/entities/task.entity';
 import { TaskOrmEntity } from '../entities/task.orm-entity';
 import { TaskTitle } from '../../../../domain/value-objects/task-title.vo';
 import { TaskDescription } from '../../../../domain/value-objects/task-description.vo';
+import { TaskPriority } from '../../../../domain/value-objects/task-priority.vo';
 
 export class TaskMapper {
   static toPersistence(task: Task): TaskOrmEntity {
@@ -14,6 +15,13 @@ export class TaskMapper {
     ormEntity.assignerId = task.assignerId;
     ormEntity.assigneeId = task.assigneeId;
     ormEntity.dueDate = task.dueDate;
+    ormEntity.priority = task.priority.getValue();
+    ormEntity.estimatedTime = task.estimatedTime;
+    ormEntity.points = task.points;
+    ormEntity.isRecurring = task.isRecurring;
+    ormEntity.recurringSchedule = task.recurringSchedule;
+    ormEntity.requiredSkills = task.requiredSkills;
+    ormEntity.mentorId = task.mentorId;
     ormEntity.createdAt = task.createdAt;
     ormEntity.updatedAt = task.updatedAt;
     return ormEntity;
@@ -32,6 +40,13 @@ export class TaskMapper {
         assignerId: ormEntity.assignerId,
         assigneeId: ormEntity.assigneeId,
         dueDate: ormEntity.dueDate,
+        priority: TaskPriority.create(ormEntity.priority),
+        estimatedTime: ormEntity.estimatedTime,
+        points: ormEntity.points,
+        isRecurring: ormEntity.isRecurring,
+        recurringSchedule: ormEntity.recurringSchedule,
+        requiredSkills: ormEntity.requiredSkills,
+        mentorId: ormEntity.mentorId,
       },
       ormEntity.createdAt,
       ormEntity.updatedAt,

@@ -1,8 +1,11 @@
 import { BaseEntity } from '../../../../shared/domain/base-entity';
 import { MeetingTitle } from '../value-objects/meeting-title.vo';
 import { MeetingDuration } from '../value-objects/meeting-duration.vo';
+import { RecurrenceRule } from '../value-objects/recurrence-rule.vo';
 import { MeetingStatus } from '../enums/meeting-status.enum';
 import { ParticipantStatus } from '../enums/participant-status.enum';
+import { EventPrivacy } from '../enums/event-privacy.enum';
+import { LocationType } from '../enums/location-type.enum';
 import { MeetingCreatedEvent } from '../events/meeting-created.event';
 import { MeetingUpdatedEvent } from '../events/meeting-updated.event';
 import { ParticipantAddedEvent } from '../events/participant-added.event';
@@ -18,11 +21,18 @@ interface MeetingProps {
   title: MeetingTitle;
   description?: string;
   startTime: Date;
+  endTime?: Date;
   duration: MeetingDuration;
   organizerId: string;
   participants: Participant[];
   status: MeetingStatus;
   meetingUrl?: string;
+  location?: string;
+  locationType: LocationType;
+  privacy: EventPrivacy;
+  recurrenceRule?: RecurrenceRule;
+  feedbackFormUrl?: string;
+  clubId?: string;
 }
 
 export class Meeting extends BaseEntity {
@@ -51,6 +61,9 @@ export class Meeting extends BaseEntity {
   }
 
   get endTime(): Date {
+    if (this.props.endTime) {
+      return this.props.endTime;
+    }
     const endTime = new Date(this.props.startTime);
     endTime.setMinutes(endTime.getMinutes() + this.props.duration.minutes);
     return endTime;
@@ -72,6 +85,26 @@ export class Meeting extends BaseEntity {
     return this.props.meetingUrl;
   }
 
+  get location(): string | undefined {
+    return this.props.location;
+  }
+
+  get locationType(): LocationType {
+    return this.props.locationType;
+  }
+
+  get privacy(): EventPrivacy {
+    return this.props.privacy;
+  }
+
+  get recurrenceRule(): RecurrenceRule | undefined {
+    return this.props.recurrenceRule;
+  }
+
+  get feedbackFormUrl(): string | undefined {
+    return this.props.feedbackFormUrl;
+  }
+
   get events(): any[] {
     return [...this.domainEvents];
   }
@@ -80,13 +113,19 @@ export class Meeting extends BaseEntity {
     title: string;
     description?: string;
     startTime: Date;
+    endTime?: Date;
     duration: number;
     organizerId: string;
     meetingUrl?: string;
+    location?: string;
+    locationType?: LocationType;
+    privacy?: EventPrivacy;
+    recurrenceRule?: RecurrenceRule;
+    feedbackFormUrl?: string;
   }): Meeting {
     const title = MeetingTitle.create(props.title);
     const duration = MeetingDuration.create(props.duration);
-    
+
     this.validateMeetingTime(props.startTime);
 
     const meetingId = this.generateId();
@@ -94,11 +133,17 @@ export class Meeting extends BaseEntity {
       title,
       description: props.description,
       startTime: props.startTime,
+      endTime: props.endTime,
       duration,
       organizerId: props.organizerId,
       participants: [],
       status: MeetingStatus.SCHEDULED,
       meetingUrl: props.meetingUrl,
+      location: props.location,
+      locationType: props.locationType || LocationType.ONLINE,
+      privacy: props.privacy || EventPrivacy.PUBLIC,
+      recurrenceRule: props.recurrenceRule,
+      feedbackFormUrl: props.feedbackFormUrl,
     });
 
     meeting.addDomainEvent(new MeetingCreatedEvent(meetingId, props.organizerId, props.startTime));
@@ -118,7 +163,14 @@ export class Meeting extends BaseEntity {
     title?: string;
     description?: string;
     startTime?: Date;
+    endTime?: Date;
     duration?: number;
+    meetingUrl?: string;
+    location?: string;
+    locationType?: LocationType;
+    privacy?: EventPrivacy;
+    recurrenceRule?: RecurrenceRule;
+    feedbackFormUrl?: string;
   }): void {
     this.ensureNotCompleted();
 
@@ -135,8 +187,36 @@ export class Meeting extends BaseEntity {
       this.props.startTime = props.startTime;
     }
 
+    if (props.endTime !== undefined) {
+      this.props.endTime = props.endTime;
+    }
+
     if (props.duration) {
       this.props.duration = MeetingDuration.create(props.duration);
+    }
+
+    if (props.meetingUrl !== undefined) {
+      this.props.meetingUrl = props.meetingUrl;
+    }
+
+    if (props.location !== undefined) {
+      this.props.location = props.location;
+    }
+
+    if (props.locationType) {
+      this.props.locationType = props.locationType;
+    }
+
+    if (props.privacy) {
+      this.props.privacy = props.privacy;
+    }
+
+    if (props.recurrenceRule !== undefined) {
+      this.props.recurrenceRule = props.recurrenceRule;
+    }
+
+    if (props.feedbackFormUrl !== undefined) {
+      this.props.feedbackFormUrl = props.feedbackFormUrl;
     }
 
     this.updatedAt = new Date();

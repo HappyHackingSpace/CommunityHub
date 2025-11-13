@@ -31,6 +31,12 @@ export class CreateTaskHandler implements ICommandHandler<CreateTaskCommand> {
       assigneeId: command.assigneeId,
       dueDate: command.dueDate,
       visibility: command.visibility,
+      priority: command.priority,
+      estimatedTime: command.estimatedTime,
+      points: command.points,
+      isRecurring: command.isRecurring,
+      recurringSchedule: command.recurringSchedule,
+      requiredSkills: command.requiredSkills,
     });
 
     const savedTask = await this.taskRepository.save(task);

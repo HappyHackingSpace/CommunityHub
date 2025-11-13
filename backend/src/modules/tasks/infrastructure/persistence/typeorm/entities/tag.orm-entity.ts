@@ -5,19 +5,27 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToMany,
+  Index,
 } from 'typeorm';
 import { TaskOrmEntity } from './task.orm-entity';
 
 @Entity('tags')
+@Index(['tenantId', 'name'], { unique: true })
 export class TagOrmEntity {
   @PrimaryColumn('varchar')
   id: string;
 
-  @Column({ length: 50, unique: true })
+  @Column('bigint', { name: 'tenant_id', nullable: true })
+  tenantId: number;
+
+  @Column({ length: 50 })
   name: string;
 
   @Column({ length: 7, nullable: true })
   color?: string;
+
+  @Column('uuid', { name: 'club_id', nullable: true })
+  clubId?: string;
 
   @ManyToMany(() => TaskOrmEntity, (task) => task.tags)
   tasks: TaskOrmEntity[];

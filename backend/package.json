@@ -30,11 +30,16 @@
     "docker:db": "docker-compose exec postgres psql -U postgres -d communityhub",
     "docker:clean": "docker system prune -a --volumes",
     "typeorm": "ts-node --project tsconfig-typeorm.json -r tsconfig-paths/register",
-    "migration:generate": "npm run typeorm -- ./node_modules/typeorm/cli.js migration:generate -d src/database/data-source.ts",
+    "migration:generate": "npm run typeorm -- ./node_modules/typeorm/cli.js migration:generate -d database/data-source.ts",
     "migration:create": "npm run typeorm -- ./node_modules/typeorm/cli.js migration:create",
-    "migration:run": "npm run typeorm -- ./node_modules/typeorm/cli.js migration:run -d src/database/data-source.ts",
-    "migration:revert": "npm run typeorm -- ./node_modules/typeorm/cli.js migration:revert -d src/database/data-source.ts",
-    "migration:show": "npm run typeorm -- ./node_modules/typeorm/cli.js migration:show -d src/database/data-source.ts"
+    "migration:run": "npm run typeorm -- ./node_modules/typeorm/cli.js migration:run -d database/data-source.ts",
+    "migration:revert": "npm run typeorm -- ./node_modules/typeorm/cli.js migration:revert -d database/data-source.ts",
+    "migration:show": "npm run typeorm -- ./node_modules/typeorm/cli.js migration:show -d database/data-source.ts",
+    "migration:drop": "npm run typeorm -- ./node_modules/typeorm/cli.js schema:drop -d database/data-source.ts",
+    "migration:generate:local": "DB_HOST=localhost npm run migration:generate",
+    "migration:run:local": "DB_HOST=localhost npm run migration:run",
+    "migration:revert:local": "DB_HOST=localhost npm run migration:revert",
+    "migration:show:local": "DB_HOST=localhost npm run migration:show"
   },
   "dependencies": {
     "@nestjs/bull": "^11.0.4",
@@ -56,6 +61,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "ioredis": "^5.8.2",
+    "nestjs-cls": "^6.0.1",
     "nodemailer": "^7.0.10",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",

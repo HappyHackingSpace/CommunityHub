@@ -11,19 +11,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NODE_ENV: development
+      # Override specific values for Docker networking
       DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_DATABASE: ${DB_DATABASE}
       REDIS_HOST: redis
-      REDIS_PORT: 6379
-      JWT_SECRET: ${JWT_SECRET}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      GOOGLE_CALLBACK_URL: http://localhost:3000/auth/google/callback
-      FRONTEND_URL: http://localhost:3001
+      # All other values are loaded from .env.local via env_file
     command: ["npm", "run", "start:dev"]
     depends_on:
       postgres:

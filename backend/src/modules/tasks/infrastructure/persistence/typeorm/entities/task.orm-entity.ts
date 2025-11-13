@@ -7,18 +7,26 @@ import {
   OneToMany,
   ManyToMany,
   JoinTable,
+  Index,
 } from 'typeorm';
 import { TaskStatus } from '../../../../domain/enums/task-status.enum';
 import { TaskVisibility } from '../../../../domain/enums/task-visibility.enum';
+import { TaskPriority } from '../../../../domain/enums/task-priority.enum';
 import { CommentOrmEntity } from './comment.orm-entity';
 import { ActivityLogOrmEntity } from './activity-log.orm-entity';
 import { SubTaskOrmEntity } from './subtask.orm-entity';
 import { TagOrmEntity } from './tag.orm-entity';
 
 @Entity('tasks')
+@Index(['tenantId'])
+@Index(['tenantId', 'clubId'])
+@Index(['tenantId', 'status'])
 export class TaskOrmEntity {
   @PrimaryColumn('varchar')
   id: string;
+
+  @Column('bigint', { name: 'tenant_id', nullable: true })
+  tenantId: number;
 
   @Column({ length: 200 })
   title: string;
@@ -48,6 +56,34 @@ export class TaskOrmEntity {
 
   @Column({ name: 'due_date', type: 'timestamp', nullable: true })
   dueDate?: Date;
+
+  @Column({
+    type: 'enum',
+    enum: TaskPriority,
+    default: TaskPriority.MEDIUM,
+  })
+  priority: TaskPriority;
+
+  @Column({ name: 'estimated_time', type: 'int', nullable: true })
+  estimatedTime?: number;
+
+  @Column({ type: 'int', nullable: true })
+  points?: number;
+
+  @Column({ name: 'is_recurring', type: 'boolean', default: false })
+  isRecurring: boolean;
+
+  @Column({ name: 'recurring_schedule', type: 'varchar', nullable: true })
+  recurringSchedule?: string;
+
+  @Column({ name: 'required_skills', type: 'simple-array', nullable: true })
+  requiredSkills?: string[];
+
+  @Column({ name: 'mentor_id', type: 'varchar', nullable: true })
+  mentorId?: string;
+
+  @Column({ name: 'club_id', type: 'uuid', nullable: true })
+  clubId?: string;
 
   @OneToMany(() => CommentOrmEntity, (comment) => comment.task, {
     cascade: true,

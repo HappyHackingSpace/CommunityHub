@@ -6,14 +6,19 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { TaskStatus } from '../../../../domain/enums/task-status.enum';
 import { TaskOrmEntity } from './task.orm-entity';
 
 @Entity('subtasks')
+@Index(['tenantId'])
 export class SubTaskOrmEntity {
   @PrimaryColumn('varchar')
   id: string;
+
+  @Column('bigint', { name: 'tenant_id', nullable: true })
+  tenantId: number;
 
   @Column({ name: 'parent_id' })
   parentId: string;

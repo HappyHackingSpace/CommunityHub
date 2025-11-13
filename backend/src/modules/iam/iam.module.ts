@@ -36,10 +36,14 @@ const QueryHandlers = [GetUserHandler];
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get('JWT_SECRET'),
-        signOptions: { expiresIn: '7d' },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const jwtSecret = configService.get('JWT_SECRET');
+        console.log('Uygulama tarafından kullanılan JWT_SECRET:', jwtSecret); // BU SATIRI EKLEYİN
+        return {
+          secret: jwtSecret,
+          signOptions: { expiresIn: '7d' },
+        };
+      },
       inject: [ConfigService],
     }),
   ],
