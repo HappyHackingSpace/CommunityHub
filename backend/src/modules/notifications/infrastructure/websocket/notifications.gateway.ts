@@ -22,7 +22,9 @@ import type { INotificationRepository } from '../../domain/repositories';
 @WebSocketGateway({
   namespace: '/notifications',
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    origin: process.env.NODE_ENV === 'production'
+      ? process.env.FRONTEND_URL
+      : true, // Allow all origins in development (including file://)
     credentials: true,
   },
 })
