@@ -6,7 +6,7 @@ import {
   NotificationStatus,
   NotificationPriority,
 } from '../../domain/enums';
-import { ActionButton } from '../../domain/entities';
+import { Notification, ActionButton } from '../../domain/entities';
 
 export class NotificationResponseDto {
   @ApiProperty()
@@ -50,4 +50,26 @@ export class NotificationResponseDto {
 
   @ApiProperty()
   updatedAt: Date;
+
+  /**
+   * Convert domain entity to DTO
+   */
+  static fromDomain(notification: Notification): NotificationResponseDto {
+    const dto = new NotificationResponseDto();
+    dto.id = notification.id;
+    dto.userId = notification.userId;
+    dto.type = notification.type;
+    dto.channel = notification.channel;
+    dto.status = notification.status;
+    dto.priority = notification.priority;
+    dto.title = notification.title;
+    dto.message = notification.message;
+    dto.metadata = notification.metadata;
+    dto.actionButtons = notification.actionButtons;
+    dto.readAt = notification.readAt;
+    dto.sentAt = notification.sentAt;
+    dto.createdAt = notification.createdAt;
+    dto.updatedAt = notification.updatedAt;
+    return dto;
+  }
 }
