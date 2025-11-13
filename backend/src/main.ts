@@ -8,7 +8,9 @@ async function bootstrap() {
 
   // Enable CORS for both HTTP and WebSocket
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    origin: process.env.NODE_ENV === 'production'
+      ? process.env.FRONTEND_URL
+      : true, // Allow all origins in development
     credentials: true,
   });
 
