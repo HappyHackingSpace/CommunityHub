@@ -4,6 +4,7 @@ import { INestApplicationContext, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ServerOptions } from 'socket.io';
 import { Socket } from 'socket.io';
+import { Server } from 'socket.io';
 
 /**
  * Custom WebSocket Adapter with JWT Authentication
@@ -18,8 +19,8 @@ export class WsAuthAdapter extends IoAdapter {
     this.jwtService = app.get(JwtService);
   }
 
-  createIOServer(port: number, options?: ServerOptions): any {
-    const server = super.createIOServer(port, options);
+  createIOServer(port: number, options?: ServerOptions): Server {
+    const server = super.createIOServer(port, options) as Server;
 
     // Add authentication middleware to the /notifications namespace
     const notificationsNamespace = server.of('/notifications');
