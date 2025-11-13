@@ -6,6 +6,7 @@ import type { NotificationJob, DigestJob } from './notification-queue.service';
 import { NOTIFICATION_QUEUE } from './notification-queue.service';
 import type { INotificationRepository } from '../../domain/repositories';
 import { NotificationChannel } from '../../domain/enums';
+import { NotificationWebSocketService } from '../websocket/notification-websocket.service';
 
 @Processor(NOTIFICATION_QUEUE)
 export class NotificationProcessor {
@@ -14,6 +15,7 @@ export class NotificationProcessor {
   constructor(
     @Inject('INotificationRepository')
     private readonly notificationRepository: INotificationRepository,
+    private readonly wsService: NotificationWebSocketService,
   ) {}
 
   @Process('send-notification')
@@ -35,7 +37,18 @@ export class NotificationProcessor {
 
       switch (notification.channel) {
         case NotificationChannel.IN_APP:
-          // In-app notifications are already stored in DB, just mark as sent
+          // In-app notifications are stored in DB
+          // Send via WebSocket if user is online
+          if (this.wsService.isUserOnline(notification.userId)) {
+            this.wsService.sendNotificationToUser(notification.userId, notification);
+            this.logger.log(
+              `Sent real-time notification ${notificationId} to user ${notification.userId} via WebSocket`,
+            );
+          } else {
+            this.logger.debug(
+              `User ${notification.userId} is offline, notification ${notificationId} stored for later retrieval`,
+            );
+          }
           notification.markAsSent();
           success = true;
           break;
@@ -54,7 +67,7 @@ export class NotificationProcessor {
       if (success) {
         notification.markAsSent();
         this.logger.log(
-          `Successfully sent notification ${notificationId} via ${notification.channel}`,
+          `Successfully processed notification ${notificationId} via ${notification.channel}`,
         );
       } else {
         notification.markAsFailed('Failed to send notification');
