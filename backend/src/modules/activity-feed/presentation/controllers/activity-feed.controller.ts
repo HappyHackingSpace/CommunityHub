@@ -6,13 +6,11 @@ import {
   Param,
   Body,
   Query,
-  UseGuards,
   Req,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { CreateActivityCommand } from '../../application/commands/create-activity/create-activity.command';
 import { CreateSocialPostCommand } from '../../application/commands/create-social-post/create-social-post.command';
 import { LikePostCommand } from '../../application/commands/like-post/like-post.command';
 import { UnlikePostCommand } from '../../application/commands/unlike-post/unlike-post.command';

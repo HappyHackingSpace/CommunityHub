@@ -7,12 +7,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+
 import { JwtAuthGuard } from '../../../iam/infrastructure/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../shared/infrastructure/decorators/current-user.decorator';
 import { GetGamificationLeaderboardQuery } from '../../application/queries/get-gamification-leaderboard/get-gamification-leaderboard.query';
@@ -20,21 +15,13 @@ import { GetUserBadgesQuery } from '../../application/queries/get-user-badges/ge
 import { LeaderboardResponseDto } from '../../application/dto/leaderboard-response.dto';
 import { BadgeResponseDto } from '../../application/dto/badge-response.dto';
 
-@ApiTags('Gamification')
 @Controller('gamification')
 @UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class GamificationController {
   constructor(private readonly queryBus: QueryBus) {}
 
   @Get('leaderboard')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get gamification leaderboard' })
-  @ApiResponse({
-    status: 200,
-    description: 'Returns the leaderboard with top contributors',
-    type: LeaderboardResponseDto,
-  })
   async getLeaderboard(
     @Query('limit') limit?: string,
   ): Promise<LeaderboardResponseDto> {
@@ -46,12 +33,6 @@ export class GamificationController {
 
   @Get('my-badges')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get current user badges' })
-  @ApiResponse({
-    status: 200,
-    description: 'Returns all badges earned by the current user',
-    type: [BadgeResponseDto],
-  })
   async getMyBadges(
     @CurrentUser('sub') userId: string,
   ): Promise<BadgeResponseDto[]> {
@@ -61,12 +42,6 @@ export class GamificationController {
 
   @Get('badges/:userId')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get badges for a specific user' })
-  @ApiResponse({
-    status: 200,
-    description: 'Returns all badges earned by the specified user',
-    type: [BadgeResponseDto],
-  })
   async getUserBadges(
     @Query('userId') userId: string,
   ): Promise<BadgeResponseDto[]> {

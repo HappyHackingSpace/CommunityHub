@@ -37,11 +37,9 @@ export class TenantProvisioningService {
     await queryRunner.startTransaction();
 
     try {
-      // Step 1: Generate unique tenant_id
       const tenantId = await this.generateUniqueTenantId(queryRunner);
       this.logger.log(`Generated tenant_id: ${tenantId}`);
 
-      // Step 2: Create club with tenant_id
       const club = await queryRunner.manager.save(ClubOrmEntity, {
         id: this.generateId(),
         tenantId,
@@ -57,7 +55,6 @@ export class TenantProvisioningService {
 
       this.logger.log(`Created club: ${club.id} with tenant_id: ${tenantId}`);
 
-      // Step 3: Create default roles for this tenant
       const roles = await this.createDefaultRoles(queryRunner, tenantId, club.id);
       const adminRole = roles.find(r => r.name === 'admin');
       
@@ -65,7 +62,6 @@ export class TenantProvisioningService {
         throw new Error('Admin role not found after creating default roles');
       }
 
-      // Step 4: Add club creator as admin
       const clubMember = await queryRunner.manager.save(ClubMemberOrmEntity, {
         id: this.generateId(),
         tenantId,

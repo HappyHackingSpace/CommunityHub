@@ -1,20 +1,17 @@
 services:
-  # NestJS Backend Application
   app:
     build:
       context: .
       dockerfile: Dockerfile
-      target: development  # Use development stage for local development
+      target: development 
     env_file:
       - ./.env.local
     container_name: communityhub-backend
     ports:
       - "3000:3000"
     environment:
-      # Override specific values for Docker networking
       DB_HOST: postgres
       REDIS_HOST: redis
-      # All other values are loaded from .env.local via env_file
     command: ["npm", "run", "start:dev"]
     depends_on:
       postgres:
@@ -22,15 +19,14 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - .:/usr/src/app  # For development hot reload
-      - /usr/src/app/node_modules  # Prevent overwriting node_modules
+      - .:/usr/src/app  
+      - /usr/src/app/node_modules 
     networks:
       - communityhub-network
     restart: unless-stopped
 
-  # PostgreSQL Database
   postgres:
-    image: postgres:15-alpine
+    image: postgres:18-alpine
     container_name: communityhub-postgres
     env_file:
       - ./.env.local
@@ -53,7 +49,7 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # Redis for Bull Queue (Notification System)
+  
   redis:
     image: redis:7-alpine
     container_name: communityhub-redis
@@ -71,7 +67,7 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # PgAdmin for Database Management (Development only)
+  
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: communityhub-pgadmin
@@ -87,7 +83,7 @@ services:
     networks:
       - communityhub-network
     profiles:
-      - development  # Only runs when development profile is active
+      - development  
     restart: unless-stopped
 
 volumes:

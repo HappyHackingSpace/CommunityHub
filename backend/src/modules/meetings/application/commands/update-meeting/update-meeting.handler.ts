@@ -19,7 +19,6 @@ export class UpdateMeetingHandler implements ICommandHandler<UpdateMeetingComman
       throw new NotFoundException('Meeting not found');
     }
 
-    // Only organizer can update meeting
     if (meeting.organizerId !== command.organizerId) {
       throw new ForbiddenException('Only meeting organizer can update the meeting');
     }

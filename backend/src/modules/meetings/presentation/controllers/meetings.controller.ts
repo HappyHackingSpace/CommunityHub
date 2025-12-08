@@ -144,7 +144,6 @@ export class MeetingsController {
     return meetings.map(meeting => MeetingResponseDto.fromDomain(meeting));
   }
 
-  // Participant Management Endpoints
   @Post(':id/participants')
   async addParticipant(
     @Param('id') meetingId: string,
@@ -189,7 +188,6 @@ export class MeetingsController {
     return MeetingResponseDto.fromDomain(meeting);
   }
 
-  // RSVP Endpoints
   @Post(':id/rsvp')
   async submitRsvp(
     @Param('id') meetingId: string,
