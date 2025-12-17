@@ -1,53 +1,36 @@
-# Community Platform
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Modern web application for club management and community organization.
+## Getting Started
 
-## ✨ Features
-
-- **Club Management**: Create education, social and project clubs  
-- **Task System**: Task assignment, tracking and status management  
-- **Meeting Planning**: Calendar integration and participant management  
-- **File Sharing**: Organized file management with folder structure  
-- **Notifications**: Real-time notification system  
-- **Role Management**: Admin, club leader and member roles  
-
-## 🛠️ Technologies
-
-- **Frontend**: Next.js 15, TypeScript, Tailwind CSS  
-- **Backend**: Next.js API Routes, Supabase  
-- **File Storage**: Cloudinary  
-- **Database**: PostgreSQL (Supabase)  
-- **Authentication**: Supabase Auth  
-
-## 🚀 Installation
+First, run the development server:
 
 ```bash
-# Clone the repository
-git clone https://github.com/HappyHackingSpace/CommunityHub.git
-cd community-platform
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env.local
-# Edit .env.local file
-
-# Start development server
 npm run dev
-
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-⚙️ Environment Variables
-env
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-# Cloudinary Configuration
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-CLOUDINARY_URL=cloudinary://api_key:api_secret@cloud_name
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
