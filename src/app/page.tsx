@@ -1,33 +1,16 @@
-// Main Page - Routing logic
+import { Button } from "@/components/ui/button";
 
-'use client';
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/auth-store';
-import { Loader2 } from 'lucide-react';
-
-export default function HomePage() {
-  const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuthStore();
-
-  useEffect(() => {
-    if (isLoading) return;
-
-    if (isAuthenticated) {
-      router.replace('/dashboard');
-    } else {
-      router.replace('/login');
-    }
-  }, [isAuthenticated, isLoading, router]);
-
+export default function Home() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="text-center">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Community Platform</h1>
-        <p className="text-gray-600">Yönlendiriliyor...</p>
-      </div>
-    </div>
+    <main className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+      <h1 className="text-4xl font-bold mb-4 text-gray-800">
+        Welcome to Community Hub
+      </h1>
+      <p className="text-lg mb-8 text-gray-700">
+        There is nothing much right now, but sit tight! Amazing things are going
+        to happen!
+      </p>
+    <Button>Hello</Button>
+    </main>
   );
 }
