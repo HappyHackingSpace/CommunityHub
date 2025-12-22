@@ -1,49 +1,29 @@
 import { Button } from "@/components/ui/button";
+import { NavLink } from "@/components/ui/nav-link";
 
 export default function Home() {
   return (
     <main className="min-h-screen flex flex-col items-center bg-background">
       {/* Floating Header Bar */}
-      <header className="fixed top-6 left-1/2 z-40 -translate-x-1/2 w-[98vw] max-w-3xl rounded-xl bg-background border-2 border-border px-10 py-3 flex items-center justify-center shadow-shadow">
-        <nav>
-          <ul className="flex gap-4">
+      <header className="w-full bg-background border-b-4 border-border px-8 py-4 flex items-center justify-center">
+        <nav className="w-full max-w-3xl">
+          <ul className="flex flex-row gap-24 justify-center">
             <li>
-              <a
-                href="#"
-                className="border-2 border-border rounded-lg px-3 py-1 transition-colors hover:bg-main/20"
-              >
-                Features
-              </a>
+              <NavLink href="#">Features</NavLink>
             </li>
             <li>
-              <a
-                href="#"
-                className="border-2 border-border rounded-lg px-3 py-1 transition-colors hover:bg-main/20"
-              >
-                Communities
-              </a>
+              <NavLink href="#">Communities</NavLink>
             </li>
             <li>
-              <a
-                href="#"
-                className="border-2 border-border rounded-lg px-3 py-1 transition-colors hover:bg-main/20"
-              >
-                Pricing
-              </a>
+              <NavLink href="#">Pricing</NavLink>
             </li>
             <li>
-              <a
-                href="#"
-                className="border-2 border-border rounded-lg px-3 py-1 transition-colors hover:bg-main/20"
-              >
-                Resources
-              </a>
+              <NavLink href="#">Resources</NavLink>
             </li>
           </ul>
         </nav>
       </header>
 
-      {/* Spacer for floating header */}
       <div className="h-[90px]" />
 
       {/* Hero Section */}
