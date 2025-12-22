@@ -4,7 +4,6 @@ import { NavLink } from "@/components/ui/nav-link";
 export default function Home() {
   return (
     <main className="min-h-screen flex flex-col items-center bg-background">
-      {/* Floating Header Bar */}
       <header className="w-full bg-background border-b-4 border-border px-8 py-4 flex items-center justify-center">
         <nav className="w-full max-w-3xl">
           <ul className="flex flex-row gap-24 justify-center">
@@ -26,7 +25,6 @@ export default function Home() {
 
       <div className="h-[90px]" />
 
-      {/* Hero Section */}
       <section className="w-full min-h-[70vh] flex flex-col justify-center items-center px-4 py-14 text-center">
         <div className="flex flex-col items-center justify-center w-full">
           <h1 className="text-6xl font-bold text-black mb-4">
