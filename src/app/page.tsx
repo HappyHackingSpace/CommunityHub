@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+
 export default function Home() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
@@ -8,9 +10,7 @@ export default function Home() {
         There is nothing much right now, but sit tight! Amazing things are going
         to happen!
       </p>
-      <button className="btn w-64 rounded-full">
-        Discover Communities
-      </button>
+    <Button>Hello</Button>
     </main>
   );
 }
