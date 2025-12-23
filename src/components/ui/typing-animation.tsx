@@ -47,8 +47,8 @@ export function TypingAnimation({
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [currentCharIndex, setCurrentCharIndex] = useState(0);
   const [phase, setPhase] = useState<"typing" | "pause" | "deleting">("typing");
-  const elementRef = useRef<HTMLElement | null>(null);
-  const isInView = useInView(elementRef as React.RefObject<Element>, {
+  const elementRef = useRef<Element | null>(null);
+  const isInView = useInView(elementRef, {
     amount: 0.3,
     once: true,
   });

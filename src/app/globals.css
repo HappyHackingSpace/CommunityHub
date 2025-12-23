@@ -77,8 +77,8 @@
 @layer base {
   body {
     @apply text-foreground font-base bg-background;
+    @apply bg-background text-foreground;
   }
-
   h1,
   h2,
   h3,
@@ -87,13 +87,13 @@
   h6 {
     @apply font-heading;
   }
-}
-
-@layer base {
-  * {
+  input,
+  textarea,
+  select,
+  button,
+  a,
+  [tabindex]:not([tabindex="-1"]),
+  .ui-reset {
     @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
   }
 }
