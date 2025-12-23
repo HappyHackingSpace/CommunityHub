@@ -13,11 +13,11 @@
   --ring: oklch(0% 0 0);
   --overlay: oklch(0% 0 0 / 0.8);
   --shadow: 4px 4px 0px 0px var(--border);
-  --chart-1: #7A83FF;
-  --chart-2: #FACC00;
-  --chart-3: #FF4D50;
-  --chart-4: #00D696;
-  --chart-5: #0099FF;
+  --chart-1: #7a83ff;
+  --chart-2: #facc00;
+  --chart-3: #ff4d50;
+  --chart-4: #00d696;
+  --chart-5: #0099ff;
   --chart-active-dot: #000;
 }
 
@@ -30,11 +30,11 @@
   --border: oklch(0% 0 0);
   --ring: oklch(100% 0 0);
   --shadow: 4px 4px 0px 0px var(--border);
-  --chart-1: #7A83FF;
-  --chart-2: #E0B700;
-  --chart-3: #FF6669;
-  --chart-4: #00BD84;
-  --chart-5: #008AE5;
+  --chart-1: #7a83ff;
+  --chart-2: #e0b700;
+  --chart-3: #ff6669;
+  --chart-4: #00bd84;
+  --chart-5: #008ae5;
   --chart-active-dot: #fff;
 }
 
@@ -61,16 +61,39 @@
   --shadow-shadow: var(--shadow);
   --font-weight-base: 600;
   --font-weight-heading: 800;
+  --animate-blink-cursor: blink-cursor 1.2s step-end infinite;
+  @keyframes blink-cursor {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
 }
 
 @layer base {
   body {
-    @apply text-foreground bg-background;
-    font-family: var(--font-archivo), system-ui, sans-serif;
+    @apply text-foreground font-base bg-background;
+    @apply bg-background text-foreground;
   }
-
-  h1, h2, h3, h4, h5, h6{ 
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-heading;
-    font-family: var(--font-archivo), system-ui, sans-serif;
+  }
+  input,
+  textarea,
+  select,
+  button,
+  a,
+  [tabindex]:not([tabindex="-1"]),
+  .ui-reset {
+    @apply border-border outline-ring/50;
   }
 }

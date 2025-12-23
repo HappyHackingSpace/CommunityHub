@@ -10,17 +10,20 @@ const archivo = Archivo({
 
 export const metadata: Metadata = {
   title: "Community Hub",
-  description: "Welcome to Community Hub – a place for collaboration, discovery, and connection. Stay tuned for more updates!",
+  description:
+    "Welcome to Community Hub – a place for collaboration, discovery, and connection. Stay tuned for more updates!",
   openGraph: {
     title: "Community Hub",
-    description: "Welcome to Community Hub – a place for collaboration, discovery, and connection. Stay tuned for more updates!",
+    description:
+      "Welcome to Community Hub – a place for collaboration, discovery, and connection. Stay tuned for more updates!",
     type: "website",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
     title: "Community Hub",
-    description: "Welcome to Community Hub – a place for collaboration, discovery, and connection. Stay tuned for more updates!",
+    description:
+      "Welcome to Community Hub – a place for collaboration, discovery, and connection. Stay tuned for more updates!",
   },
   icons: {
     icon: "/favicon.ico",
@@ -30,7 +33,7 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en" className={archivo.variable}>
