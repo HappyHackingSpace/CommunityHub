@@ -39,3 +39,13 @@ secrets/
 *.pem
 *.key
 *.cert
+
+# Project-specific files and directories
+database/
+scripts/
+test/
+test-websocket.html
+claude-rules.md
+communities-module.md
+iam-module.md
+project-analysis.md
