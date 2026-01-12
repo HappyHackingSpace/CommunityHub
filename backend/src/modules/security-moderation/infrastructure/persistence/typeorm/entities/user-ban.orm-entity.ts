@@ -2,10 +2,14 @@ import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, Inde
 import { ModerationAction } from '../../../../domain/enums/moderation-action.enum';
 
 @Entity('user_bans')
-@Index(['userId', 'createdAt'])
+@Index(['tenantId'])
+@Index(['tenantId', 'userId', 'createdAt'])
 export class UserBanOrmEntity {
   @PrimaryColumn('varchar')
   id: string;
+
+  @Column('bigint', { name: 'tenant_id' })
+  tenantId: number;
 
   @Column('varchar')
   userId: string;

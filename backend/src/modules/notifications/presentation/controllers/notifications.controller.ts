@@ -10,18 +10,25 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../iam/infrastructure/guards/jwt-auth.guard';
+import { FlexibleAuthGuard } from '../../../iam/infrastructure/guards/flexible-auth.guard';
+import { ScopesGuard } from '../../../iam/infrastructure/guards/scopes.guard';
+import { ApiKeyThrottlerGuard } from '../../../iam/infrastructure/guards/api-key-throttler.guard';
+import { RequireScopes } from '../../../iam/infrastructure/decorators/require-scopes.decorator';
+import { TenantAccessGuard } from 'src/shared/guards/tenant-access.guard';
+import { TenantContextCompleteGuard } from 'src/shared/guards/tenant-context-complete.guard';
 import { CurrentUser } from '../../../../shared/infrastructure/decorators/current-user.decorator';
 import { NotificationService } from '../../application/services/notification.service';
 import { NotificationResponseDto } from '../../application/dto';
 
 @ApiTags('notifications')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('notifications')
+@UseGuards(FlexibleAuthGuard, ScopesGuard, TenantContextCompleteGuard, TenantAccessGuard, ApiKeyThrottlerGuard)
 export class NotificationsController {
   constructor(private readonly notificationService: NotificationService) {}
 
   @Get()
+  @RequireScopes('notifications:read')
   @ApiOperation({ summary: 'Get user notifications' })
   async getUserNotifications(
     @CurrentUser('userId') userId: string,
@@ -51,6 +58,7 @@ export class NotificationsController {
   }
 
   @Get('unread')
+  @RequireScopes('notifications:read')
   @ApiOperation({ summary: 'Get unread notifications' })
   async getUnreadNotifications(
     @CurrentUser('userId') userId: string,
@@ -78,6 +86,7 @@ export class NotificationsController {
   }
 
   @Patch(':id/read')
+  @RequireScopes('notifications:read')
   @ApiOperation({ summary: 'Mark notification as read' })
   async markAsRead(@Param('id') id: string): Promise<{ success: boolean }> {
     await this.notificationService.markAsRead(id);
@@ -85,6 +94,7 @@ export class NotificationsController {
   }
 
   @Patch('read-all')
+  @RequireScopes('notifications:read')
   @ApiOperation({ summary: 'Mark all notifications as read' })
   async markAllAsRead(
     @CurrentUser('userId') userId: string,
@@ -94,6 +104,7 @@ export class NotificationsController {
   }
 
   @Delete(':id')
+  @RequireScopes('notifications:read')
   @ApiOperation({ summary: 'Archive notification' })
   async archiveNotification(
     @Param('id') id: string,

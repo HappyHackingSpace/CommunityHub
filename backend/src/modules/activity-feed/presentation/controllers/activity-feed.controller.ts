@@ -9,8 +9,13 @@ import {
   Req,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { JwtAuthGuard } from 'src/modules/iam/infrastructure/guards/jwt-auth.guard';
+import { TenantAccessGuard } from 'src/shared/guards/tenant-access.guard';
+import { TenantContextCompleteGuard } from 'src/shared/guards/tenant-context-complete.guard';
+import { CurrentUser } from 'src/shared/infrastructure/decorators/current-user.decorator';
 import { CreateSocialPostCommand } from '../../application/commands/create-social-post/create-social-post.command';
 import { LikePostCommand } from '../../application/commands/like-post/like-post.command';
 import { UnlikePostCommand } from '../../application/commands/unlike-post/unlike-post.command';
@@ -22,6 +27,7 @@ import { SocialPostResponseDto } from '../../application/dto/social-post-respons
 import { ActivityFeedResponseDto } from '../../application/dto/activity-feed-response.dto';
 
 @Controller('activity-feed')
+@UseGuards(JwtAuthGuard, TenantContextCompleteGuard, TenantAccessGuard)
 export class ActivityFeedController {
   constructor(
     private readonly commandBus: CommandBus,
@@ -54,30 +60,39 @@ export class ActivityFeedController {
 
   @Post('posts')
   async createPost(
-    @Req() req: any,
+    @CurrentUser('id') userId: string,
     @Body() dto: CreateSocialPostDto,
   ): Promise<{ postId: string }> {
     const postId = await this.commandBus.execute(
-      new CreateSocialPostCommand(req.user.id, dto.content, dto.imageUrls),
+      new CreateSocialPostCommand(userId, dto.content, dto.imageUrls),
     );
     return { postId };
   }
 
   @Post('posts/:postId/like')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async likePost(@Param('postId') postId: string): Promise<void> {
+  async likePost(
+    @Param('postId') postId: string,
+    @CurrentUser('id') userId: string,
+  ): Promise<void> {
     await this.commandBus.execute(new LikePostCommand(postId));
   }
 
   @Post('posts/:postId/unlike')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async unlikePost(@Param('postId') postId: string): Promise<void> {
+  async unlikePost(
+    @Param('postId') postId: string,
+    @CurrentUser('id') userId: string,
+  ): Promise<void> {
     await this.commandBus.execute(new UnlikePostCommand(postId));
   }
 
   @Delete('posts/:postId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async deletePost(@Param('postId') postId: string): Promise<void> {
+  async deletePost(
+    @Param('postId') postId: string,
+    @CurrentUser('id') userId: string,
+  ): Promise<void> {
     await this.commandBus.execute(new DeletePostCommand(postId));
   }
 }

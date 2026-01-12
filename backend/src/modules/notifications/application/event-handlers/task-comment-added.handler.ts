@@ -1,6 +1,6 @@
 // src/modules/notifications/application/event-handlers/task-comment-added.handler.ts
+import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
 import { TaskCommentAddedEvent } from '../../../tasks/domain/events';
 import { NotificationService } from '../services/notification.service';
 import {
@@ -10,13 +10,13 @@ import {
 } from '../../domain/enums';
 
 @Injectable()
-export class TaskCommentAddedHandler {
+@EventsHandler(TaskCommentAddedEvent)
+export class TaskCommentAddedHandler implements IEventHandler<TaskCommentAddedEvent> {
   private readonly logger = new Logger(TaskCommentAddedHandler.name);
 
   constructor(private readonly notificationService: NotificationService) {}
 
-  @OnEvent('task.comment.added')
-  async handleTaskCommentAdded(event: TaskCommentAddedEvent) {
+  async handle(event: TaskCommentAddedEvent) {
     this.logger.log(
       `Handling task comment added event for task ${event.taskId}`,
     );

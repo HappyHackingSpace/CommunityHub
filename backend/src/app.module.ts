@@ -4,13 +4,16 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { IamModule } from './modules/iam/iam.module';
+import { CommunitiesModule } from './modules/communities/communities.module';
 import { MeetingsModule } from './modules/meetings/meetings.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ClubsModule } from './modules/clubs/clubs.module';
 import { ActivityFeedModule } from './modules/activity-feed/activity-feed.module';
 import { SecurityModerationModule } from './modules/security-moderation/security-moderation.module';
+import { MultiTenantModule } from './shared/multi-tenant/multi-tenant.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DataSource } from 'typeorm';
@@ -64,7 +67,26 @@ import { DataSource } from 'typeorm';
       verboseMemoryLeak: false,
       ignoreErrors: false,
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 60000, 
+        limit: 10, 
+      },
+      {
+        name: 'medium',
+        ttl: 300000, 
+        limit: 50, 
+      },
+      {
+        name: 'long',
+        ttl: 3600000, 
+        limit: 100, 
+      },
+    ]),
+    MultiTenantModule,
     IamModule,
+    CommunitiesModule,
     MeetingsModule,
     TasksModule,
     NotificationsModule,

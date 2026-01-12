@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike, In } from 'typeorm';
+import { ClsService } from 'nestjs-cls';
 import type {
   ITaskRepository,
   SearchTasksOptions,
@@ -11,44 +12,72 @@ import { TaskOrmEntity } from '../entities/task.orm-entity';
 import { TaskMapper } from '../mappers/task.mapper';
 import { TaskStatus } from '../../../../domain/enums/task-status.enum';
 import { TaskVisibility } from '../../../../domain/enums/task-visibility.enum';
+import { TENANT_CONTEXT_KEY, TenantContext } from 'src/shared/context/tenant-context';
 
 @Injectable()
 export class TaskRepository implements ITaskRepository {
   constructor(
     @InjectRepository(TaskOrmEntity)
-    private readonly repository: Repository<TaskOrmEntity>,
+    private repository: Repository<TaskOrmEntity>,
+    private cls: ClsService,
   ) {}
+
+  protected getTenantId(): number {
+    const tenantContext = this.cls.get<TenantContext>(TENANT_CONTEXT_KEY);
+    if (!tenantContext || !tenantContext.tenantId) {
+      throw new Error('Tenant context is not set');
+    }
+    return tenantContext.tenantId;
+  }
+
+  protected createTenantQueryBuilder(alias: string) {
+    const tenantId = this.getTenantId();
+    return this.repository
+      .createQueryBuilder(alias)
+      .where(`${alias}.tenantId = :tenantId`, { tenantId });
+  }
 
   async save(task: Task): Promise<Task> {
     const ormEntity = TaskMapper.toPersistence(task);
+    const tenantId = this.getTenantId();
+    (ormEntity as any).tenantId = tenantId;
     const saved = await this.repository.save(ormEntity);
     return TaskMapper.toDomain(saved);
   }
 
   async findById(id: string): Promise<Task | null> {
-    const ormEntity = await this.repository.findOne({ where: { id } });
+    const ormEntity = await this.createTenantQueryBuilder('task')
+      .andWhere('task.id = :id', { id })
+      .getOne();
     return ormEntity ? TaskMapper.toDomain(ormEntity) : null;
   }
 
   async findByIdWithRelations(id: string): Promise<Task | null> {
-    const ormEntity = await this.repository.findOne({
-      where: { id },
-      relations: ['comments', 'activityLogs', 'subTasks', 'tags'],
-    });
+    const ormEntity = await this.createTenantQueryBuilder('task')
+      .andWhere('task.id = :id', { id })
+      .leftJoinAndSelect('task.comments', 'comments')
+      .leftJoinAndSelect('task.activityLogs', 'activityLogs')
+      .leftJoinAndSelect('task.subTasks', 'subTasks')
+      .leftJoinAndSelect('task.tags', 'tags')
+      .getOne();
     return ormEntity ? TaskMapper.toDomain(ormEntity) : null;
   }
 
   async findAll(): Promise<Task[]> {
-    const ormEntities = await this.repository.find();
+    const ormEntities = await this.createTenantQueryBuilder('task')
+      .orderBy('task.createdAt', 'DESC')
+      .getMany();
     return ormEntities.map((entity) => TaskMapper.toDomain(entity));
   }
 
   async findPublicTasks(): Promise<Task[]> {
-    const ormEntities = await this.repository.find({
-      where: { visibility: TaskVisibility.PUBLIC },
-      relations: ['tags'],
-      order: { createdAt: 'DESC' },
-    });
+    const ormEntities = await this.createTenantQueryBuilder('task')
+      .andWhere('task.visibility = :visibility', {
+        visibility: TaskVisibility.PUBLIC,
+      })
+      .leftJoinAndSelect('task.tags', 'tags')
+      .orderBy('task.createdAt', 'DESC')
+      .getMany();
     return ormEntities.map((entity) => TaskMapper.toDomain(entity));
   }
 
@@ -56,16 +85,15 @@ export class TaskRepository implements ITaskRepository {
     assigneeId: string,
     status?: TaskStatus,
   ): Promise<Task[]> {
-    const where: any = { assigneeId };
+    const qb = this.createTenantQueryBuilder('task')
+      .andWhere('task.assigneeId = :assigneeId', { assigneeId })
+      .leftJoinAndSelect('task.tags', 'tags');
+
     if (status) {
-      where.status = status;
+      qb.andWhere('task.status = :status', { status });
     }
 
-    const ormEntities = await this.repository.find({
-      where,
-      relations: ['tags'],
-      order: { createdAt: 'DESC' },
-    });
+    const ormEntities = await qb.orderBy('task.createdAt', 'DESC').getMany();
     return ormEntities.map((entity) => TaskMapper.toDomain(entity));
   }
 
@@ -73,16 +101,15 @@ export class TaskRepository implements ITaskRepository {
     assignerId: string,
     status?: TaskStatus,
   ): Promise<Task[]> {
-    const where: any = { assignerId };
+    const qb = this.createTenantQueryBuilder('task')
+      .andWhere('task.assignerId = :assignerId', { assignerId })
+      .leftJoinAndSelect('task.tags', 'tags');
+
     if (status) {
-      where.status = status;
+      qb.andWhere('task.status = :status', { status });
     }
 
-    const ormEntities = await this.repository.find({
-      where,
-      relations: ['tags'],
-      order: { createdAt: 'DESC' },
-    });
+    const ormEntities = await qb.orderBy('task.createdAt', 'DESC').getMany();
     return ormEntities.map((entity) => TaskMapper.toDomain(entity));
   }
 
@@ -93,16 +120,18 @@ export class TaskRepository implements ITaskRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.repository.delete(id);
+    await this.createTenantQueryBuilder('task')
+      .delete()
+      .andWhere('task.id = :id', { id })
+      .execute();
   }
 
   async searchPublicTasks(
     options: SearchTasksOptions,
   ): Promise<PaginatedResult<Task>> {
-    const queryBuilder = this.repository
-      .createQueryBuilder('task')
+    const queryBuilder = this.createTenantQueryBuilder('task')
       .leftJoinAndSelect('task.tags', 'tag')
-      .where('task.visibility = :visibility', {
+      .andWhere('task.visibility = :visibility', {
         visibility: TaskVisibility.PUBLIC,
       });
 
@@ -146,10 +175,9 @@ export class TaskRepository implements ITaskRepository {
     userId: string,
     options: SearchTasksOptions,
   ): Promise<PaginatedResult<Task>> {
-    const queryBuilder = this.repository
-      .createQueryBuilder('task')
+    const queryBuilder = this.createTenantQueryBuilder('task')
       .leftJoinAndSelect('task.tags', 'tag')
-      .where('task.assigneeId = :userId', { userId });
+      .andWhere('task.assigneeId = :userId', { userId });
 
     // Apply search filter
     if (options.search) {
@@ -191,10 +219,9 @@ export class TaskRepository implements ITaskRepository {
     userId: string,
     options: SearchTasksOptions,
   ): Promise<PaginatedResult<Task>> {
-    const queryBuilder = this.repository
-      .createQueryBuilder('task')
+    const queryBuilder = this.createTenantQueryBuilder('task')
       .leftJoinAndSelect('task.tags', 'tag')
-      .where('task.assignerId = :userId', { userId });
+      .andWhere('task.assignerId = :userId', { userId });
 
     // Apply search filter
     if (options.search) {

@@ -1,7 +1,7 @@
 export interface TenantContext {
   tenantId: number;
-  userId: string;
-  globalRole: string;
+  userId: string | null;
+  globalRole: string | null;
   tenants?: Array<{ id: number; name: string }>;
 }
 

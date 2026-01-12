@@ -14,7 +14,14 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../iam/infrastructure/guards/jwt-auth.guard';
+import { FlexibleAuthGuard } from '../../../iam/infrastructure/guards/flexible-auth.guard';
+import { ScopesGuard } from '../../../iam/infrastructure/guards/scopes.guard';
+import { ApiKeyThrottlerGuard } from '../../../iam/infrastructure/guards/api-key-throttler.guard';
+import { TenantAccessGuard } from '../../../../shared/guards/tenant-access.guard';
+import { TenantContextCompleteGuard } from '../../../../shared/guards/tenant-context-complete.guard';
+import { RequireScopes } from '../../../iam/infrastructure/decorators/require-scopes.decorator';
 import { CurrentUser } from '../../../../shared/infrastructure/decorators/current-user.decorator';
 import { CreateTaskDto } from '../../application/dto/create-task.dto';
 import { UpdateTaskDto } from '../../application/dto/update-task.dto';
@@ -26,6 +33,10 @@ import { SearchTasksDto } from '../../application/dto/search-tasks.dto';
 import { TaskResponseDto } from '../../application/dto/task-response.dto';
 import { CommentResponseDto } from '../../application/dto/comment-response.dto';
 import { SubTaskResponseDto } from '../../application/dto/subtask-response.dto';
+import { CreateAttachmentDto } from '../../application/dto/create-attachment.dto';
+import { AssignMentorDto } from '../../application/dto/assign-mentor.dto';
+import { RequestHelpDto } from '../../application/dto/request-help.dto';
+import { RequestTaskHandoverDto } from '../../application/dto/request-task-handover.dto';
 import { CreateTaskCommand } from '../../application/commands/create-task/create-task.command';
 import { UpdateTaskCommand } from '../../application/commands/update-task/update-task.command';
 import { UpdateTaskStatusCommand } from '../../application/commands/update-task-status/update-task-status.command';
@@ -49,7 +60,10 @@ import { RequestHelpCommand } from '../../application/commands/request-help/requ
 import { RequestTaskHandoverCommand } from '../../application/commands/request-task-handover/request-task-handover.command';
 import { VolunteerForTaskCommand } from '../../application/commands/volunteer-for-task/volunteer-for-task.command';
 
+@ApiTags('tasks')
+@ApiBearerAuth()
 @Controller('tasks')
+@UseGuards(FlexibleAuthGuard, ScopesGuard, TenantContextCompleteGuard, TenantAccessGuard, ApiKeyThrottlerGuard)
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class TasksController {
   constructor(
@@ -58,7 +72,7 @@ export class TasksController {
   ) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @RequireScopes('tasks:write')
   @HttpCode(HttpStatus.CREATED)
   async createTask(
     @Body() dto: CreateTaskDto,
@@ -84,6 +98,7 @@ export class TasksController {
   }
 
   @Get('public')
+  @RequireScopes('tasks:read')
   @HttpCode(HttpStatus.OK)
   async getPublicTasks(): Promise<TaskResponseDto[]> {
     const query = new GetPublicTasksQuery();
@@ -286,11 +301,15 @@ export class TasksController {
   // ========== NEW ENDPOINTS ==========
 
   @Post(':id/attachments')
+  @ApiOperation({ summary: 'Add attachment to task' })
+  @ApiResponse({ status: 201, description: 'Attachment added successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid attachment data' })
+  @ApiResponse({ status: 404, description: 'Task not found' })
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   async addAttachment(
     @Param('id') id: string,
-    @Body() dto: any, // CreateAttachmentDto
+    @Body() dto: CreateAttachmentDto,
     @CurrentUser() currentUser: any,
   ): Promise<any> {
     const command = new AddAttachmentCommand(
@@ -305,11 +324,15 @@ export class TasksController {
   }
 
   @Post(':id/mentor')
+  @ApiOperation({ summary: 'Assign mentor to task' })
+  @ApiResponse({ status: 200, description: 'Mentor assigned successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid mentor ID' })
+  @ApiResponse({ status: 404, description: 'Task or mentor not found' })
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async assignMentor(
     @Param('id') id: string,
-    @Body() dto: any, // AssignMentorDto
+    @Body() dto: AssignMentorDto,
     @CurrentUser() currentUser: any,
   ): Promise<void> {
     const command = new AssignMentorCommand(id, dto.mentorId, currentUser.userId);
@@ -317,11 +340,15 @@ export class TasksController {
   }
 
   @Post(':id/help')
+  @ApiOperation({ summary: 'Request help on task' })
+  @ApiResponse({ status: 200, description: 'Help request submitted successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid help request data' })
+  @ApiResponse({ status: 404, description: 'Task not found' })
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async requestHelp(
     @Param('id') id: string,
-    @Body() dto: any, // RequestHelpDto
+    @Body() dto: RequestHelpDto,
     @CurrentUser() currentUser: any,
   ): Promise<void> {
     const command = new RequestHelpCommand(id, currentUser.userId, dto.message);
@@ -329,11 +356,15 @@ export class TasksController {
   }
 
   @Post(':id/handover')
+  @ApiOperation({ summary: 'Request task handover' })
+  @ApiResponse({ status: 200, description: 'Handover request submitted successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid handover request data' })
+  @ApiResponse({ status: 404, description: 'Task not found' })
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async requestHandover(
     @Param('id') id: string,
-    @Body() dto: any, // RequestTaskHandoverDto
+    @Body() dto: RequestTaskHandoverDto,
     @CurrentUser() currentUser: any,
   ): Promise<void> {
     const command = new RequestTaskHandoverCommand(id, currentUser.userId, dto.reason);

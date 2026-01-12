@@ -5,7 +5,9 @@ import { RegisterUserCommand } from '../../application/commands/register-user/re
 import { JwtService } from '@nestjs/jwt';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../../infrastructure/guards/jwt-auth.guard';
-import { CurrentUser } from '../../infrastructure/decorators/current-user.decorator';
+import { CurrentUser } from 'src/shared/infrastructure/decorators/current-user.decorator';
+import { Public } from 'src/shared/decorators/public.decorator';
+import { TenantOptional } from 'src/shared/decorators/tenant-optional.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -15,11 +17,13 @@ export class AuthController {
   ) {}
 
   @Get('google')
+  @Public()
   @UseGuards(GoogleAuthGuard)
   async googleAuth() {
   }
 
   @Get('google/callback')
+  @Public()
   @UseGuards(GoogleAuthGuard)
   async googleAuthCallback(@Req() req, @Res() res: Response) {
     const { googleId, email, displayName, avatarUrl } = req.user;
@@ -32,6 +36,7 @@ export class AuthController {
       sub: user.id,
       email: user.email,
       roles: user.roles,
+      tenantId: user.primaryTenantId || null,
     };
     const token = this.jwtService.sign(payload);
 
@@ -39,6 +44,7 @@ export class AuthController {
   }
 
   @Get('profile')
+  @TenantOptional()
   @UseGuards(JwtAuthGuard)
   async getProfile(@CurrentUser() user) {
     return user;

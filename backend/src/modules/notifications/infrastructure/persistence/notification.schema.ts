@@ -9,11 +9,15 @@ import {
 import type { ActionButton, NotificationMetadata } from '../../domain/entities';
 
 @Entity('notifications')
-@Index(['userId', 'createdAt'])
-@Index(['status'])
+@Index(['tenantId'])
+@Index(['tenantId', 'userId', 'createdAt'])
+@Index(['tenantId', 'status'])
 export class NotificationSchema {
   @PrimaryColumn('uuid')
   id: string;
+
+  @Column('bigint', { name: 'tenant_id' })
+  tenantId: number;
 
   @Column('uuid')
   @Index()

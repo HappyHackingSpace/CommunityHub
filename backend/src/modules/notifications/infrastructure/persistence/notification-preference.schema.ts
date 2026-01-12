@@ -4,11 +4,15 @@ import { NotificationType, DigestFrequency } from '../../domain/enums';
 import type { ChannelPreference, DoNotDisturbSchedule } from '../../domain/entities';
 
 @Entity('notification_preferences')
-@Unique(['userId', 'notificationType'])
-@Index(['userId'])
+@Unique(['tenantId', 'userId', 'notificationType'])
+@Index(['tenantId'])
+@Index(['tenantId', 'userId'])
 export class NotificationPreferenceSchema {
   @PrimaryColumn('uuid')
   id: string;
+
+  @Column('bigint', { name: 'tenant_id' })
+  tenantId: number;
 
   @Column('uuid')
   userId: string;

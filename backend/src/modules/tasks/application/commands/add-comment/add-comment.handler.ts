@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
 import { Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { AddCommentCommand } from './add-comment.command';
 import { Comment } from '../../../domain/entities/comment.entity';
@@ -7,6 +7,7 @@ import type { ICommentRepository } from '../../../domain/repositories/comment.re
 import type { IActivityLogRepository } from '../../../domain/repositories/activity-log.repository.interface';
 import { ActivityLog } from '../../../domain/entities/activity-log.entity';
 import { ActivityAction } from '../../../domain/enums/activity-action.enum';
+import { TaskCommentAddedEvent } from '../../../domain/events/task-comment-added.event';
 
 @CommandHandler(AddCommentCommand)
 export class AddCommentHandler implements ICommandHandler<AddCommentCommand> {
@@ -17,6 +18,7 @@ export class AddCommentHandler implements ICommandHandler<AddCommentCommand> {
     private readonly commentRepository: ICommentRepository,
     @Inject('IActivityLogRepository')
     private readonly activityLogRepository: IActivityLogRepository,
+    private readonly eventBus: EventBus,
   ) {}
 
   async execute(command: AddCommentCommand): Promise<Comment> {
@@ -45,6 +47,17 @@ export class AddCommentHandler implements ICommandHandler<AddCommentCommand> {
       action: ActivityAction.COMMENT_ADDED,
     });
     await this.activityLogRepository.save(log);
+
+    // Publish event
+    const event = new TaskCommentAddedEvent(
+      command.taskId,
+      task.title.value,
+      savedComment.id,
+      command.userId,
+      command.content,
+      task.assignerId,
+    );
+    this.eventBus.publish(event);
 
     return savedComment;
   }

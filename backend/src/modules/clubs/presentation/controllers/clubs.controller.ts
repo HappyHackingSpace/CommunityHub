@@ -11,11 +11,18 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { FlexibleAuthGuard } from 'src/modules/iam/infrastructure/guards/flexible-auth.guard';
+import { ScopesGuard } from 'src/modules/iam/infrastructure/guards/scopes.guard';
+import { ApiKeyThrottlerGuard } from 'src/modules/iam/infrastructure/guards/api-key-throttler.guard';
+import { RequireScopes } from 'src/modules/iam/infrastructure/decorators/require-scopes.decorator';
+import { TenantAccessGuard } from 'src/shared/guards/tenant-access.guard';
+import { TenantContextCompleteGuard } from 'src/shared/guards/tenant-context-complete.guard';
+import { CurrentUser } from 'src/shared/infrastructure/decorators/current-user.decorator';
 import { CreateClubDto } from 'src/modules/clubs/application/dto/create-club.dto';
 import { UpdateClubDto } from 'src/modules/clubs/application/dto/update-club.dto';
 import { ClubResponseDto } from 'src/modules/clubs/application/dto/club-response.dto';
 import { AddMemberDto } from 'src/modules/clubs/application/dto/add-member.dto';
-import { MembershipApplicationDto } from 'src/modules/clubs/application/dto/membership-application.dto';
 import { CreateAnnouncementDto } from 'src/modules/clubs/application/dto/create-announcement.dto';
 import { ClubMemberResponseDto } from 'src/modules/clubs/application/dto/club-member-response.dto';
 import { CreateClubCommand } from 'src/modules/clubs/application/commands/create-club/create-club.command';
@@ -35,7 +42,10 @@ import { ClubMapper } from 'src/modules/clubs/infrastructure/persistence/typeorm
 import { ClubMemberMapper } from 'src/modules/clubs/infrastructure/persistence/typeorm/mappers/club-member.mapper';
 import { ClubAnnouncementMapper } from 'src/modules/clubs/infrastructure/persistence/typeorm/mappers/club-announcement.mapper';
 
+@ApiTags('clubs')
+@ApiBearerAuth()
 @Controller('clubs')
+@UseGuards(FlexibleAuthGuard, ScopesGuard, TenantContextCompleteGuard, TenantAccessGuard, ApiKeyThrottlerGuard)
 export class ClubsController {
   constructor(
     private readonly commandBus: CommandBus,
@@ -43,12 +53,11 @@ export class ClubsController {
   ) {}
 
   @Post()
-  @UseGuards()
+  @RequireScopes('clubs:write')
   async createClub(
     @Body() dto: CreateClubDto,
-    @Request() req: any,
+    @CurrentUser('id') userId: string,
   ): Promise<{ id: string }> {
-    const userId = req.user?.id;
     if (!userId) {
       throw new BadRequestException('User ID is required');
     }
@@ -70,19 +79,21 @@ export class ClubsController {
   }
 
   @Get()
+  @RequireScopes('clubs:read')
   async getAllClubs(): Promise<ClubResponseDto[]> {
     const clubs = await this.queryBus.execute(new GetAllClubsQuery());
     return clubs.map((club) => this.mapClubToDto(club));
   }
 
   @Get(':clubId')
+  @RequireScopes('clubs:read')
   async getClub(@Param('clubId') clubId: string): Promise<ClubResponseDto> {
     const club = await this.queryBus.execute(new GetClubQuery(clubId));
     return this.mapClubToDto(club);
   }
 
   @Put(':clubId')
-  @UseGuards()
+  @RequireScopes('clubs:write')
   async updateClub(
     @Param('clubId') clubId: string,
     @Body() dto: UpdateClubDto,
@@ -103,13 +114,13 @@ export class ClubsController {
   }
 
   @Delete(':clubId')
-  @UseGuards()
+  @RequireScopes('clubs:manage')
   async deleteClub(@Param('clubId') clubId: string): Promise<void> {
     await this.commandBus.execute(new DeleteClubCommand(clubId));
   }
 
   @Post(':clubId/members')
-  @UseGuards()
+  @RequireScopes('clubs:manage')
   async addMember(
     @Param('clubId') clubId: string,
     @Body() dto: AddMemberDto,
@@ -121,12 +132,11 @@ export class ClubsController {
   }
 
   @Post(':clubId/apply')
-  @UseGuards()
+  @RequireScopes('clubs:write')
   async applyForMembership(
     @Param('clubId') clubId: string,
-    @Request() req: any,
+    @CurrentUser('id') userId: string,
   ): Promise<{ id: string }> {
-    const userId = req.user?.id;
     if (!userId) {
       throw new BadRequestException('User ID is required');
     }
@@ -138,6 +148,7 @@ export class ClubsController {
   }
 
   @Get(':clubId/members')
+  @RequireScopes('clubs:read')
   async getClubMembers(
     @Param('clubId') clubId: string,
   ): Promise<ClubMemberResponseDto[]> {
@@ -148,7 +159,7 @@ export class ClubsController {
   }
 
   @Get(':clubId/pending-applications')
-  @UseGuards()
+  @RequireScopes('clubs:manage')
   async getPendingApplications(
     @Param('clubId') clubId: string,
   ): Promise<ClubMemberResponseDto[]> {
@@ -159,13 +170,12 @@ export class ClubsController {
   }
 
   @Post(':clubId/members/:memberId/approve')
-  @UseGuards()
+  @RequireScopes('clubs:manage')
   async approveMemberApplication(
     @Param('clubId') clubId: string,
     @Param('memberId') memberId: string,
-    @Request() req: any,
+    @CurrentUser('id') userId: string,
   ): Promise<void> {
-    const userId = req.user?.id;
     if (!userId) {
       throw new BadRequestException('User ID is required');
     }
@@ -176,7 +186,7 @@ export class ClubsController {
   }
 
   @Delete(':clubId/members/:memberId')
-  @UseGuards()
+  @RequireScopes('clubs:manage')
   async removeMember(
     @Param('clubId') clubId: string,
     @Param('memberId') memberId: string,
@@ -185,13 +195,12 @@ export class ClubsController {
   }
 
   @Post(':clubId/announcements')
-  @UseGuards()
+  @RequireScopes('clubs:write')
   async createAnnouncement(
     @Param('clubId') clubId: string,
     @Body() dto: CreateAnnouncementDto,
-    @Request() req: any,
+    @CurrentUser('id') userId: string,
   ): Promise<{ id: string }> {
-    const userId = req.user?.id;
     if (!userId) {
       throw new BadRequestException('User ID is required');
     }
@@ -210,6 +219,7 @@ export class ClubsController {
   }
 
   @Get(':clubId/announcements')
+  @RequireScopes('clubs:read')
   async getClubAnnouncements(
     @Param('clubId') clubId: string,
   ): Promise<any[]> {

@@ -1,6 +1,6 @@
 // src/modules/notifications/application/event-handlers/participant-added.handler.ts
+import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
 import { ParticipantAddedEvent } from '../../../meetings/domain/events/participant-added.event';
 import { NotificationService } from '../services/notification.service';
 import {
@@ -10,13 +10,13 @@ import {
 } from '../../domain/enums';
 
 @Injectable()
-export class ParticipantAddedHandler {
+@EventsHandler(ParticipantAddedEvent)
+export class ParticipantAddedHandler implements IEventHandler<ParticipantAddedEvent> {
   private readonly logger = new Logger(ParticipantAddedHandler.name);
 
   constructor(private readonly notificationService: NotificationService) {}
 
-  @OnEvent('meeting.participant.added')
-  async handleParticipantAdded(event: ParticipantAddedEvent) {
+  async handle(event: ParticipantAddedEvent) {
     this.logger.log(
       `Handling participant added event for meeting ${event.meetingId}`,
     );

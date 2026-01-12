@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { JwtAuthGuard } from '../../../iam/infrastructure/guards/jwt-auth.guard';
+import { TenantAccessGuard } from 'src/shared/guards/tenant-access.guard';
+import { TenantContextCompleteGuard } from 'src/shared/guards/tenant-context-complete.guard';
 import { CreateTagDto } from '../../application/dto/create-tag.dto';
 import { TagResponseDto } from '../../application/dto/tag-response.dto';
 import { CreateTagCommand } from '../../application/commands/create-tag/create-tag.command';
@@ -32,7 +34,7 @@ export class TagsController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TenantContextCompleteGuard, TenantAccessGuard)
   @HttpCode(HttpStatus.CREATED)
   async createTag(@Body() dto: CreateTagDto): Promise<TagResponseDto> {
     const command = new CreateTagCommand(dto.name, dto.color);

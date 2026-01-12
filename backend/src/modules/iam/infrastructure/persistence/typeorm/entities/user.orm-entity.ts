@@ -32,7 +32,7 @@ export class UserOrmEntity {
   })
   status: UserStatus;
 
-  @Column('varchar', { length: 50, default: 'USER', name: 'global_role' })
+  @Column('varchar', { length: 50, default: 'ADMIN', name: 'global_role' })
   globalRole: string;
 
   @Column('bigint', { nullable: true, name: 'primary_tenant_id' })

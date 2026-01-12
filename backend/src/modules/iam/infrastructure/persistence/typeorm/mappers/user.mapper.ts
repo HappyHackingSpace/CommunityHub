@@ -5,7 +5,7 @@ import { RoleType } from '../../../../domain/enums/role-type.enum';
 export class UserMapper {
   static toPersistence(user: User): UserOrmEntity {
     const ormEntity = new UserOrmEntity();
-    
+
     ormEntity.id = user.id;
     ormEntity.googleId = user.googleId.value;
     ormEntity.email = user.email;
@@ -15,6 +15,7 @@ export class UserMapper {
     ormEntity.status = user.status;
     ormEntity.createdAt = user.createdAt;
     ormEntity.updatedAt = user.updatedAt;
+    ormEntity.primaryTenantId = user.primaryTenantId;
 
     return ormEntity;
   }
@@ -30,6 +31,7 @@ export class UserMapper {
       ormEntity.avatarUrl,
       ormEntity.createdAt,
       ormEntity.updatedAt,
+      ormEntity.primaryTenantId,
     );
   }
 }

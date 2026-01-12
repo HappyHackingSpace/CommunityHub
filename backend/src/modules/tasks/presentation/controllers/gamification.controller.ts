@@ -9,6 +9,8 @@ import {
 import { QueryBus } from '@nestjs/cqrs';
 
 import { JwtAuthGuard } from '../../../iam/infrastructure/guards/jwt-auth.guard';
+import { TenantAccessGuard } from 'src/shared/guards/tenant-access.guard';
+import { TenantContextCompleteGuard } from 'src/shared/guards/tenant-context-complete.guard';
 import { CurrentUser } from '../../../../shared/infrastructure/decorators/current-user.decorator';
 import { GetGamificationLeaderboardQuery } from '../../application/queries/get-gamification-leaderboard/get-gamification-leaderboard.query';
 import { GetUserBadgesQuery } from '../../application/queries/get-user-badges/get-user-badges.query';
@@ -16,7 +18,7 @@ import { LeaderboardResponseDto } from '../../application/dto/leaderboard-respon
 import { BadgeResponseDto } from '../../application/dto/badge-response.dto';
 
 @Controller('gamification')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, TenantContextCompleteGuard, TenantAccessGuard)
 export class GamificationController {
   constructor(private readonly queryBus: QueryBus) {}
 

@@ -1,6 +1,6 @@
 // src/modules/notifications/application/event-handlers/task-assigned.handler.ts
+import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
 import { TaskAssignedEvent } from '../../../tasks/domain/events';
 import { NotificationService } from '../services/notification.service';
 import {
@@ -10,13 +10,13 @@ import {
 } from '../../domain/enums';
 
 @Injectable()
-export class TaskAssignedHandler {
+@EventsHandler(TaskAssignedEvent)
+export class TaskAssignedHandler implements IEventHandler<TaskAssignedEvent> {
   private readonly logger = new Logger(TaskAssignedHandler.name);
 
   constructor(private readonly notificationService: NotificationService) {}
 
-  @OnEvent('task.assigned')
-  async handleTaskAssigned(event: TaskAssignedEvent) {
+  async handle(event: TaskAssignedEvent) {
     this.logger.log(
       `Handling task assigned event for task ${event.taskId} to user ${event.assigneeId}`,
     );

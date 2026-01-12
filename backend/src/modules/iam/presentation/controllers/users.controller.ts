@@ -1,4 +1,3 @@
-// src/modules/iam/presentation/controllers/users.controller.ts
 import {
   Controller,
   Get,
@@ -17,7 +16,7 @@ import { GetUserQuery } from '../../application/queries/get-user/get-user.query'
 import { AssignRoleCommand } from '../../application/commands/assign-role/assign-role.command';
 import { AssignRoleDto } from '../../application/dto/assign-role.dto';
 import { UserResponseDto } from '../../application/dto/user-response.dto';
-import { CurrentUser } from '../../infrastructure/decorators/current-user.decorator';
+import { CurrentUser } from 'src/shared/infrastructure/decorators/current-user.decorator';
 import { Roles } from '../../infrastructure/decorators/roles.decorator';
 
 @Controller('users')

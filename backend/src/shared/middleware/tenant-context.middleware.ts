@@ -1,7 +1,8 @@
-import { Injectable, NestMiddleware, BadRequestException } from '@nestjs/common';
+import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { ClsService } from 'nestjs-cls';
 import { TENANT_CONTEXT_KEY, TenantContext } from '../context/tenant-context';
+
 
 @Injectable()
 export class TenantContextMiddleware implements NestMiddleware {
@@ -9,20 +10,13 @@ export class TenantContextMiddleware implements NestMiddleware {
 
   use(req: Request, res: Response, next: NextFunction) {
     const tenantId = this.extractTenantId(req);
-    const user = (req as any).user;
 
-    if (!tenantId && !this.isPublicRoute(req.path)) {
-      throw new BadRequestException(
-        'Tenant context is required. Provide X-Tenant-Id header or tenantId in query params.',
-      );
-    }
-
-    if (tenantId && user) {
+ 
+    if (tenantId) {
       const tenantContext: TenantContext = {
         tenantId,
-        userId: user.id || user.sub,
-        globalRole: user.globalRole || 'USER',
-        tenants: user.tenants,
+        userId: null as any, 
+        globalRole: null as any, 
       };
 
       this.cls.set(TENANT_CONTEXT_KEY, tenantContext);
@@ -44,15 +38,5 @@ export class TenantContextMiddleware implements NestMiddleware {
     }
 
     return tenantId !== null && !isNaN(tenantId) ? tenantId : null;
-  }
-
-  private isPublicRoute(path: string): boolean {
-    const publicRoutes = [
-      '/api/auth',
-      '/api/health',
-      '/swagger',
-      '/api-docs',
-    ];
-    return publicRoutes.some(route => path.startsWith(route));
   }
 }

@@ -10,10 +10,19 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger, UseGuards, Inject } from '@nestjs/common';
+import { validate as uuidValidate, v4 as uuidv4 } from 'uuid';
+import { ClsService } from 'nestjs-cls';
 import { WsJwtAuthGuard } from './ws-jwt-auth.guard';
 import { NotificationWebSocketService } from './notification-websocket.service';
 import { NotificationService } from '../../application/services/notification.service';
 import type { INotificationRepository } from '../../domain/repositories';
+import { Notification } from '../../domain/entities';
+import {
+  NotificationChannel,
+  NotificationPriority,
+  NotificationType,
+} from '../../domain/enums';
+import { TENANT_CONTEXT_KEY, type TenantContext } from 'src/shared/context/tenant-context';
 
 /**
  * WebSocket Gateway for real-time notifications
@@ -37,9 +46,25 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   constructor(
     private readonly wsService: NotificationWebSocketService,
     private readonly notificationService: NotificationService,
+    private readonly clsService: ClsService,
     @Inject('INotificationRepository')
     private readonly notificationRepository: INotificationRepository,
   ) {}
+
+  private async runWithClsContext<T>(
+    client: Socket,
+    handler: () => Promise<T>,
+  ): Promise<T> {
+    const tenantContext = client.data.tenantContext as TenantContext;
+    if (!tenantContext) {
+      throw new Error('Tenant context not available on socket');
+    }
+
+    return this.clsService.run(async () => {
+      this.clsService.set(TENANT_CONTEXT_KEY, tenantContext);
+      return handler();
+    });
+  }
 
   /**
    * Handle new client connections
@@ -69,20 +94,22 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
 
       const userId = user.userId;
 
-      // Register client
-      this.wsService.registerClient(userId, client);
+      await this.runWithClsContext(client, async () => {
+        // Register client (tenant context is set by WsAuthAdapter during handshake)
+        this.wsService.registerClient(userId, client);
 
-      // Send connection success event with stats
-      client.emit('connection:success', {
-        message: 'Connected to notification service',
-        userId,
-        timestamp: new Date().toISOString(),
-      });
+        // Send connection success event with stats
+        client.emit('connection:success', {
+          message: 'Connected to notification service',
+          userId,
+          timestamp: new Date().toISOString(),
+        });
 
-      // Send unread notification count
-      const unreadNotifications = await this.notificationService.getUnreadNotifications(userId);
-      client.emit('notifications:unread-count', {
-        count: unreadNotifications.length,
+        // Send unread notification count
+        const unreadNotifications = await this.notificationService.getUnreadNotifications(userId);
+        client.emit('notifications:unread-count', {
+          count: unreadNotifications.length,
+        });
       });
 
       this.logger.log(`Client ${client.id} connected for user ${userId}`);
@@ -112,18 +139,20 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     @MessageBody() data: { limit?: number },
   ) {
     try {
-      const userId = client.data.user.userId;
-      const limit = data?.limit || 20;
+      return await this.runWithClsContext(client, async () => {
+        const userId = client.data.user.userId;
+        const limit = data?.limit || 20;
 
-      const notifications = await this.notificationService.getUserNotifications(
-        userId,
-        limit,
-      );
+        const notifications = await this.notificationService.getUserNotifications(
+          userId,
+          limit,
+        );
 
-      return {
-        event: 'notifications:list',
-        data: notifications,
-      };
+        return {
+          event: 'notifications:list',
+          data: notifications,
+        };
+      });
     } catch (error) {
       this.logger.error(`Error fetching notifications: ${error.message}`, error.stack);
       return {
@@ -140,14 +169,16 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   @SubscribeMessage('notifications:fetch-unread')
   async handleFetchUnreadNotifications(@ConnectedSocket() client: Socket) {
     try {
-      const userId = client.data.user.userId;
+      return await this.runWithClsContext(client, async () => {
+        const userId = client.data.user.userId;
 
-      const notifications = await this.notificationService.getUnreadNotifications(userId);
+        const notifications = await this.notificationService.getUnreadNotifications(userId);
 
-      return {
-        event: 'notifications:unread',
-        data: notifications,
-      };
+        return {
+          event: 'notifications:unread',
+          data: notifications,
+        };
+      });
     } catch (error) {
       this.logger.error(`Error fetching unread notifications: ${error.message}`, error.stack);
       return {
@@ -167,37 +198,37 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     @MessageBody() data: { notificationId: string },
   ) {
     try {
-      const userId = client.data.user.userId;
-      const { notificationId } = data;
+      return await this.runWithClsContext(client, async () => {
+        const userId = client.data.user.userId;
+        const { notificationId } = data;
 
-      if (!notificationId) {
+        if (!notificationId || !uuidValidate(notificationId)) {
+          return {
+            event: 'error',
+            data: { message: 'Invalid notificationId' },
+          };
+        }
+
+        const notification = await this.notificationRepository.findById(notificationId);
+        if (!notification || notification.userId !== userId) {
+          return {
+            event: 'error',
+            data: { message: 'Notification not found or access denied' },
+          };
+        }
+
+        await this.notificationService.markAsRead(notificationId);
+
+        const unreadNotifications = await this.notificationService.getUnreadNotifications(userId);
+        this.wsService.emitToUser(userId, 'notifications:unread-count', {
+          count: unreadNotifications.length,
+        });
+
         return {
-          event: 'error',
-          data: { message: 'Missing notificationId' },
+          event: 'notifications:marked-read',
+          data: { notificationId, success: true },
         };
-      }
-
-      // Verify notification belongs to user
-      const notification = await this.notificationRepository.findById(notificationId);
-      if (!notification || notification.userId !== userId) {
-        return {
-          event: 'error',
-          data: { message: 'Notification not found or access denied' },
-        };
-      }
-
-      await this.notificationService.markAsRead(notificationId);
-
-      // Send updated unread count to all user's devices
-      const unreadNotifications = await this.notificationService.getUnreadNotifications(userId);
-      this.wsService.emitToUser(userId, 'notifications:unread-count', {
-        count: unreadNotifications.length,
       });
-
-      return {
-        event: 'notifications:marked-read',
-        data: { notificationId, success: true },
-      };
     } catch (error) {
       this.logger.error(`Error marking notification as read: ${error.message}`, error.stack);
       return {
@@ -214,19 +245,20 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   @SubscribeMessage('notifications:mark-all-read')
   async handleMarkAllAsRead(@ConnectedSocket() client: Socket) {
     try {
-      const userId = client.data.user.userId;
+      return await this.runWithClsContext(client, async () => {
+        const userId = client.data.user.userId;
 
-      await this.notificationService.markAllAsRead(userId);
+        await this.notificationService.markAllAsRead(userId);
 
-      // Notify all user's devices
-      this.wsService.emitToUser(userId, 'notifications:unread-count', {
-        count: 0,
+        this.wsService.emitToUser(userId, 'notifications:unread-count', {
+          count: 0,
+        });
+
+        return {
+          event: 'notifications:all-marked-read',
+          data: { success: true },
+        };
       });
-
-      return {
-        event: 'notifications:all-marked-read',
-        data: { success: true },
-      };
     } catch (error) {
       this.logger.error(`Error marking all as read: ${error.message}`, error.stack);
       return {
@@ -246,31 +278,32 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     @MessageBody() data: { notificationId: string },
   ) {
     try {
-      const userId = client.data.user.userId;
-      const { notificationId } = data;
+      return await this.runWithClsContext(client, async () => {
+        const userId = client.data.user.userId;
+        const { notificationId } = data;
 
-      if (!notificationId) {
+        if (!notificationId) {
+          return {
+            event: 'error',
+            data: { message: 'Missing notificationId' },
+          };
+        }
+
+        const notification = await this.notificationRepository.findById(notificationId);
+        if (!notification || notification.userId !== userId) {
+          return {
+            event: 'error',
+            data: { message: 'Notification not found or access denied' },
+          };
+        }
+
+        await this.notificationService.archiveNotification(notificationId);
+
         return {
-          event: 'error',
-          data: { message: 'Missing notificationId' },
+          event: 'notifications:archived',
+          data: { notificationId, success: true },
         };
-      }
-
-      // Verify notification belongs to user
-      const notification = await this.notificationRepository.findById(notificationId);
-      if (!notification || notification.userId !== userId) {
-        return {
-          event: 'error',
-          data: { message: 'Notification not found or access denied' },
-        };
-      }
-
-      await this.notificationService.archiveNotification(notificationId);
-
-      return {
-        event: 'notifications:archived',
-        data: { notificationId, success: true },
-      };
+      });
     } catch (error) {
       this.logger.error(`Error archiving notification: ${error.message}`, error.stack);
       return {
@@ -298,6 +331,84 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
       return {
         event: 'error',
         data: { message: 'Failed to get statistics' },
+      };
+    }
+  }
+
+  /**
+   * Send test notification (for testing purposes)
+   */
+  @UseGuards(WsJwtAuthGuard)
+  @SubscribeMessage('notifications:send-test')
+  async handleSendTest(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    data: {
+      tenantId: number;
+      userId: string;
+      title?: string;
+      message?: string;
+      isHtml?: boolean;
+      metadata?: Record<string, any>;
+    },
+  ) {
+    try {
+      return await this.runWithClsContext(client, async () => {
+        const userId = client.data.user.userId;
+        const tenantId = client.data.tenantContext?.tenantId ?? data.tenantId;
+
+        const title = (data.title || 'Test Notification').toString();
+        const message =
+          (data.message ||
+            'This is a test notification from WebSocket handler')?.toString();
+
+        const mergedMetadata = {
+          ...(data.metadata || {}),
+          isTest: true,
+          isHtml: data.isHtml ?? data.metadata?.isHtml,
+          renderAsHtml: data.isHtml ?? data.metadata?.renderAsHtml,
+        };
+
+        const notification = new Notification(
+          uuidv4(),
+          userId,
+          NotificationType.ACCOUNT_UPDATED,
+          NotificationChannel.PUSH,
+          title,
+          message,
+          NotificationPriority.MEDIUM,
+          mergedMetadata,
+        );
+
+        notification.markAsSent();
+
+        const savedNotification = await this.notificationRepository.save(notification);
+
+        this.wsService.sendNotificationToUser(userId, savedNotification);
+
+        const unreadNotifications = await this.notificationService.getUnreadNotifications(userId);
+        this.wsService.emitToUser(userId, 'notifications:unread-count', {
+          count: unreadNotifications.length,
+        });
+
+        this.logger.log(
+          `Test notification sent to user ${userId} in tenant ${tenantId} (id: ${savedNotification.id})`,
+        );
+
+        return {
+          event: 'notifications:test-sent',
+          data: {
+            success: true,
+            message: 'Test notification sent',
+            id: savedNotification.id,
+          },
+        };
+      });
+    } catch (error) {
+      this.logger.error(`Error sending test notification: ${error.message}`, error.stack);
+      return {
+        event: 'error',
+        data: { message: 'Failed to send test notification' },
       };
     }
   }

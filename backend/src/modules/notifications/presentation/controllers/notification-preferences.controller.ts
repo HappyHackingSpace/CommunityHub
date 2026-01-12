@@ -8,6 +8,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../iam/infrastructure/guards/jwt-auth.guard';
+import { TenantAccessGuard } from 'src/shared/guards/tenant-access.guard';
+import { TenantContextCompleteGuard } from 'src/shared/guards/tenant-context-complete.guard';
 import { CurrentUser } from '../../../../shared/infrastructure/decorators/current-user.decorator';
 import { NotificationPreferenceService } from '../../application/services/notification-preference.service';
 import {
@@ -18,8 +20,8 @@ import {
 
 @ApiTags('notification-preferences')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('notification-preferences')
+@UseGuards(JwtAuthGuard, TenantContextCompleteGuard, TenantAccessGuard)
 export class NotificationPreferencesController {
   constructor(
     private readonly preferenceService: NotificationPreferenceService,

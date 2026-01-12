@@ -2,9 +2,11 @@
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { INestApplicationContext, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ClsService } from 'nestjs-cls';
 import { ServerOptions } from 'socket.io';
 import { Socket } from 'socket.io';
 import { Server } from 'socket.io';
+import { TENANT_CONTEXT_KEY, type TenantContext } from 'src/shared/context/tenant-context';
 
 /**
  * Custom WebSocket Adapter with JWT Authentication
@@ -13,16 +15,17 @@ import { Server } from 'socket.io';
 export class WsAuthAdapter extends IoAdapter {
   private readonly logger = new Logger(WsAuthAdapter.name);
   private jwtService: JwtService;
+  private cls: ClsService;
 
   constructor(app: INestApplicationContext) {
     super(app);
     this.jwtService = app.get(JwtService);
+    this.cls = app.get(ClsService);
   }
 
   createIOServer(port: number, options?: ServerOptions): Server {
     const server = super.createIOServer(port, options) as Server;
 
-    // Add authentication middleware to the /notifications namespace
     const notificationsNamespace = server.of('/notifications');
 
     notificationsNamespace.use(async (socket: Socket, next) => {
@@ -34,22 +37,38 @@ export class WsAuthAdapter extends IoAdapter {
           return next(new Error('Authentication token is required'));
         }
 
-        // Verify JWT token
         const payload = await this.jwtService.verifyAsync(token, {
           secret: process.env.JWT_SECRET,
         });
 
-        // Attach user data to socket
         socket.data.user = {
           userId: payload.sub,
           email: payload.email,
           roles: payload.roles || [],
+          tenantId: payload.tenantId,
         };
 
-        this.logger.debug(`Socket ${socket.id} authenticated for user ${payload.sub}`);
+        const tenantContext: TenantContext = {
+          tenantId: payload.tenantId || 0,
+          userId: payload.sub,
+          globalRole: payload.roles?.[0] || 'USER',
+        };
+
+        socket.data.tenantContext = tenantContext;
+
+        if (payload.tenantId) {
+          this.logger.log(
+            `Socket ${socket.id} authenticated - User: ${payload.sub}, Tenant: ${payload.tenantId}`,
+          );
+        } else {
+          this.logger.warn(
+            `Socket ${socket.id} authenticated without tenantId - User: ${payload.sub}`,
+          );
+        }
+
         next();
       } catch (error) {
-        this.logger.warn(`Socket authentication failed: ${error.message}`);
+        this.logger.error(`Socket authentication failed: ${error.message}`);
         next(new Error('Invalid or expired authentication token'));
       }
     });

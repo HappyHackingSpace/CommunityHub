@@ -1,21 +1,24 @@
 import { NestFactory } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { WsAuthAdapter } from './modules/notifications/infrastructure/websocket/ws-auth.adapter';
+import { apiReference } from '@scalar/nestjs-api-reference';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import * as express from 'express';
+import * as path from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS for both HTTP and WebSocket
   app.enableCors({
     origin: process.env.NODE_ENV === 'production'
       ? process.env.FRONTEND_URL
-      : true, // Allow all origins in development
+      : true,
     credentials: true,
   });
 
-  // Use custom WebSocket adapter with JWT authentication
   app.useWebSocketAdapter(new WsAuthAdapter(app));
+
+  app.use(express.static(path.join(__dirname)));
 
   const config = new DocumentBuilder()
     .setTitle('CommunityHub API')
@@ -24,13 +27,20 @@ async function bootstrap() {
     .addBearerAuth()
     .addSecurityRequirements('bearer')
     .build();
+
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+
+  app.use('/reference', apiReference({
+    content: document,
+    theme: 'bluePlanet',
+  }));
+
+
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
   console.log(`🚀 Application is running on: http://localhost:${port}`);
-  console.log(`📚 Swagger UI is available on: http://localhost:${port}/api`);
+  console.log(`📚 API Docs (Scalar) is available on: http://localhost:${port}/reference`);
   console.log(`🔌 WebSocket available on: ws://localhost:${port}/notifications`);
 }
 bootstrap();

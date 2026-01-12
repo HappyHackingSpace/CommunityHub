@@ -9,11 +9,12 @@ import { RoleAssignedEvent } from '../events/role-assigned.event';
 
 interface UserProps {
   googleId: GoogleId;
-  email: string;               
+  email: string;
   displayName: DisplayName;
-  avatarUrl?: string;         
+  avatarUrl?: string;
   roles: RoleType[];
   status: UserStatus;
+  primaryTenantId?: number;
 }
 
 export class User extends BaseEntity {
@@ -47,6 +48,10 @@ export class User extends BaseEntity {
 
   get status(): UserStatus {
     return this.props.status;
+  }
+
+  get primaryTenantId(): number | undefined {
+    return this.props.primaryTenantId;
   }
 
   get events(): any[] {
@@ -104,6 +109,7 @@ export class User extends BaseEntity {
     avatarUrl?: string,
     createdAt?: Date,
     updatedAt?: Date,
+    primaryTenantId?: number,
   ): User {
     return new User(
       id,
@@ -114,6 +120,7 @@ export class User extends BaseEntity {
         avatarUrl,
         roles,
         status,
+        primaryTenantId,
       },
       createdAt,
       updatedAt,
@@ -187,6 +194,13 @@ export class User extends BaseEntity {
     }
 
     this.touch();
+  }
+
+  public setPrimaryTenantId(tenantId: number): void {
+    if (!this.props.primaryTenantId) {
+      this.props.primaryTenantId = tenantId;
+      this.touch();
+    }
   }
 
   private static generateId(): string {

@@ -11,11 +11,15 @@ interface ActivityMetadataProps {
 }
 
 @Entity('activity_feed_items')
-@Index(['userId', 'createdAt'])
-@Index(['activityType', 'createdAt'])
+@Index(['tenantId'])
+@Index(['tenantId', 'userId', 'createdAt'])
+@Index(['tenantId', 'activityType', 'createdAt'])
 export class ActivityFeedItemOrmEntity {
   @PrimaryColumn('varchar')
   id: string;
+
+  @Column('bigint', { name: 'tenant_id' })
+  tenantId: number;
 
   @Column('varchar')
   userId: string;

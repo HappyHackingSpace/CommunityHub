@@ -2,6 +2,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
+import { CqrsModule } from '@nestjs/cqrs';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -28,6 +29,8 @@ import { WsJwtAuthGuard } from './infrastructure/websocket/ws-jwt-auth.guard';
 import {
   TaskAssignedHandler,
   TaskCommentAddedHandler,
+  HelpNeededHandler,
+  MentorAssignedHandler,
   MeetingCreatedHandler,
   ParticipantAddedHandler,
 } from './application/event-handlers';
@@ -61,6 +64,7 @@ import { NotificationPreferenceSchema, NotificationSchema, NotificationTemplateS
       },
       inject: [ConfigService],
     }),
+    CqrsModule,
     EventEmitterModule.forRoot(),
   ],
   controllers: [NotificationsController, NotificationPreferencesController],
@@ -90,6 +94,8 @@ import { NotificationPreferenceSchema, NotificationSchema, NotificationTemplateS
     // Event Handlers
     TaskAssignedHandler,
     TaskCommentAddedHandler,
+    HelpNeededHandler,
+    MentorAssignedHandler,
     MeetingCreatedHandler,
     ParticipantAddedHandler,
   ],

@@ -9,6 +9,7 @@ export class UserResponseDto {
   avatarUrl?: string;
   roles: RoleType[];
   status: UserStatus;
+  primaryTenantId?: number;
   createdAt: Date;
   updatedAt: Date;
 
@@ -20,6 +21,7 @@ export class UserResponseDto {
       avatarUrl: user.avatarUrl,
       roles: user.roles,
       status: user.status,
+      primaryTenantId: user.primaryTenantId,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

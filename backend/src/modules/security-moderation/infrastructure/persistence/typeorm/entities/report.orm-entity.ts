@@ -3,13 +3,17 @@ import { ReportStatus } from '../../../../domain/enums/report-status.enum';
 import { ReportReason } from '../../../../domain/enums/report-reason.enum';
 
 @Entity('reports')
-@Index(['reporterId', 'createdAt'])
-@Index(['status', 'createdAt'])
-@Index(['targetUserId'])
-@Index(['targetContentId'])
+@Index(['tenantId'])
+@Index(['tenantId', 'reporterId', 'createdAt'])
+@Index(['tenantId', 'status', 'createdAt'])
+@Index(['tenantId', 'targetUserId'])
+@Index(['tenantId', 'targetContentId'])
 export class ReportOrmEntity {
   @PrimaryColumn('varchar')
   id: string;
+
+  @Column('bigint', { name: 'tenant_id' })
+  tenantId: number;
 
   @Column('varchar')
   reporterId: string;

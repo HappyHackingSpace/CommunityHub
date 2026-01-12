@@ -1,6 +1,6 @@
 // src/modules/notifications/application/event-handlers/meeting-created.handler.ts
+import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
 import { MeetingCreatedEvent } from '../../../meetings/domain/events/meeting-created.event';
 import { NotificationService } from '../services/notification.service';
 import {
@@ -10,13 +10,13 @@ import {
 } from '../../domain/enums';
 
 @Injectable()
-export class MeetingCreatedHandler {
+@EventsHandler(MeetingCreatedEvent)
+export class MeetingCreatedHandler implements IEventHandler<MeetingCreatedEvent> {
   private readonly logger = new Logger(MeetingCreatedHandler.name);
 
   constructor(private readonly notificationService: NotificationService) {}
 
-  @OnEvent('meeting.created')
-  async handleMeetingCreated(event: MeetingCreatedEvent) {
+  async handle(event: MeetingCreatedEvent) {
     this.logger.log(`Handling meeting created event for meeting ${event.meetingId}`);
 
     try {
