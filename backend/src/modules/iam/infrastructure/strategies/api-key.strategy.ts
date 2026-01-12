@@ -21,7 +21,6 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
   }
 
   async validate(token: string): Promise<any> {
-    // Parse token: format is "key:secret"
     const parts = token.split(':');
     if (parts.length !== 2) {
       throw new UnauthorizedException('Invalid API key format');
@@ -29,19 +28,16 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
 
     const [key, secret] = parts;
 
-    // Find API key by key
     const apiKey = await this.apiKeyRepository.findByKey(key);
     if (!apiKey) {
       throw new UnauthorizedException('Invalid API key');
     }
 
-    // Verify secret against hash
     const isValid = await this.apiKeyGenerator.verifySecret(secret, apiKey.secretHash);
     if (!isValid) {
       throw new UnauthorizedException('Invalid API secret');
     }
 
-    // Check status and expiration
     if (!apiKey.isActive()) {
       throw new UnauthorizedException('API key is inactive or revoked');
     }
@@ -50,19 +46,16 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
       throw new UnauthorizedException('API key has expired');
     }
 
-    // Load user
     const user = await this.userRepository.findById(apiKey.userId);
     if (!user || !user.isActive()) {
       throw new UnauthorizedException('User not found or inactive');
     }
 
-    // Update last used timestamp
     apiKey.updateLastUsed();
     await this.apiKeyRepository.save(apiKey);
 
     const tenants = await this.communityMemberRepository.findUserTenantsWithCommunityInfo(user.id);
 
-    // Return context for request
     return {
       id: user.id,
       userId: user.id,

@@ -69,7 +69,6 @@ import { NotificationPreferenceSchema, NotificationSchema, NotificationTemplateS
   ],
   controllers: [NotificationsController, NotificationPreferencesController],
   providers: [
-    // Repository providers with string tokens
     {
       provide: 'INotificationRepository',
       useClass: NotificationRepository,

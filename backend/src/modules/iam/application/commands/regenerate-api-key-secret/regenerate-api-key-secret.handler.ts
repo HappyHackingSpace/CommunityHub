@@ -24,14 +24,11 @@ export class RegenerateApiKeySecretHandler
       throw new NotFoundException(`API key not found: ${command.apiKeyId}`);
     }
 
-    // Generate new secret
     const plainSecret = this.apiKeyGenerator.generateSecret();
     const secretHash = await this.apiKeyGenerator.hashSecret(plainSecret);
 
-    // Update hash in entity
     apiKey.updateSecretHash(secretHash);
 
-    // Save changes
     await this.apiKeyRepository.save(apiKey);
 
     return { plainSecret };
