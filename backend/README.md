@@ -1,29 +1,22 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# CommunityHub Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+A modern, multi-tenant community platform backend built with **NestJS 11**, **TypeScript**, **PostgreSQL**, and **Redis**.
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+CommunityHub is a comprehensive backend service for managing communities, clubs, tasks, meetings, notifications, and user interactions. It implements a domain-driven design (DDD) architecture with CQRS patterns, real-time WebSocket communication, multi-tenant support, and comprehensive security features.
+
+### Core Features
+
+- **Identity & Authentication**: OAuth2 Google login, JWT-based authorization with role-based access control
+- **Multi-Tenant Architecture**: Complete tenant isolation with CLS-based context management
+- **Real-Time Notifications**: Socket.io-based WebSocket gateway with Bull queue for async job processing
+- **Task Management**: Full task lifecycle with comments, subtasks, attachments, gamification, and activity logging
+- **Meeting Management**: Meeting scheduling, participant management, agenda items, resources, and attendance tracking
+- **Community & Club Management**: Community creation with admin approval, club management, and membership workflows
+- **Activity Feed**: Social post creation, engagement (likes), and feed filtering
+- **Security & Moderation**: User reporting, admin moderation, and user banning capabilities
+- **API Documentation**: Swagger/OpenAPI and Scalar reference documentation
 
 ## Project setup
 
@@ -31,68 +24,142 @@
 $ npm install
 ```
 
-## Compile and run the project
+## Environment Configuration
+
+### Setup
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Fill in your local configuration values in `.env`
+
+3. **IMPORTANT:** Never commit `.env` files to Git! They are automatically ignored by `.gitignore`.
+
+### Required Environment Variables
+
+See `.env.example` for all required variables and their descriptions.
+
+### Generating Secrets
+
+**JWT Secret:**
+Generate a new secure secret with:
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+**Google OAuth:**
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new OAuth 2.0 Client ID for a Web application
+3. Add authorized redirect URIs (e.g., `http://localhost:3000/auth/google/callback`)
+4. Copy the Client ID and Client Secret to your `.env` file
+
+### Security Best Practices
+
+- **Never commit** `.env` files or real credentials to Git
+- Use **strong, unique passwords** for all services (database, Redis, PgAdmin)
+- Rotate secrets regularly in production
+- Use secret management services (AWS Secrets Manager, HashiCorp Vault, etc.) in production
+- Enable 2FA/MFA for all critical services and platforms (Google Cloud, AWS, etc.)
+
+## Running the Application
+
+### Using npm
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
+# development (watch mode)
+npm run start:dev
 
 # production mode
-$ npm run start:prod
+npm run start:prod
+
+# standard run
+npm run start
 ```
 
-## Run tests
+### Using Docker Compose
 
 ```bash
-# unit tests
-$ npm run test
+# Start all services (backend, PostgreSQL, Redis, PgAdmin)
+docker-compose up -d
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+# Stop services
+docker-compose down
 ```
 
-## Deployment
+Access the application at:
+- **API**: http://localhost:3000
+- **Swagger Docs**: http://localhost:3000/api
+- **Scalar Docs**: http://localhost:3000/reference
+- **PgAdmin**: http://localhost:5050
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## Architecture Overview
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+CommunityHub follows a **Domain-Driven Design (DDD)** architecture with clear separation of concerns:
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+- **Presentation Layer**: REST API controllers with validation and guard-based authorization
+- **Application Layer**: CQRS command/query handlers, DTOs, and business logic orchestration
+- **Domain Layer**: Core entities, value objects, and domain events
+- **Infrastructure Layer**: TypeORM repositories, external service integrations, and persistence logic
+
+### Key Technologies
+
+- **Framework**: NestJS 11 with TypeScript
+- **Database**: PostgreSQL with TypeORM, auto-loaded entities and migrations
+- **Caching & Queuing**: Redis with Bull for async job processing
+- **Real-Time Communication**: Socket.io with JWT-based WebSocket authentication
+- **Event System**: NestJS EventEmitter and CQRS for inter-module communication
+- **API Documentation**: Swagger/OpenAPI and Scalar interactive reference
+- **Multi-Tenancy**: Context Local Storage (CLS) for tenant isolation
+
+## Project Structure
+
 ```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+src/
+├── modules/
+│   ├── iam/                 # Identity & Access Management
+│   ├── notifications/       # Real-time notifications & preferences
+│   ├── tasks/              # Task management & gamification
+│   ├── meetings/           # Meeting scheduling & coordination
+│   ├── clubs/              # Club management & membership
+│   ├── communities/        # Community management & approval
+│   ├── activity-feed/      # Social feed & engagement
+│   └── security-moderation/ # Reporting & user banning
+├── shared/                  # Shared guards, middleware, decorators
+└── app.module.ts           # Root module configuration
+```
 
 ## Resources
 
-Check out a few resources that may come in handy when working with NestJS:
+- [Project Analysis](./project-analysis.md) - Detailed module documentation and architecture
+- [NestJS Documentation](https://docs.nestjs.com)
+- [TypeORM Documentation](https://typeorm.io)
+- [Socket.io Documentation](https://socket.io/docs/)
+- [Bull Queue Documentation](https://docs.bullmq.io/)
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Testing
 
-## Support
+```bash
+# Unit tests
+npm run test
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+# E2E tests
+npm run test:e2e
 
-## Stay in touch
+# Test coverage
+npm run test:cov
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## API Documentation
+
+Once the application is running, explore the API documentation at:
+
+- **Swagger UI**: http://localhost:3000/api
+- **Scalar Interactive Reference**: http://localhost:3000/reference
+
+The API includes comprehensive documentation for all endpoints with request/response examples and authentication requirements.
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Proprietary - CommunityHub Project
