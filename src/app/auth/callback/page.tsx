@@ -17,7 +17,14 @@ function CallbackHandler() {
         redirect: false,
       }).then((response) => {
         if (response?.ok) {
-          router.push("/discover");
+          // Check for a stored redirect path
+          const savedPath = sessionStorage.getItem("authRedirect");
+          if (savedPath) {
+            sessionStorage.removeItem("authRedirect");
+            router.push(savedPath);
+          } else {
+            router.push("/discover");
+          }
         } else {
           router.push("/?error=auth-failed");
         }

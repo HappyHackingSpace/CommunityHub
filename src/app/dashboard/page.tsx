@@ -5,9 +5,31 @@ import { PostCard } from "@/components/dashboard/post-card";
 import { RightSidebar } from "@/components/dashboard/right-sidebar";
 
 import { useActivityFeed } from "@/hooks/use-activity-feed";
+import { useCommunities } from "@/hooks/use-communities";
+import { useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 
 export default function DashboardPage() {
+  const { data: session } = useSession();
+  const { communities, isLoading: communitiesLoading } = useCommunities();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tenantId = searchParams.get("tenantId");
+  
   const { posts, isLoading, error } = useActivityFeed();
+
+  useEffect(() => {
+    if (!communitiesLoading && communities.length > 0 && !tenantId) {
+      const myCommunity = communities.find(
+        (c) => c.founderId === session?.user?.id || c.isMember
+      );
+      
+      if (myCommunity) {
+        router.replace(`/dashboard?tenantId=${myCommunity.tenantId || myCommunity.id}`);
+      }
+    }
+  }, [communities, communitiesLoading, tenantId, router, session]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-20">

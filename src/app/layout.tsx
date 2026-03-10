@@ -33,6 +33,7 @@ export const metadata: Metadata = {
 import { SessionProvider } from "next-auth/react";
 import { TenantProvider } from "@/components/providers/tenant-provider";
 import { LeftSidebar } from "@/components/layout/left-sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function RootLayout({
   children,
@@ -44,8 +45,10 @@ export default function RootLayout({
       <body>
         <SessionProvider>
           <TenantProvider>
-            <LeftSidebar />
-            {children}
+            <TooltipProvider>
+              <LeftSidebar />
+              {children}
+            </TooltipProvider>
           </TenantProvider>
         </SessionProvider>
       </body>

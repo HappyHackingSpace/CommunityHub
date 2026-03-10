@@ -19,11 +19,12 @@ export function GlobalHeader() {
 
   const pathname = usePathname();
   const isHome = pathname === "/";
+  const isDiscover = pathname === "/discover";
 
   return (
     <header className="w-full bg-background border-b-4 border-border px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-2">
           <div className="w-8 h-8 bg-main rounded-base border-2 border-border flex items-center justify-center font-heading font-black text-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
             C
           </div>
@@ -35,23 +36,18 @@ export function GlobalHeader() {
 
       <nav className="hidden md:block">
         <ul className="flex flex-row gap-8 font-medium">
-          {(!session || isHome) && (
+          {/* Only show nav menu if NOT authenticated */}
+          {!session && (
             <>
-              {isHome && (
-                <li>
-                  <NavLink href="#features">Features</NavLink>
-                </li>
-              )}
-              {!session && (
-                <li>
-                  <NavLink href="/discover">Discover</NavLink>
-                </li>
-              )}
-              {isHome && (
-                <li>
-                  <NavLink href="#pricing">Pricing</NavLink>
-                </li>
-              )}
+              <li>
+                <NavLink href={isHome ? "#features" : "/#features"}>Features</NavLink>
+              </li>
+              <li>
+                <NavLink href="/discover">Discover</NavLink>
+              </li>
+              <li>
+                <NavLink href={isHome ? "#pricing" : "/#pricing"}>Pricing</NavLink>
+              </li>
             </>
           )}
         </ul>
@@ -91,11 +87,17 @@ export function GlobalHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <a href={process.env.NEXT_PUBLIC_BACKEND_URL ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google` : "http://localhost:3000/auth/google"}>
-            <Button className="font-bold text-sm h-10 px-6 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] border-2 border-border hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">
-              Login
-            </Button>
-          </a>
+          <Button 
+            className="font-bold text-sm h-10 px-6 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] border-2 border-border hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"
+            onClick={() => {
+              sessionStorage.setItem("authRedirect", pathname);
+              window.location.href = process.env.NEXT_PUBLIC_BACKEND_URL 
+                ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google` 
+                : "http://localhost:3000/auth/google";
+            }}
+          >
+            Login
+          </Button>
         )}
       </div>
     </header>

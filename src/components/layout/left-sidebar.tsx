@@ -8,10 +8,26 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-const Tooltip = ({ label }: { label: string }) => (
-  <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-white text-black font-bold text-sm rounded-base opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap border-2 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] z-50 pointer-events-none origin-left scale-95 group-hover:scale-100">
-    {label}
-  </div>
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
+
+const SidebarTooltip = ({ children, label }: { children: React.ReactNode; label: string }) => (
+  <Tooltip delayDuration={0}>
+    <TooltipTrigger asChild>
+      {children}
+    </TooltipTrigger>
+    <TooltipContent 
+      side="right" 
+      sideOffset={10}
+      hideArrow={true}
+      className="bg-white text-black font-bold text-sm rounded-base border-2 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] px-3 py-1.5 animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
+    >
+      {label}
+    </TooltipContent>
+  </Tooltip>
 );
 
 export function LeftSidebar() {
@@ -48,41 +64,43 @@ export function LeftSidebar() {
     <aside className="fixed left-0 top-0 bottom-0 w-20 bg-black border-r-4 border-border flex flex-col items-center py-4 gap-4 z-[60] overflow-y-auto custom-scrollbar">
       
       {/* Home / Discover Icon */}
-      <Link href="/discover" className="relative group">
-        <div className="w-12 h-12 rounded-[24px] group-hover:rounded-[16px] bg-white transition-all duration-300 flex items-center justify-center border-2 border-transparent group-hover:border-white shadow-sm overflow-hidden">
-          <div className="w-full h-full bg-main flex items-center justify-center">
-            <Compass className="w-7 h-7 text-black fill-transparent stroke-[2.5]" />
+      <SidebarTooltip label="Discover Communities">
+        <Link href="/discover" className="relative group">
+          <div className="w-12 h-12 rounded-[24px] group-hover:rounded-[16px] bg-white transition-all duration-300 flex items-center justify-center border-2 border-transparent group-hover:border-white shadow-sm overflow-hidden">
+            <div className="w-full h-full bg-main flex items-center justify-center">
+              <Compass className="w-7 h-7 text-black fill-transparent stroke-[2.5]" />
+            </div>
           </div>
-        </div>
-        <Tooltip label="Discover Communities" />
-      </Link>
+        </Link>
+      </SidebarTooltip>
 
       {/* Create Community Icon */}
-      <Link href="/create-community" className="relative group mt-2">
-        <div className="w-12 h-12 rounded-[24px] group-hover:rounded-[16px] bg-zinc-800 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all duration-300 flex items-center justify-center border-2 border-transparent">
-          <Plus className="w-6 h-6 stroke-[3]" />
-        </div>
-        <Tooltip label="Create Community" />
-      </Link>
+      <SidebarTooltip label="Create Community">
+        <Link href="/create-community" className="relative group mt-2">
+          <div className="w-12 h-12 rounded-[24px] group-hover:rounded-[16px] bg-zinc-800 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all duration-300 flex items-center justify-center border-2 border-transparent">
+            <Plus className="w-6 h-6 stroke-[3]" />
+          </div>
+        </Link>
+      </SidebarTooltip>
 
       <div className="w-8 h-[2px] bg-white/20 rounded-full my-1" />
 
       {/* Community Icons */}
       {myCommunities.map((community) => (
-        <Link 
-          key={community.id} 
-          href={`/dashboard?tenantId=${community.tenantId || community.id}`} 
-          className="relative group"
-        >
-          <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-2 h-0 group-hover:h-5 bg-white rounded-r-full transition-all duration-300" />
-          <Avatar className="w-12 h-12 rounded-[24px] group-hover:rounded-[16px] transition-all duration-300 border-2 border-transparent group-hover:border-white object-cover bg-white">
-            <AvatarImage src={community.logoUrl} alt={community.name} className="object-cover" />
-            <AvatarFallback className="font-bold text-lg text-black bg-white">
-              {community.name.substring(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <Tooltip label={community.name} />
-        </Link>
+        <SidebarTooltip key={community.id} label={community.name}>
+          <Link 
+            href={`/dashboard?tenantId=${community.tenantId || community.id}`} 
+            className="relative group"
+          >
+            <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-2 h-0 group-hover:h-5 bg-white rounded-r-full transition-all duration-300" />
+            <Avatar className="w-12 h-12 rounded-[24px] group-hover:rounded-[16px] transition-all duration-300 border-2 border-transparent group-hover:border-white object-cover bg-white">
+              <AvatarImage src={community.logoUrl} alt={community.name} className="object-cover" />
+              <AvatarFallback className="font-bold text-lg text-black bg-white">
+                {community.name.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
+        </SidebarTooltip>
       ))}
 
     </aside>

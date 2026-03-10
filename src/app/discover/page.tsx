@@ -22,6 +22,7 @@ export default function DiscoverPage() {
 
   const handleApply = (id: string) => {
     if (!session) {
+      sessionStorage.setItem("authRedirect", "/discover");
       window.location.href = process.env.NEXT_PUBLIC_BACKEND_URL
         ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google`
         : "http://localhost:3000/auth/google";
@@ -32,6 +33,7 @@ export default function DiscoverPage() {
 
   const handleCreate = () => {
     if (!session) {
+      sessionStorage.setItem("authRedirect", "/create-community");
       window.location.href = process.env.NEXT_PUBLIC_BACKEND_URL
         ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google`
         : "http://localhost:3000/auth/google";

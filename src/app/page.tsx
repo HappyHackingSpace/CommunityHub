@@ -8,9 +8,22 @@ import { Card } from "@/components/ui/card";
 import { ArrowRight, Users, Zap, Shield } from "lucide-react";
 import { GlobalHeader } from "@/components/global-header";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace("/dashboard");
+    }
+  }, [status, router]);
+
+  if (status === "authenticated") {
+    return null; // Prevent flicker
+  }
 
   return (
     <main className="min-h-screen flex flex-col bg-background font-base selection:bg-main selection:text-main-foreground overflow-hidden">
@@ -81,12 +94,19 @@ export default function Home() {
               </Button>
             </a>
           ) : (
-            <a href={process.env.NEXT_PUBLIC_BACKEND_URL ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google` : "http://localhost:3000/auth/google"}>
-              <Button size="lg" className="w-full sm:w-auto h-14 px-8 text-xl font-black bg-chart-4 text-black hover:bg-chart-4/90 border-4 border-border shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 group transition-transform active:translate-y-1 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                Get Started Free
-                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 flex-shrink-0 transition-transform" />
-              </Button>
-            </a>
+            <Button 
+              size="lg" 
+              className="w-full sm:w-auto h-14 px-8 text-xl font-black bg-chart-4 text-black hover:bg-chart-4/90 border-4 border-border shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 group transition-transform active:translate-y-1 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+              onClick={() => {
+                sessionStorage.setItem("authRedirect", "/discover");
+                window.location.href = process.env.NEXT_PUBLIC_BACKEND_URL 
+                  ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google` 
+                  : "http://localhost:3000/auth/google";
+              }}
+            >
+              Get Started Free
+              <ArrowRight className="w-6 h-6 group-hover:translate-x-1 flex-shrink-0 transition-transform" />
+            </Button>
           )}
           
           <a href="/discover">
