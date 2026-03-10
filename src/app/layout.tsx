@@ -30,6 +30,10 @@ export const metadata: Metadata = {
   },
 };
 
+import { SessionProvider } from "next-auth/react";
+import { TenantProvider } from "@/components/providers/tenant-provider";
+import { LeftSidebar } from "@/components/layout/left-sidebar";
+
 export default function RootLayout({
   children,
 }: {
@@ -37,7 +41,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={archivo.variable}>
-      <body>{children}</body>
+      <body>
+        <SessionProvider>
+          <TenantProvider>
+            <LeftSidebar />
+            {children}
+          </TenantProvider>
+        </SessionProvider>
+      </body>
     </html>
   );
 }
