@@ -11,6 +11,7 @@ export class UserMapper {
     ormEntity.email = user.email;
     ormEntity.displayName = user.displayName.value;
     ormEntity.avatarUrl = user.avatarUrl;
+    ormEntity.bio = user.bio;
     ormEntity.roles = user.roles;
     ormEntity.status = user.status;
     ormEntity.createdAt = user.createdAt;
@@ -29,6 +30,7 @@ export class UserMapper {
       ormEntity.roles as RoleType[],
       ormEntity.status,
       ormEntity.avatarUrl,
+      ormEntity.bio,
       ormEntity.createdAt,
       ormEntity.updatedAt,
       ormEntity.primaryTenantId,

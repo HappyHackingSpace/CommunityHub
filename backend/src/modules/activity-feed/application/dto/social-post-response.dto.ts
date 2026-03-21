@@ -8,4 +8,5 @@ export class SocialPostResponseDto {
   status: string;
   createdAt: Date;
   updatedAt: Date;
+  likedBy: string[];
 }

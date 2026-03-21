@@ -33,8 +33,8 @@ export class ApiKeyOrmEntity {
   @Column({ name: 'user_id' })
   userId: string;
 
-  @Column({ name: 'tenant_id', type: 'bigint' })
-  tenantId: number;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId: string;
 
   @Column({
     type: 'jsonb',

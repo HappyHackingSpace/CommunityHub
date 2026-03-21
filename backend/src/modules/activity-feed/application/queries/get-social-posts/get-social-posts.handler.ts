@@ -1,6 +1,8 @@
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
+import { ClsService } from 'nestjs-cls';
 import { GetSocialPostsQuery } from './get-social-posts.query';
+import { TENANT_CONTEXT_KEY, TenantContext } from 'src/shared/context/tenant-context';
 import type { ISocialPostRepository } from 'src/modules/activity-feed/domain/repositories/social-post.repository.interface';
 
 export interface SocialPostDto {
@@ -13,6 +15,7 @@ export interface SocialPostDto {
   status: string;
   createdAt: Date;
   updatedAt: Date;
+  likedBy: string[];
 }
 
 @QueryHandler(GetSocialPostsQuery)
@@ -20,9 +23,11 @@ export class GetSocialPostsHandler implements IQueryHandler<GetSocialPostsQuery>
   constructor(
     @Inject('ISocialPostRepository')
     private readonly repository: ISocialPostRepository,
+    private readonly cls: ClsService,
   ) {}
 
   async execute(query: GetSocialPostsQuery): Promise<{ items: SocialPostDto[]; total: number }> {
+    const tenantId = this.cls.get<TenantContext>(TENANT_CONTEXT_KEY)?.tenantId;
     let items;
     let total;
 
@@ -34,7 +39,13 @@ export class GetSocialPostsHandler implements IQueryHandler<GetSocialPostsQuery>
       total = await this.repository.countByStatus(query.status);
     } else {
       items = await this.repository.findAll(query.limit, query.offset);
-      total = await this.repository.countAll();
+      
+      if (tenantId) {
+        items = items.filter(post => (post as any).tenantId === tenantId);
+        total = items.length;
+      } else {
+        total = await this.repository.countAll();
+      }
     }
 
     return {
@@ -48,6 +59,7 @@ export class GetSocialPostsHandler implements IQueryHandler<GetSocialPostsQuery>
         status: post.status,
         createdAt: post.createdAt,
         updatedAt: post.updatedAt,
+        likedBy: (post as any).likedBy || [],
       })),
       total,
     };

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ClsModule } from 'nestjs-cls';
 
 import { ActivityFeedItemOrmEntity } from './infrastructure/persistence/typeorm/entities/activity-feed-item.orm-entity';
 import { SocialPostOrmEntity } from './infrastructure/persistence/typeorm/entities/social-post.orm-entity';
@@ -13,6 +14,7 @@ import { CreateSocialPostHandler } from './application/commands/create-social-po
 import { LikePostHandler } from './application/commands/like-post/like-post.handler';
 import { UnlikePostHandler } from './application/commands/unlike-post/unlike-post.handler';
 import { DeletePostHandler } from './application/commands/delete-post/delete-post.handler';
+import { UpdatePostHandler } from './application/commands/update-post/update-post.handler';
 
 import { GetFeedHandler } from './application/queries/get-feed/get-feed.handler';
 import { GetSocialPostsHandler } from './application/queries/get-social-posts/get-social-posts.handler';
@@ -25,6 +27,7 @@ const CommandHandlers = [
   LikePostHandler,
   UnlikePostHandler,
   DeletePostHandler,
+  UpdatePostHandler,
 ];
 
 const QueryHandlers = [
@@ -39,6 +42,7 @@ const QueryHandlers = [
       SocialPostOrmEntity,
     ]),
     CqrsModule,
+    ClsModule,
   ],
   controllers: [ActivityFeedController],
   providers: [

@@ -41,7 +41,7 @@ export class ApiKeyRepository implements IApiKeyRepository {
     return ormEntities.map(ormEntity => ApiKeyMapper.toDomain(ormEntity));
   }
 
-  async findByTenantId(tenantId: number): Promise<ApiKey[]> {
+  async findByTenantId(tenantId: string): Promise<ApiKey[]> {
     const ormEntities = await this.ormRepository.find({
       where: { tenantId },
       order: { createdAt: 'DESC' },

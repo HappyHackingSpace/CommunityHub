@@ -17,7 +17,7 @@ export class MeetingRepository implements IMeetingRepository {
     private cls: ClsService,
   ) {}
 
-  protected getTenantId(): number {
+  protected getTenantId(): string {
     const tenantContext = this.cls.get<TenantContext>(TENANT_CONTEXT_KEY);
     if (!tenantContext || !tenantContext.tenantId) {
       throw new Error('Tenant context is not set');
@@ -134,5 +134,16 @@ export class MeetingRepository implements IMeetingRepository {
       .andWhere('meeting.id = :id', { id })
       .getCount();
     return count > 0;
+  }
+
+  async countUpcomingByClubId(clubId: string): Promise<number> {
+    const now = new Date();
+    return this.createTenantQueryBuilder('meeting')
+      .andWhere('meeting.clubId = :clubId', { clubId })
+      .andWhere('meeting.startTime > :now', { now })
+      .andWhere('meeting.status IN (:...statuses)', {
+        statuses: [MeetingStatus.SCHEDULED, MeetingStatus.IN_PROGRESS],
+      })
+      .getCount();
   }
 }

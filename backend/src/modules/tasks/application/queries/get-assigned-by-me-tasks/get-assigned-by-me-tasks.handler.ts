@@ -26,17 +26,6 @@ export class GetAssignedByMeTasksHandler
       query.status,
     );
 
-    const tasksWithTags = await Promise.all(
-      tasks.map(async (task) => {
-        const tagIds = await this.taskTagRepository.findTagIdsByTaskId(task.id);
-        const tags = tagIds.length > 0 ? await this.tagRepository.findByIds(tagIds) : [];
-
-        const dto = TaskResponseDto.fromDomain(task);
-        dto.tags = tags.map((t) => TagResponseDto.fromDomain(t));
-        return dto;
-      }),
-    );
-
-    return tasksWithTags;
+    return tasks.map((task) => TaskResponseDto.fromDomain(task));
   }
 }

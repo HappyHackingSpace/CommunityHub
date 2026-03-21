@@ -16,7 +16,7 @@ export class UnlikePostHandler implements ICommandHandler<UnlikePostCommand> {
       throw new BadRequestException('Post not found');
     }
 
-    post.decrementLikes();
+    post.unlike(command.userId);
     await this.repository.save(post);
   }
 }

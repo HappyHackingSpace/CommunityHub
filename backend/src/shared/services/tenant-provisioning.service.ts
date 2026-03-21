@@ -29,7 +29,7 @@ export class TenantProvisioningService {
   ) {}
 
   async provisionNewTenant(request: TenantProvisioningRequest): Promise<{
-    tenantId: number;
+    tenantId: string;
     clubId: string;
   }> {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -37,7 +37,7 @@ export class TenantProvisioningService {
     await queryRunner.startTransaction();
 
     try {
-      const tenantId = await this.generateUniqueTenantId(queryRunner);
+      const tenantId = this.generateId();
       this.logger.log(`Generated tenant_id: ${tenantId}`);
 
       const club = await queryRunner.manager.save(ClubOrmEntity, {
@@ -95,17 +95,10 @@ export class TenantProvisioningService {
     }
   }
 
-  private async generateUniqueTenantId(queryRunner: any): Promise<number> {
-    const result = await queryRunner.query(
-      'SELECT MAX(tenant_id) as max_id FROM clubs',
-    );
-    const maxTenantId = result[0]?.max_id || 1000000;
-    return maxTenantId + 1;
-  }
 
   private async createDefaultRoles(
     queryRunner: any,
-    tenantId: number,
+    tenantId: string,
     clubId: string,
   ): Promise<ClubRoleOrmEntity[]> {
     const roles = [

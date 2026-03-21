@@ -5,6 +5,6 @@ export interface IApiKeyRepository {
   findByKey(key: string): Promise<ApiKey | null>;
   findById(id: string): Promise<ApiKey | null>;
   findByUserId(userId: string): Promise<ApiKey[]>;
-  findByTenantId(tenantId: number): Promise<ApiKey[]>;
+  findByTenantId(tenantId: string): Promise<ApiKey[]>;
   delete(id: string): Promise<void>;
 }

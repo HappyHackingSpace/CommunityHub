@@ -11,6 +11,7 @@ services:
       - "3000:3000"
     environment:
       DB_HOST: postgres
+      DB_PORT: 5432
       REDIS_HOST: redis
     command: ["npm", "run", "start:dev"]
     depends_on:
@@ -31,7 +32,7 @@ services:
     env_file:
       - ./.env.local
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_DB: ${DB_DATABASE}
       POSTGRES_USER: ${DB_USERNAME}

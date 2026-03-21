@@ -33,4 +33,5 @@ export interface ITaskRepository {
   update(task: Task): Promise<Task>;
   delete(id: string): Promise<void>;
   findByIdWithRelations(id: string): Promise<Task | null>;
+  countByClubId(clubId: string, status?: TaskStatus): Promise<number>;
 }

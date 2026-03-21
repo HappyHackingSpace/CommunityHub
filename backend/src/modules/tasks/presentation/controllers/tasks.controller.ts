@@ -22,6 +22,9 @@ import { ApiKeyThrottlerGuard } from '../../../iam/infrastructure/guards/api-key
 import { TenantAccessGuard } from '../../../../shared/guards/tenant-access.guard';
 import { TenantContextCompleteGuard } from '../../../../shared/guards/tenant-context-complete.guard';
 import { RequireScopes } from '../../../iam/infrastructure/decorators/require-scopes.decorator';
+import { Roles } from '../../../iam/infrastructure/decorators/roles.decorator';
+import { RoleType } from '../../../iam/domain/enums/role-type.enum';
+import { RolesGuard } from '../../../iam/infrastructure/guards/roles.guard';
 import { CurrentUser } from '../../../../shared/infrastructure/decorators/current-user.decorator';
 import { CreateTaskDto } from '../../application/dto/create-task.dto';
 import { UpdateTaskDto } from '../../application/dto/update-task.dto';
@@ -63,7 +66,7 @@ import { VolunteerForTaskCommand } from '../../application/commands/volunteer-fo
 @ApiTags('tasks')
 @ApiBearerAuth()
 @Controller('tasks')
-@UseGuards(FlexibleAuthGuard, ScopesGuard, TenantContextCompleteGuard, TenantAccessGuard, ApiKeyThrottlerGuard)
+@UseGuards(FlexibleAuthGuard, RolesGuard, ScopesGuard, TenantContextCompleteGuard, TenantAccessGuard, ApiKeyThrottlerGuard)
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class TasksController {
   constructor(
@@ -72,6 +75,7 @@ export class TasksController {
   ) {}
 
   @Post()
+  @Roles(RoleType.FOUNDER, RoleType.ADMIN)
   @RequireScopes('tasks:write')
   @HttpCode(HttpStatus.CREATED)
   async createTask(
@@ -186,6 +190,7 @@ export class TasksController {
   }
 
   @Patch(':id')
+  @Roles(RoleType.FOUNDER, RoleType.ADMIN, RoleType.ORGANIZER)
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async updateTask(
@@ -223,6 +228,7 @@ export class TasksController {
   }
 
   @Delete(':id')
+  @Roles(RoleType.FOUNDER, RoleType.ADMIN)
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteTask(

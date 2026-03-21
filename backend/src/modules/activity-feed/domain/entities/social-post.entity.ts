@@ -3,12 +3,14 @@ import { PostContent } from '../value-objects/post-content.vo';
 import { PostStatus } from '../enums/post-status.enum';
 
 interface SocialPostProps {
+  tenantId: string | null;
   authorId: string;
   content: PostContent;
   imageUrls?: string[];
   likesCount: number;
   commentsCount: number;
   status: PostStatus;
+  likedBy: string[];
 }
 
 export class SocialPost extends BaseEntity {
@@ -22,6 +24,10 @@ export class SocialPost extends BaseEntity {
   ) {
     super(id, createdAt || new Date(), updatedAt);
     this.props = props;
+  }
+
+  get tenantId(): string | null {
+    return this.props.tenantId;
   }
 
   get authorId(): string {
@@ -48,19 +54,26 @@ export class SocialPost extends BaseEntity {
     return this.props.status;
   }
 
+  get likedBy(): string[] {
+    return [...this.props.likedBy];
+  }
+
   public static create(props: {
+    tenantId: string | null;
     authorId: string;
     content: string;
     imageUrls?: string[];
   }): SocialPost {
     const id = this.generateId();
     return new SocialPost(id, {
+      tenantId: props.tenantId,
       authorId: props.authorId,
       content: PostContent.create(props.content),
       imageUrls: props.imageUrls,
       likesCount: 0,
       commentsCount: 0,
       status: PostStatus.PUBLISHED,
+      likedBy: [],
     });
   }
 
@@ -73,14 +86,26 @@ export class SocialPost extends BaseEntity {
     return new SocialPost(id, props, createdAt, updatedAt);
   }
 
-  public incrementLikes(): void {
-    this.props.likesCount++;
+  public updateContent(content: string): void {
+    this.props.content = PostContent.create(content);
     this.updatedAt = new Date();
   }
 
-  public decrementLikes(): void {
-    if (this.props.likesCount > 0) {
-      this.props.likesCount--;
+  public like(userId: string): void {
+    if (!this.props.likedBy.includes(userId)) {
+      this.props.likedBy = [...this.props.likedBy, userId];
+      this.props.likesCount = this.props.likedBy.length;
+      this.updatedAt = new Date();
+    }
+  }
+
+  public unlike(userId: string): void {
+    const index = this.props.likedBy.indexOf(userId);
+    if (index > -1) {
+      const newLikedBy = [...this.props.likedBy];
+      newLikedBy.splice(index, 1);
+      this.props.likedBy = newLikedBy;
+      this.props.likesCount = this.props.likedBy.length;
       this.updatedAt = new Date();
     }
   }

@@ -9,9 +9,11 @@ import {
   UseGuards,
   BadRequestException,
   ForbiddenException,
+  Inject,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { v7 as uuidv7 } from 'uuid';
+import type { ICommunityMemberRepository } from '../../domain/repositories/community-member.repository.interface';
 import { JwtAuthGuard } from 'src/modules/iam/infrastructure/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/shared/infrastructure/decorators/current-user.decorator';
 import { Public } from 'src/shared/decorators/public.decorator';
@@ -27,6 +29,8 @@ import {
   GetCommunityQuery,
   GetAllCommunitiesQuery,
   GetCommunityMembersQuery,
+  GetPendingMembershipsQuery,
+  GetCommunityStatsQuery,
 } from 'src/modules/communities/application/queries';
 import {
   CreateCommunityDto,
@@ -43,6 +47,8 @@ export class CommunitiesController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    @Inject('ICommunityMemberRepository')
+    private readonly memberRepository: ICommunityMemberRepository,
   ) {}
 
   @Get()
@@ -60,7 +66,7 @@ export class CommunitiesController {
   async createCommunity(
     @Body() dto: CreateCommunityDto,
     @CurrentUser('id') userId: string,
-  ): Promise<{ id: string }> {
+  ): Promise<{ id: string; tenantId: string }> {
     if (!userId) {
       throw new BadRequestException('User ID is required');
     }
@@ -79,7 +85,7 @@ export class CommunitiesController {
       ),
     );
 
-    return { id: communityId };
+    return { id: communityId, tenantId };
   }
 
 
@@ -156,6 +162,14 @@ export class CommunitiesController {
     return { id: memberId };
   }
 
+  @Get(':communityId/stats')
+  @TenantOptional()
+  async getCommunityStats(
+    @Param('communityId') communityId: string,
+  ): Promise<any> {
+    return this.queryBus.execute(new GetCommunityStatsQuery(communityId));
+  }
+
   @Get(':communityId/members')
   @TenantOptional()
   async getCommunityMembers(
@@ -181,6 +195,30 @@ export class CommunitiesController {
       new GetCommunityMembersQuery(communityId),
     );
     return members.map((member) => this.mapMemberToDto(member));
+  }
+
+  @Get(':communityId/pending-members')
+  @TenantOptional()
+  async getPendingMemberships(
+    @Param('communityId') communityId: string,
+    @CurrentUser('id') userId: string,
+  ): Promise<CommunityMemberResponseDto[]> {
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+
+    const community = await this.queryBus.execute(
+      new GetCommunityQuery(communityId),
+    );
+
+    if (community.founderId !== userId) {
+      throw new ForbiddenException('Only community founder can view pending memberships');
+    }
+
+    const pendingMembers = await this.queryBus.execute(
+      new GetPendingMembershipsQuery(communityId),
+    );
+    return pendingMembers.map((member) => this.mapMemberToDto(member));
   }
 
   @Post(':communityId/members/:memberId/approve')
@@ -283,7 +321,7 @@ export class CommunitiesController {
     userId: string,
     communityId: string,
   ): Promise<boolean> {
-  
-    return false;
+    const member = await this.memberRepository.findByUserId(userId);
+    return member.some(m => m.communityId === communityId && m.status === 'ACTIVE');
   }
 }

@@ -16,7 +16,7 @@ export class SubTaskRepository implements ISubTaskRepository {
     private cls: ClsService,
   ) {}
 
-  protected getTenantId(): number {
+  protected getTenantId(): string {
     const tenantContext = this.cls.get<TenantContext>(TENANT_CONTEXT_KEY);
     if (!tenantContext || !tenantContext.tenantId) {
       throw new Error('Tenant context is not set');

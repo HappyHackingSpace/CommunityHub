@@ -17,7 +17,7 @@ export class SocialPostRepository implements ISocialPostRepository {
     private cls: ClsService,
   ) {}
 
-  protected getTenantId(): number {
+  protected getTenantId(): string {
     const tenantContext = this.cls.get<TenantContext>(TENANT_CONTEXT_KEY);
     if (!tenantContext || !tenantContext.tenantId) {
       throw new Error('Tenant context is not set');
@@ -49,6 +49,7 @@ export class SocialPostRepository implements ISocialPostRepository {
   async findByAuthorId(authorId: string, limit: number, offset: number): Promise<SocialPost[]> {
     const orms = await this.createTenantQueryBuilder('socialPost')
       .andWhere('socialPost.authorId = :authorId', { authorId })
+      .andWhere('socialPost.status != :status', { status: PostStatus.DELETED })
       .orderBy('socialPost.createdAt', 'DESC')
       .take(limit)
       .skip(offset)
@@ -68,6 +69,7 @@ export class SocialPostRepository implements ISocialPostRepository {
 
   async findAll(limit: number, offset: number): Promise<SocialPost[]> {
     const orms = await this.createTenantQueryBuilder('socialPost')
+      .andWhere('socialPost.status != :status', { status: PostStatus.DELETED })
       .orderBy('socialPost.createdAt', 'DESC')
       .take(limit)
       .skip(offset)
@@ -85,6 +87,7 @@ export class SocialPostRepository implements ISocialPostRepository {
   async countByAuthorId(authorId: string): Promise<number> {
     return this.createTenantQueryBuilder('socialPost')
       .andWhere('socialPost.authorId = :authorId', { authorId })
+      .andWhere('socialPost.status != :status', { status: PostStatus.DELETED })
       .getCount();
   }
 
@@ -96,6 +99,7 @@ export class SocialPostRepository implements ISocialPostRepository {
 
   async countAll(): Promise<number> {
     return this.createTenantQueryBuilder('socialPost')
+      .andWhere('socialPost.status != :status', { status: PostStatus.DELETED })
       .getCount();
   }
 }

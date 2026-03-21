@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Param,
   Body,
@@ -17,12 +18,14 @@ import { TenantAccessGuard } from 'src/shared/guards/tenant-access.guard';
 import { TenantContextCompleteGuard } from 'src/shared/guards/tenant-context-complete.guard';
 import { CurrentUser } from 'src/shared/infrastructure/decorators/current-user.decorator';
 import { CreateSocialPostCommand } from '../../application/commands/create-social-post/create-social-post.command';
+import { UpdatePostCommand } from '../../application/commands/update-post/update-post.command';
 import { LikePostCommand } from '../../application/commands/like-post/like-post.command';
 import { UnlikePostCommand } from '../../application/commands/unlike-post/unlike-post.command';
 import { DeletePostCommand } from '../../application/commands/delete-post/delete-post.command';
 import { GetFeedQuery } from '../../application/queries/get-feed/get-feed.query';
 import { GetSocialPostsQuery } from '../../application/queries/get-social-posts/get-social-posts.query';
 import { CreateSocialPostDto } from '../../application/dto/create-social-post.dto';
+import { UpdateSocialPostDto } from '../../application/dto/update-social-post.dto';
 import { SocialPostResponseDto } from '../../application/dto/social-post-response.dto';
 import { ActivityFeedResponseDto } from '../../application/dto/activity-feed-response.dto';
 
@@ -75,7 +78,7 @@ export class ActivityFeedController {
     @Param('postId') postId: string,
     @CurrentUser('id') userId: string,
   ): Promise<void> {
-    await this.commandBus.execute(new LikePostCommand(postId));
+    await this.commandBus.execute(new LikePostCommand(postId, userId));
   }
 
   @Post('posts/:postId/unlike')
@@ -84,7 +87,16 @@ export class ActivityFeedController {
     @Param('postId') postId: string,
     @CurrentUser('id') userId: string,
   ): Promise<void> {
-    await this.commandBus.execute(new UnlikePostCommand(postId));
+    await this.commandBus.execute(new UnlikePostCommand(postId, userId));
+  }
+
+  @Patch('posts/:postId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async updatePost(
+    @Param('postId') postId: string,
+    @Body() dto: UpdateSocialPostDto,
+  ): Promise<void> {
+    await this.commandBus.execute(new UpdatePostCommand(postId, dto.content));
   }
 
   @Delete('posts/:postId')

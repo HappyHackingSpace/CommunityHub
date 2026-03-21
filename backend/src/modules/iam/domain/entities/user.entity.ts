@@ -12,6 +12,7 @@ interface UserProps {
   email: string;
   displayName: DisplayName;
   avatarUrl?: string;
+  bio?: string;
   roles: RoleType[];
   status: UserStatus;
   primaryTenantId?: string;
@@ -40,6 +41,10 @@ export class User extends BaseEntity {
 
   get avatarUrl(): string | undefined {
     return this.props.avatarUrl;
+  }
+
+  get bio(): string | undefined {
+    return this.props.bio;
   }
 
   get roles(): RoleType[] {
@@ -71,6 +76,7 @@ export class User extends BaseEntity {
     email: string,
     displayName: string,
     avatarUrl?: string,
+    bio?: string,
   ): User {
     const id = this.generateId(); 
 
@@ -81,6 +87,7 @@ export class User extends BaseEntity {
         email: email.toLowerCase().trim(),
         displayName: DisplayName.create(displayName),
         avatarUrl,
+        bio,
         roles: [RoleType.GUEST], 
         status: UserStatus.ACTIVE,
       }
@@ -107,6 +114,7 @@ export class User extends BaseEntity {
     roles: RoleType[],
     status: UserStatus,
     avatarUrl?: string,
+    bio?: string,
     createdAt?: Date,
     updatedAt?: Date,
     primaryTenantId?: string,
@@ -118,6 +126,7 @@ export class User extends BaseEntity {
         email,
         displayName: DisplayName.create(displayName),
         avatarUrl,
+        bio,
         roles,
         status,
         primaryTenantId,
@@ -184,13 +193,17 @@ export class User extends BaseEntity {
     this.touch();
   }
 
-  public updateProfile(displayName?: string, avatarUrl?: string): void {
+  public updateProfile(displayName?: string, avatarUrl?: string, bio?: string): void {
     if (displayName) {
       this.props.displayName = DisplayName.create(displayName);
     }
 
-    if (avatarUrl) {
+    if (avatarUrl !== undefined) {
       this.props.avatarUrl = avatarUrl;
+    }
+
+    if (bio !== undefined) {
+      this.props.bio = bio;
     }
 
     this.touch();

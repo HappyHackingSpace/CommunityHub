@@ -15,6 +15,8 @@ import { RoleType } from '../../domain/enums/role-type.enum';
 import { GetUserQuery } from '../../application/queries/get-user/get-user.query';
 import { AssignRoleCommand } from '../../application/commands/assign-role/assign-role.command';
 import { AssignRoleDto } from '../../application/dto/assign-role.dto';
+import { UpdateProfileDto } from '../../application/dto/update-profile.dto';
+import { UpdateProfileCommand } from '../../application/commands/update-profile/update-profile.command';
 import { UserResponseDto } from '../../application/dto/user-response.dto';
 import { CurrentUser } from 'src/shared/infrastructure/decorators/current-user.decorator';
 import { Roles } from '../../infrastructure/decorators/roles.decorator';
@@ -31,6 +33,22 @@ export class UsersController {
   async getCurrentUser(@CurrentUser() currentUser) {
     const user = await this.queryBus.execute(
       new GetUserQuery(currentUser.userId),
+    );
+    return UserResponseDto.fromDomain(user);
+  }
+
+  @Patch('me')
+  async updateProfile(
+    @CurrentUser() currentUser,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    const user = await this.commandBus.execute(
+      new UpdateProfileCommand(
+        currentUser.userId,
+        dto.displayName,
+        dto.avatarUrl,
+        dto.bio,
+      ),
     );
     return UserResponseDto.fromDomain(user);
   }

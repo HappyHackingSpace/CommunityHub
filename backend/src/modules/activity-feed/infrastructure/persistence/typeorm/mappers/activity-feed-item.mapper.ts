@@ -6,6 +6,7 @@ export class ActivityFeedItemMapper {
   public static toDomain(raw: ActivityFeedItemOrmEntity): ActivityFeedItem {
     const metadata = ActivityMetadata.create(raw.metadata);
     return ActivityFeedItem.restore(raw.id, {
+      tenantId: raw.tenantId,
       userId: raw.userId,
       activityType: raw.activityType,
       metadata,
@@ -15,6 +16,7 @@ export class ActivityFeedItemMapper {
   public static toPersistence(entity: ActivityFeedItem): ActivityFeedItemOrmEntity {
     const orm = new ActivityFeedItemOrmEntity();
     orm.id = entity.id;
+    orm.tenantId = entity.tenantId;
     orm.userId = entity.userId;
     orm.activityType = entity.activityType;
     orm.metadata = entity.metadata.toObject();

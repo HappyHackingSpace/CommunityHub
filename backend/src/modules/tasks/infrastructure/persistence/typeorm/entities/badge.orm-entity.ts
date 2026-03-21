@@ -14,8 +14,8 @@ export class BadgeOrmEntity {
   @PrimaryColumn('varchar')
   id: string;
 
-  @Column('bigint', { name: 'tenant_id', nullable: true })
-  tenantId: number;
+  @Column('uuid', { name: 'tenant_id', nullable: true })
+  tenantId: string;
 
   @Column({ name: 'club_id', type: 'uuid', nullable: true })
   clubId?: string;

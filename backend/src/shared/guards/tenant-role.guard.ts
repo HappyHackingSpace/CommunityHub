@@ -59,7 +59,7 @@ export class TenantRoleGuard implements CanActivate {
 
   private async getUserRoleInTenant(
     userId: string,
-    tenantId: number,
+    tenantId: string,
   ): Promise<string> {
     // TODO: Implement database query to get user's role in this tenant
     // This should query club_members and club_roles tables

@@ -17,7 +17,7 @@ export class BadgeRepository implements IBadgeRepository {
     private cls: ClsService,
   ) {}
 
-  protected getTenantId(): number {
+  protected getTenantId(): string {
     const tenantContext = this.cls.get<TenantContext>(TENANT_CONTEXT_KEY);
     if (!tenantContext || !tenantContext.tenantId) {
       throw new Error('Tenant context is not set');
@@ -27,9 +27,11 @@ export class BadgeRepository implements IBadgeRepository {
 
   protected createTenantQueryBuilder(alias: string) {
     const tenantId = this.getTenantId();
+    // Using property name tenantId which TypeORM should map, 
+    // but using explicit query for total reliability
     return this.repository
       .createQueryBuilder(alias)
-      .where(`${alias}.tenantId = :tenantId`, { tenantId });
+      .where(`${alias}.tenant_id = :tenantId`, { tenantId });
   }
 
   async save(badge: Badge): Promise<Badge> {
@@ -49,8 +51,8 @@ export class BadgeRepository implements IBadgeRepository {
 
   async findByUserId(userId: string): Promise<Badge[]> {
     const ormEntities = await this.createTenantQueryBuilder('badge')
-      .andWhere('badge.userId = :userId', { userId })
-      .orderBy('badge.createdAt', 'DESC')
+      .andWhere('badge.user_id = :userId', { userId })
+      .orderBy('badge.created_at', 'DESC')
       .getMany();
     return ormEntities.map((entity) => BadgeMapper.toDomain(entity));
   }
@@ -60,7 +62,7 @@ export class BadgeRepository implements IBadgeRepository {
     type: BadgeType,
   ): Promise<Badge | null> {
     const ormEntity = await this.createTenantQueryBuilder('badge')
-      .andWhere('badge.userId = :userId', { userId })
+      .andWhere('badge.user_id = :userId', { userId })
       .andWhere('badge.type = :type', { type })
       .getOne();
     return ormEntity ? BadgeMapper.toDomain(ormEntity) : null;
@@ -82,14 +84,14 @@ export class BadgeRepository implements IBadgeRepository {
       .addSelect('SUM(badge.points)', 'totalPoints')
       .addSelect('COUNT(badge.id)', 'badgeCount')
       .groupBy('badge.user_id')
-      .orderBy('totalPoints', 'DESC')
+      .orderBy('SUM(badge.points)', 'DESC')
       .limit(limit)
       .getRawMany();
 
     return results.map((result) => ({
-      userId: result.userId,
-      totalPoints: parseInt(result.totalPoints, 10),
-      badgeCount: parseInt(result.badgeCount, 10),
+      userId: result.userId || result.user_id,
+      totalPoints: parseInt(result.totalPoints || result.total_points || 0, 10),
+      badgeCount: parseInt(result.badgeCount || result.badge_count || 0, 10),
     }));
   }
 }

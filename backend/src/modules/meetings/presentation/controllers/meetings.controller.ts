@@ -24,6 +24,9 @@ import { TenantAccessGuard } from 'src/shared/guards/tenant-access.guard';
 import { TenantContextCompleteGuard } from 'src/shared/guards/tenant-context-complete.guard';
 import { CurrentUser } from 'src/shared/infrastructure/decorators/current-user.decorator';
 import { RequireScopes } from '../../../iam/infrastructure/decorators/require-scopes.decorator';
+import { Roles } from '../../../iam/infrastructure/decorators/roles.decorator';
+import { RoleType } from '../../../iam/domain/enums/role-type.enum';
+import { RolesGuard } from '../../../iam/infrastructure/guards/roles.guard';
 
 // DTOs
 import { CreateMeetingDto } from '../../application/dto/create-meeting.dto';
@@ -72,7 +75,7 @@ import { GetUserAttendanceHistoryQuery } from '../../application/queries/get-use
 @ApiTags('meetings')
 @ApiBearerAuth()
 @Controller('meetings')
-@UseGuards(FlexibleAuthGuard, ScopesGuard, TenantContextCompleteGuard, TenantAccessGuard, ApiKeyThrottlerGuard)
+@UseGuards(FlexibleAuthGuard, RolesGuard, ScopesGuard, TenantContextCompleteGuard, TenantAccessGuard, ApiKeyThrottlerGuard)
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class MeetingsController {
   constructor(
@@ -81,23 +84,43 @@ export class MeetingsController {
   ) {}
 
   @Post()
+  @Roles(RoleType.FOUNDER, RoleType.ADMIN, RoleType.ORGANIZER)
   @HttpCode(HttpStatus.CREATED)
   async createMeeting(
     @Body() dto: CreateMeetingDto,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
     const command = new CreateMeetingCommand(
       dto.title,
       dto.description,
       new Date(dto.startTime),
       dto.duration,
-      userId,
+      currentUser.userId,
       dto.meetingUrl,
       dto.participantIds || [],
     );
 
     const meeting = await this.commandBus.execute(command);
     return MeetingResponseDto.fromDomain(meeting);
+  }
+
+  // NOTE: Static routes MUST come before param routes (:id)
+  //       otherwise NestJS catches 'upcoming' as id='upcoming'
+
+  @Get()
+  async getMyMeetings(@CurrentUser() currentUser: any) {
+    const meetings = await this.queryBus.execute(
+      new GetUserMeetingsQuery(currentUser.userId),
+    );
+    return meetings.map(meeting => MeetingResponseDto.fromDomain(meeting));
+  }
+
+  @Get('upcoming')
+  async getUpcomingMeetings(@CurrentUser() currentUser: any) {
+    const meetings = await this.queryBus.execute(
+      new GetUpcomingMeetingsQuery(currentUser.userId),
+    );
+    return meetings.map(meeting => MeetingResponseDto.fromDomain(meeting));
   }
 
   @Get(':id')
@@ -110,11 +133,11 @@ export class MeetingsController {
   async updateMeeting(
     @Param('id') id: string,
     @Body() dto: UpdateMeetingDto,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
     const command = new UpdateMeetingCommand(
       id,
-      userId,
+      currentUser.userId,
       dto.title,
       dto.description,
       dto.startTime ? new Date(dto.startTime) : undefined,
@@ -127,42 +150,27 @@ export class MeetingsController {
   }
 
   @Delete(':id')
+  @Roles(RoleType.FOUNDER, RoleType.ADMIN, RoleType.ORGANIZER)
   @HttpCode(HttpStatus.OK)
   async cancelMeeting(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
-    const command = new CancelMeetingCommand(id, userId);
+    const command = new CancelMeetingCommand(id, currentUser.userId);
     const meeting = await this.commandBus.execute(command);
     return MeetingResponseDto.fromDomain(meeting);
-  }
-
-  @Get()
-  async getMyMeetings(@CurrentUser('sub') userId: string) {
-    const meetings = await this.queryBus.execute(
-      new GetUserMeetingsQuery(userId),
-    );
-    return meetings.map(meeting => MeetingResponseDto.fromDomain(meeting));
-  }
-
-  @Get('upcoming')
-  async getUpcomingMeetings(@CurrentUser('sub') userId: string) {
-    const meetings = await this.queryBus.execute(
-      new GetUpcomingMeetingsQuery(userId),
-    );
-    return meetings.map(meeting => MeetingResponseDto.fromDomain(meeting));
   }
 
   @Post(':id/participants')
   async addParticipant(
     @Param('id') meetingId: string,
     @Body() dto: AddParticipantDto,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
     const command = new AddParticipantCommand(
       meetingId,
       dto.participantId,
-      userId,
+      currentUser.userId,
     );
 
     const meeting = await this.commandBus.execute(command);
@@ -172,11 +180,11 @@ export class MeetingsController {
   @Put(':id/participants/accept')
   async acceptInvitation(
     @Param('id') meetingId: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
     const command = new AcceptInvitationCommand(
       meetingId,
-      userId,
+      currentUser.userId,
     );
 
     const meeting = await this.commandBus.execute(command);
@@ -186,11 +194,11 @@ export class MeetingsController {
   @Put(':id/participants/decline')
   async declineInvitation(
     @Param('id') meetingId: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
     const command = new DeclineInvitationCommand(
       meetingId,
-      userId,
+      currentUser.userId,
     );
 
     const meeting = await this.commandBus.execute(command);
@@ -201,11 +209,11 @@ export class MeetingsController {
   async submitRsvp(
     @Param('id') meetingId: string,
     @Body() dto: SubmitRsvpDto,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
     const command = new SubmitRsvpCommand(
       meetingId,
-      userId,
+      currentUser.userId,
       dto.status,
       dto.notes,
     );
@@ -245,11 +253,11 @@ export class MeetingsController {
   async updateAgendaItem(
     @Param('agendaId') agendaId: string,
     @Body() dto: Partial<CreateAgendaItemDto>,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
     const command = new UpdateAgendaItemCommand(
       agendaId,
-      userId,
+      currentUser.userId,
       dto.title,
       dto.description,
       dto.duration,
@@ -263,9 +271,9 @@ export class MeetingsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteAgendaItem(
     @Param('agendaId') agendaId: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
-    const command = new DeleteAgendaItemCommand(agendaId, userId);
+    const command = new DeleteAgendaItemCommand(agendaId, currentUser.userId);
     await this.commandBus.execute(command);
   }
 
@@ -274,7 +282,7 @@ export class MeetingsController {
   async attachResource(
     @Param('id') meetingId: string,
     @Body() dto: AttachResourceDto,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
     const command = new AttachResourceCommand(
       meetingId,
@@ -282,7 +290,7 @@ export class MeetingsController {
       dto.url,
       dto.type,
       dto.description,
-      userId,
+      currentUser.userId,
     );
 
     return await this.commandBus.execute(command);
@@ -297,11 +305,11 @@ export class MeetingsController {
   async updateResource(
     @Param('resourceId') resourceId: string,
     @Body() dto: Partial<AttachResourceDto>,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
     const command = new UpdateResourceCommand(
       resourceId,
-      userId,
+      currentUser.userId,
       dto.title,
       dto.url,
     );
@@ -313,9 +321,9 @@ export class MeetingsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async removeResource(
     @Param('resourceId') resourceId: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
-    const command = new RemoveResourceCommand(resourceId, userId);
+    const command = new RemoveResourceCommand(resourceId, currentUser.userId);
     await this.commandBus.execute(command);
   }
 
@@ -324,11 +332,11 @@ export class MeetingsController {
   async createMeetingNote(
     @Param('id') meetingId: string,
     @Body() dto: CreateMeetingNoteDto,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
     const command = new CreateMeetingNoteCommand(
       meetingId,
-      userId,
+      currentUser.userId,
       dto.content,
       dto.noteType === 'action_item',
     );
@@ -350,11 +358,11 @@ export class MeetingsController {
   async updateMeetingNote(
     @Param('noteId') noteId: string,
     @Body() dto: Partial<CreateMeetingNoteDto>,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
     const command = new UpdateMeetingNoteCommand(
       noteId,
-      userId,
+      currentUser.userId,
       dto.content,
       dto.noteType ? dto.noteType === 'action_item' : undefined,
     );
@@ -366,49 +374,50 @@ export class MeetingsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteMeetingNote(
     @Param('noteId') noteId: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
-    const command = new DeleteMeetingNoteCommand(noteId, userId);
+    const command = new DeleteMeetingNoteCommand(noteId, currentUser.userId);
     await this.commandBus.execute(command);
   }
 
   @Post('notes/:noteId/convert-to-task')
   async convertNoteToTask(
     @Param('noteId') noteId: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
-    const command = new ConvertNoteToTaskCommand(noteId, userId);
+    const command = new ConvertNoteToTaskCommand(noteId, currentUser.userId);
     return await this.commandBus.execute(command);
   }
 
   // Attendance Tracking Endpoints
+  // Static route first, then param route
+  @Get('attendance/history')
+  async getMyAttendanceHistory(@CurrentUser() currentUser: any) {
+    return await this.queryBus.execute(
+      new GetUserAttendanceHistoryQuery(currentUser.userId),
+    );
+  }
+
   @Post(':id/attendance/checkin')
   async markAttended(
     @Param('id') meetingId: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
-    const command = new MarkAttendedCommand(meetingId, userId);
+    const command = new MarkAttendedCommand(meetingId, currentUser.userId);
     return await this.commandBus.execute(command);
   }
 
   @Post(':id/attendance/checkout')
   async recordDeparture(
     @Param('id') meetingId: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() currentUser: any,
   ) {
-    const command = new RecordDepartureCommand(meetingId, userId);
+    const command = new RecordDepartureCommand(meetingId, currentUser.userId);
     return await this.commandBus.execute(command);
   }
 
   @Get(':id/attendance')
   async getAttendanceRecords(@Param('id') meetingId: string) {
     return await this.queryBus.execute(new GetAttendanceRecordsQuery(meetingId));
-  }
-
-  @Get('attendance/history')
-  async getMyAttendanceHistory(@CurrentUser('sub') userId: string) {
-    return await this.queryBus.execute(
-      new GetUserAttendanceHistoryQuery(userId),
-    );
   }
 }

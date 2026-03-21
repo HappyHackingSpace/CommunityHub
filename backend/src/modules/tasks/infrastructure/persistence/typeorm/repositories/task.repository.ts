@@ -22,7 +22,7 @@ export class TaskRepository implements ITaskRepository {
     private cls: ClsService,
   ) {}
 
-  protected getTenantId(): number {
+  protected getTenantId(): string {
     const tenantContext = this.cls.get<TenantContext>(TENANT_CONTEXT_KEY);
     if (!tenantContext || !tenantContext.tenantId) {
       throw new Error('Tenant context is not set');
@@ -257,5 +257,16 @@ export class TaskRepository implements ITaskRepository {
     const tasks = ormEntities.map((entity) => TaskMapper.toDomain(entity));
 
     return { data: tasks, total };
+  }
+
+  async countByClubId(clubId: string, status?: TaskStatus): Promise<number> {
+    const qb = this.createTenantQueryBuilder('task')
+      .andWhere('task.clubId = :clubId', { clubId });
+
+    if (status) {
+      qb.andWhere('task.status = :status', { status });
+    }
+
+    return qb.getCount();
   }
 }

@@ -18,8 +18,8 @@ export class ClubMemberOrmEntity {
   @PrimaryColumn('uuid')
   id: string;
 
-  @Column('bigint', { name: 'tenant_id', nullable: true })
-  tenantId: number;
+  @Column('uuid', { name: 'tenant_id', nullable: true })
+  tenantId: string;
 
   @Column('uuid')
   clubId: string;

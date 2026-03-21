@@ -3,7 +3,7 @@ import { ClsService } from 'nestjs-cls';
 import { ForbiddenException } from '@nestjs/common';
 import { TENANT_CONTEXT_KEY, TenantContext } from '../context/tenant-context';
 
-export abstract class BaseTenantRepository<Entity extends { tenantId: number }> {
+export abstract class BaseTenantRepository<Entity extends { tenantId: string }> {
   constructor(
     protected repository: Repository<Entity>,
     protected cls: ClsService,
@@ -20,7 +20,7 @@ export abstract class BaseTenantRepository<Entity extends { tenantId: number }> 
     return tenantContext;
   }
 
-  protected getTenantId(): number {
+  protected getTenantId(): string {
     return this.getTenantContext().tenantId;
   }
 

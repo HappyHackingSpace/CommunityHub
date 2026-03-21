@@ -20,8 +20,8 @@ export class ClubOrmEntity {
   @PrimaryColumn('uuid')
   id: string;
 
-  @Column('bigint', { unique: true })
-  tenantId: number;
+  @Column('uuid', { unique: true })
+  tenantId: string;
 
   @Column('varchar', { length: 100 })
   name: string;

@@ -11,8 +11,8 @@ export class NotificationPreferenceSchema {
   @PrimaryColumn('uuid')
   id: string;
 
-  @Column('bigint', { name: 'tenant_id' })
-  tenantId: number;
+  @Column('uuid', { name: 'tenant_id' })
+  tenantId: string;
 
   @Column('uuid')
   userId: string;

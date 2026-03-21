@@ -3,6 +3,7 @@ import { TaskOrmEntity } from '../entities/task.orm-entity';
 import { TaskTitle } from '../../../../domain/value-objects/task-title.vo';
 import { TaskDescription } from '../../../../domain/value-objects/task-description.vo';
 import { TaskPriority } from '../../../../domain/value-objects/task-priority.vo';
+import { TagMapper } from './tag.mapper';
 
 export class TaskMapper {
   static toPersistence(task: Task): TaskOrmEntity {
@@ -28,6 +29,10 @@ export class TaskMapper {
   }
 
   static toDomain(ormEntity: TaskOrmEntity): Task {
+    const tags = ormEntity.tags
+      ? ormEntity.tags.map((tag) => TagMapper.toDomain(tag))
+      : [];
+
     return Task.restore(
       ormEntity.id,
       {
@@ -47,6 +52,7 @@ export class TaskMapper {
         recurringSchedule: ormEntity.recurringSchedule,
         requiredSkills: ormEntity.requiredSkills,
         mentorId: ormEntity.mentorId,
+        tags: tags,
       },
       ormEntity.createdAt,
       ormEntity.updatedAt,

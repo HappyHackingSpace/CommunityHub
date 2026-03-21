@@ -7,6 +7,7 @@ export class UserResponseDto {
   email: string;
   displayName: string;
   avatarUrl?: string;
+  bio?: string;
   roles: RoleType[];
   status: UserStatus;
   primaryTenantId?: string;
@@ -19,6 +20,7 @@ export class UserResponseDto {
       email: user.email,
       displayName: user.displayName.value,
       avatarUrl: user.avatarUrl,
+      bio: user.bio,
       roles: user.roles,
       status: user.status,
       primaryTenantId: user.primaryTenantId,

@@ -2,6 +2,8 @@ import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CqrsModule } from '@nestjs/cqrs';
 import { IamModule } from 'src/modules/iam/iam.module';
+import { TasksModule } from 'src/modules/tasks/tasks.module';
+import { MeetingsModule } from 'src/modules/meetings/meetings.module';
 import { CommunitiesController } from './presentation/controllers/communities.controller';
 import { CommunityOrmEntity, CommunityMemberOrmEntity } from './infrastructure/persistence/typeorm/entities';
 import { CommunityRepository, CommunityMemberRepository } from './infrastructure/persistence/typeorm/repositories';
@@ -13,9 +15,11 @@ import {
   RejectMembershipHandler,
 } from './application/commands';
 import {
+  GetCommunityMembersHandler,
+  GetPendingMembershipsHandler,
+  GetCommunityStatsHandler,
   GetCommunityHandler,
   GetAllCommunitiesHandler,
-  GetCommunityMembersHandler,
 } from './application/queries';
 
 const commandHandlers = [
@@ -27,9 +31,11 @@ const commandHandlers = [
 ];
 
 const queryHandlers = [
+  GetCommunityMembersHandler,
+  GetPendingMembershipsHandler,
+  GetCommunityStatsHandler,
   GetCommunityHandler,
   GetAllCommunitiesHandler,
-  GetCommunityMembersHandler,
 ];
 
 @Module({
@@ -37,7 +43,8 @@ const queryHandlers = [
     TypeOrmModule.forFeature([CommunityOrmEntity, CommunityMemberOrmEntity]),
     CqrsModule,
     forwardRef(() => IamModule),
-
+    forwardRef(() => TasksModule),
+    forwardRef(() => MeetingsModule),
   ],
   controllers: [CommunitiesController],
   providers: [

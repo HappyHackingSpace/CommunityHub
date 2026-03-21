@@ -51,6 +51,7 @@ export class TaskResponseDto {
       mentorId: task.mentorId,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
+      tags: task.tags?.map(t => TagResponseDto.fromDomain(t)) || [],
     };
 
     return dto;

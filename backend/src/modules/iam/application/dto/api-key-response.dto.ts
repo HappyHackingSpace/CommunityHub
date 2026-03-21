@@ -7,7 +7,7 @@ export class ApiKeyResponseDto {
   key: string;
   secret?: string; 
   userId: string;
-  tenantId: number;
+  tenantId: string;
   scopes: string[];
   rateLimitTier: RateLimitTier;
   expiresAt?: Date;

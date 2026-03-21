@@ -7,7 +7,7 @@ interface ApiKeyProps {
   key: string;
   secretHash: string;
   userId: string;
-  tenantId: number;
+  tenantId: string;
   scopes: string[];
   rateLimitTier: RateLimitTier;
   expiresAt?: Date;
@@ -45,7 +45,7 @@ export class ApiKey extends BaseEntity {
     return this.props.userId;
   }
 
-  get tenantId(): number {
+  get tenantId(): string {
     return this.props.tenantId;
   }
 
@@ -138,7 +138,7 @@ export class ApiKey extends BaseEntity {
     key: string;
     secretHash: string;
     userId: string;
-    tenantId: number;
+    tenantId: string;
     scopes: string[];
     rateLimitTier: RateLimitTier;
     expiresAt?: Date;
@@ -170,7 +170,7 @@ export class ApiKey extends BaseEntity {
     key: string,
     secretHash: string,
     userId: string,
-    tenantId: number,
+    tenantId: string,
     scopes: string[],
     rateLimitTier: RateLimitTier,
     status: ApiKeyStatus,

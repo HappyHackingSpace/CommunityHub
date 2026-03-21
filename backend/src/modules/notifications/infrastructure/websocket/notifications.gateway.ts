@@ -344,7 +344,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     @ConnectedSocket() client: Socket,
     @MessageBody()
     data: {
-      tenantId: number;
+      tenantId: string;
       userId: string;
       title?: string;
       message?: string;

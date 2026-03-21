@@ -38,6 +38,7 @@ import { CreateApiKeyHandler } from './application/commands/create-api-key/creat
 import { RevokeApiKeyHandler } from './application/commands/revoke-api-key/revoke-api-key.handler';
 import { UpdateApiKeyHandler } from './application/commands/update-api-key/update-api-key.handler';
 import { RegenerateApiKeySecretHandler } from './application/commands/regenerate-api-key-secret/regenerate-api-key-secret.handler';
+import { UpdateProfileHandler } from './application/commands/update-profile/update-profile.handler';
 
 import { GetUserHandler } from './application/queries/get-user/get-user.handler';
 import { GetApiKeysHandler } from './application/queries/get-api-keys/get-api-keys.handler';
@@ -53,6 +54,7 @@ const CommandHandlers = [
   RevokeApiKeyHandler,
   UpdateApiKeyHandler,
   RegenerateApiKeySecretHandler,
+  UpdateProfileHandler,
 ];
 const QueryHandlers = [
   GetUserHandler,

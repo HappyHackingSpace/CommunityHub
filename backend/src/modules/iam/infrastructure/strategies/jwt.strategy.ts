@@ -9,8 +9,9 @@ import type { ICommunityMemberRepository } from 'src/modules/communities/domain/
 export interface JwtPayload {
   sub: string;
   email: string;
+  name?: string;
   roles: string[];
-  tenantId?: number;
+  tenantId?: string;
 }
 
 @Injectable()
@@ -42,6 +43,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       id: user.id,
       userId: user.id,
       email: user.email,
+      name: payload.name || user.displayName,
       roles: user.roles,
       globalRole: user.roles[0] || 'USER',
       tenantId: payload.tenantId,

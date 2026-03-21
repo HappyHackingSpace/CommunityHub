@@ -20,6 +20,9 @@ export class UserOrmEntity {
   @Column({ nullable: true, name: 'avatar_url' })
   avatarUrl?: string;
 
+  @Column({ nullable: true, type: 'text' })
+  bio?: string;
+
   @Column({
     type: 'simple-array',
   })

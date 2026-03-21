@@ -25,18 +25,18 @@ export class TenantContextMiddleware implements NestMiddleware {
     next();
   }
 
-  private extractTenantId(req: Request): number | null {
+  private extractTenantId(req: Request): string | null {
     const headerTenantId = req.headers['x-tenant-id'];
     const queryTenantId = req.query['tenantId'];
 
-    let tenantId: number | null = null;
-
-    if (typeof headerTenantId === 'string') {
-      tenantId = parseInt(headerTenantId, 10);
-    } else if (typeof queryTenantId === 'string') {
-      tenantId = parseInt(queryTenantId, 10);
+    if (typeof headerTenantId === 'string' && headerTenantId.length > 0) {
+      return headerTenantId;
+    }
+    
+    if (typeof queryTenantId === 'string' && queryTenantId.length > 0) {
+      return queryTenantId;
     }
 
-    return tenantId !== null && !isNaN(tenantId) ? tenantId : null;
+    return null;
   }
 }

@@ -16,7 +16,7 @@ export class LikePostHandler implements ICommandHandler<LikePostCommand> {
       throw new BadRequestException('Post not found');
     }
 
-    post.incrementLikes();
+    post.like(command.userId);
     await this.repository.save(post);
   }
 }

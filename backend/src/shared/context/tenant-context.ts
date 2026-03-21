@@ -1,8 +1,8 @@
 export interface TenantContext {
-  tenantId: number;
+  tenantId: string;
   userId: string | null;
   globalRole: string | null;
-  tenants?: Array<{ id: number; name: string }>;
+  tenants?: Array<{ id: string; name: string }>;
 }
 
 export const TENANT_CONTEXT_KEY = 'tenantContext';

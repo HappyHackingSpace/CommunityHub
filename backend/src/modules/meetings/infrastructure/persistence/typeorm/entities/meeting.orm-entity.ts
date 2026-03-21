@@ -12,8 +12,8 @@ export class MeetingOrmEntity {
   @PrimaryColumn('varchar')
   id: string;
 
-  @Column('bigint', { name: 'tenant_id', nullable: true })
-  tenantId: number;
+  @Column('uuid', { name: 'tenant_id', nullable: true })
+  tenantId: string;
 
   @Column({ length: 200 })
   title: string;

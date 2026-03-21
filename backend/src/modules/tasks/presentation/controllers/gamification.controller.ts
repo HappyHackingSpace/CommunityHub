@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Query,
+  Param,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -36,7 +37,7 @@ export class GamificationController {
   @Get('my-badges')
   @HttpCode(HttpStatus.OK)
   async getMyBadges(
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('userId') userId: string,
   ): Promise<BadgeResponseDto[]> {
     const query = new GetUserBadgesQuery(userId);
     return this.queryBus.execute(query);
@@ -45,7 +46,7 @@ export class GamificationController {
   @Get('badges/:userId')
   @HttpCode(HttpStatus.OK)
   async getUserBadges(
-    @Query('userId') userId: string,
+    @Param('userId') userId: string,
   ): Promise<BadgeResponseDto[]> {
     const query = new GetUserBadgesQuery(userId);
     return this.queryBus.execute(query);

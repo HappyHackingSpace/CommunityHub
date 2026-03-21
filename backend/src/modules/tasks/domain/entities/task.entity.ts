@@ -7,6 +7,8 @@ import { TaskVisibility } from '../enums/task-visibility.enum';
 import { TaskPriority as TaskPriorityEnum } from '../enums/task-priority.enum';
 import { v4 as uuidv4 } from 'uuid';
 
+import { Tag } from './tag.entity';
+
 interface TaskProps {
   title: TaskTitle;
   description?: TaskDescription;
@@ -23,6 +25,7 @@ interface TaskProps {
   requiredSkills?: string[];
   mentorId?: string;
   clubId?: string;
+  tags: Tag[];
 }
 
 export class Task extends BaseEntity {
@@ -100,6 +103,10 @@ export class Task extends BaseEntity {
     return this.props.clubId;
   }
 
+  get tags(): Tag[] {
+    return this.props.tags || [];
+  }
+
   public static create(props: {
     title: string;
     description?: string;
@@ -137,6 +144,7 @@ export class Task extends BaseEntity {
       requiredSkills: props.requiredSkills,
       mentorId: props.mentorId,
       clubId: props.clubId,
+      tags: [], // Default to empty tags for newly created tasks
     });
 
     return task;

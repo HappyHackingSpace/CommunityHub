@@ -3,6 +3,7 @@ import { ActivityType } from '../enums/activity-type.enum';
 import { ActivityMetadata } from '../value-objects/activity-metadata.vo';
 
 interface ActivityFeedItemProps {
+  tenantId: string;
   userId: string;
   activityType: ActivityType;
   metadata: ActivityMetadata;
@@ -21,6 +22,10 @@ export class ActivityFeedItem extends BaseEntity {
     this.props = props;
   }
 
+  get tenantId(): string {
+    return this.props.tenantId;
+  }
+
   get userId(): string {
     return this.props.userId;
   }
@@ -34,12 +39,14 @@ export class ActivityFeedItem extends BaseEntity {
   }
 
   public static create(props: {
+    tenantId: string;
     userId: string;
     activityType: ActivityType;
     metadata: ActivityMetadata;
   }): ActivityFeedItem {
     const id = this.generateId();
     return new ActivityFeedItem(id, {
+      tenantId: props.tenantId,
       userId: props.userId,
       activityType: props.activityType,
       metadata: props.metadata,

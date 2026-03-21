@@ -1,6 +1,8 @@
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
+import { ClsService } from 'nestjs-cls';
 import { GetFeedQuery } from './get-feed.query';
+import { TENANT_CONTEXT_KEY, TenantContext } from 'src/shared/context/tenant-context';
 import type { IActivityFeedItemRepository } from 'src/modules/activity-feed/domain/repositories/activity-feed-item.repository.interface';
 
 export interface FeedItemDto {
@@ -16,9 +18,11 @@ export class GetFeedHandler implements IQueryHandler<GetFeedQuery> {
   constructor(
     @Inject('IActivityFeedItemRepository')
     private readonly repository: IActivityFeedItemRepository,
+    private readonly cls: ClsService,
   ) {}
 
   async execute(query: GetFeedQuery): Promise<{ items: FeedItemDto[]; total: number }> {
+    const tenantId = this.cls.get<TenantContext>(TENANT_CONTEXT_KEY)?.tenantId;
     let items;
     let total;
 
@@ -29,8 +33,15 @@ export class GetFeedHandler implements IQueryHandler<GetFeedQuery> {
       items = await this.repository.findByActivityType(query.activityType, query.limit, query.offset);
       total = await this.repository.countAll();
     } else {
+      // Filter by tenant if available
       items = await this.repository.findAll(query.limit, query.offset);
-      total = await this.repository.countAll();
+      
+      if (tenantId) {
+        items = items.filter(item => (item as any).tenantId === tenantId);
+        total = items.length;
+      } else {
+        total = await this.repository.countAll();
+      }
     }
 
     return {
@@ -38,7 +49,7 @@ export class GetFeedHandler implements IQueryHandler<GetFeedQuery> {
         id: item.id,
         userId: item.userId,
         activityType: item.activityType,
-        metadata: item.metadata.toObject(),
+        metadata: (item.metadata as any).toObject ? (item.metadata as any).toObject() : item.metadata,
         createdAt: item.createdAt,
       })),
       total,

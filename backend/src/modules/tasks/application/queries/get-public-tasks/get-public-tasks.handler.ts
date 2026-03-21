@@ -22,18 +22,7 @@ export class GetPublicTasksHandler
 
   async execute(query: GetPublicTasksQuery): Promise<TaskResponseDto[]> {
     const tasks = await this.taskRepository.findPublicTasks();
-
-    const tasksWithTags = await Promise.all(
-      tasks.map(async (task) => {
-        const tagIds = await this.taskTagRepository.findTagIdsByTaskId(task.id);
-        const tags = tagIds.length > 0 ? await this.tagRepository.findByIds(tagIds) : [];
-
-        const dto = TaskResponseDto.fromDomain(task);
-        dto.tags = tags.map((t) => TagResponseDto.fromDomain(t));
-        return dto;
-      }),
-    );
-
-    return tasksWithTags;
+    const taskDtos = tasks.map((task) => TaskResponseDto.fromDomain(task));
+    return taskDtos;
   }
 }

@@ -295,7 +295,10 @@ export class Meeting extends BaseEntity {
 
   private static validateMeetingTime(startTime: Date): void {
     const now = new Date();
-    if (startTime <= now) {
+    // Allow up to 2 minutes in the past to account for form submission
+    // latency and timezone differences between client and server
+    const buffer = new Date(now.getTime() - 2 * 60 * 1000);
+    if (startTime < buffer) {
       throw new Error('Meeting start time must be in the future');
     }
   }

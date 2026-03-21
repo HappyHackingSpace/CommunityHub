@@ -4,3 +4,7 @@ export { GetAllCommunitiesQuery } from './get-all-communities/get-all-communitie
 export { GetAllCommunitiesHandler } from './get-all-communities/get-all-communities.handler';
 export { GetCommunityMembersQuery } from './get-community-members/get-community-members.query';
 export { GetCommunityMembersHandler } from './get-community-members/get-community-members.handler';
+export { GetPendingMembershipsQuery } from './get-pending-memberships/get-pending-memberships.query';
+export { GetPendingMembershipsHandler } from './get-pending-memberships/get-pending-memberships.handler';
+export { GetCommunityStatsQuery } from './get-community-stats/get-community-stats.query';
+export { GetCommunityStatsHandler } from './get-community-stats/get-community-stats.handler';

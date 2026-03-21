@@ -11,6 +11,7 @@ export interface IMeetingRepository {
   findAll(): Promise<Meeting[]>;
 
   update(meeting: Meeting): Promise<Meeting>;
+  countUpcomingByClubId(clubId: string): Promise<number>;
 
   delete(id: string): Promise<void>;
 

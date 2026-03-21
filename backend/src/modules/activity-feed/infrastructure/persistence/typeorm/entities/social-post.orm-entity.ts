@@ -8,6 +8,10 @@ export class SocialPostOrmEntity {
   @PrimaryColumn('varchar')
   id: string;
 
+  @Column('uuid', { name: 'tenant_id', nullable: true })
+  @Index()
+  tenantId: string | null;
+
   @Column('varchar')
   authorId: string;
 
@@ -19,6 +23,9 @@ export class SocialPostOrmEntity {
 
   @Column('int', { default: 0 })
   likesCount: number;
+
+  @Column('text', { array: true, default: [] })
+  likedBy: string[];
 
   @Column('int', { default: 0 })
   commentsCount: number;
