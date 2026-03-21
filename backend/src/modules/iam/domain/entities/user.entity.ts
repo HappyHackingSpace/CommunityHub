@@ -14,7 +14,7 @@ interface UserProps {
   avatarUrl?: string;
   roles: RoleType[];
   status: UserStatus;
-  primaryTenantId?: number;
+  primaryTenantId?: string;
 }
 
 export class User extends BaseEntity {
@@ -50,7 +50,7 @@ export class User extends BaseEntity {
     return this.props.status;
   }
 
-  get primaryTenantId(): number | undefined {
+  get primaryTenantId(): string | undefined {
     return this.props.primaryTenantId;
   }
 
@@ -109,7 +109,7 @@ export class User extends BaseEntity {
     avatarUrl?: string,
     createdAt?: Date,
     updatedAt?: Date,
-    primaryTenantId?: number,
+    primaryTenantId?: string,
   ): User {
     return new User(
       id,
@@ -196,7 +196,7 @@ export class User extends BaseEntity {
     this.touch();
   }
 
-  public setPrimaryTenantId(tenantId: number): void {
+  public setPrimaryTenantId(tenantId: string): void {
     if (!this.props.primaryTenantId) {
       this.props.primaryTenantId = tenantId;
       this.touch();

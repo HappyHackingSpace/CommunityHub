@@ -39,8 +39,8 @@ export class CommunityOrmEntity {
   @Column('varchar', { nullable: true })
   websiteUrl?: string;
 
-  @Column('bigint', { nullable: true })
-  tenantId?: number;
+  @Column('uuid', { nullable: true })
+  tenantId?: string;
 
   @CreateDateColumn()
   createdAt: Date;

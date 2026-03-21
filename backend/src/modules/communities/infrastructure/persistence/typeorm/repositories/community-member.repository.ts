@@ -75,7 +75,7 @@ export class CommunityMemberRepository implements ICommunityMemberRepository {
     return ormEntities.map((entity) => CommunityMemberMapper.toDomain(entity));
   }
 
-  async findUserTenantsWithCommunityInfo(userId: string): Promise<Array<{ tenantId: number; communityId: string; communityName: string }>> {
+  async findUserTenantsWithCommunityInfo(userId: string): Promise<Array<{ tenantId: string; communityId: string; communityName: string }>> {
     const memberships = await this.repository.find({
       where: {
         userId,
@@ -83,7 +83,7 @@ export class CommunityMemberRepository implements ICommunityMemberRepository {
       },
     });
 
-    const tenants: Array<{ tenantId: number; communityId: string; communityName: string }> = [];
+    const tenants: Array<{ tenantId: string; communityId: string; communityName: string }> = [];
 
     for (const membership of memberships) {
       const community = await this.communityRepository.findOne({

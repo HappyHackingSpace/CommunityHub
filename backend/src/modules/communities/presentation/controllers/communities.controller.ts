@@ -11,6 +11,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { v7 as uuidv7 } from 'uuid';
 import { JwtAuthGuard } from 'src/modules/iam/infrastructure/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/shared/infrastructure/decorators/current-user.decorator';
 import { Public } from 'src/shared/decorators/public.decorator';
@@ -64,7 +65,7 @@ export class CommunitiesController {
       throw new BadRequestException('User ID is required');
     }
 
-    const tenantId = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 10000);
+    const tenantId = uuidv7();
 
     const communityId = await this.commandBus.execute(
       new CreateCommunityCommand(

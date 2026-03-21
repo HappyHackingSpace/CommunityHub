@@ -9,7 +9,7 @@ export class UserResponseDto {
   avatarUrl?: string;
   roles: RoleType[];
   status: UserStatus;
-  primaryTenantId?: number;
+  primaryTenantId?: string;
   createdAt: Date;
   updatedAt: Date;
 

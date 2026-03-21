@@ -9,7 +9,7 @@ export interface ICommunityMemberRepository {
   findByCommunityId(communityId: string): Promise<CommunityMember[]>;
   findByStatus(communityId: string, status: CommunityMemberStatus): Promise<CommunityMember[]>;
   findActiveMembershipsByUserId(userId: string): Promise<CommunityMember[]>;
-  findUserTenantsWithCommunityInfo(userId: string): Promise<Array<{ tenantId: number; communityId: string; communityName: string }>>;
+  findUserTenantsWithCommunityInfo(userId: string): Promise<Array<{ tenantId: string; communityId: string; communityName: string }>>;
   update(member: CommunityMember): Promise<void>;
   delete(id: string): Promise<void>;
 }

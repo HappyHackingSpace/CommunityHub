@@ -8,6 +8,6 @@ export class CreateCommunityCommand {
     public readonly founderId: string,
     public readonly logoUrl?: string,
     public readonly websiteUrl?: string,
-    public readonly tenantId?: number,
+    public readonly tenantId?: string,
   ) {}
 }

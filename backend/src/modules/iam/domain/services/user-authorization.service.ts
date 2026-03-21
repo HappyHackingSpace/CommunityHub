@@ -21,6 +21,16 @@ export class UserAuthorizationService {
       Permission.MEETING_JOIN,
       Permission.COMMUNITY_MANAGE,
     ],
+    [RoleType.FOUNDER]: [
+      Permission.USER_VIEW_OWN,
+      Permission.USER_UPDATE_OWN,
+      Permission.MEETING_CREATE,
+      Permission.MEETING_UPDATE_OWN,
+      Permission.MEETING_DELETE_OWN,
+      Permission.MEETING_VIEW,
+      Permission.MEETING_JOIN,
+      Permission.COMMUNITY_MANAGE,
+    ],
     [RoleType.ORGANIZER]: [
       Permission.USER_VIEW_OWN,
       Permission.USER_UPDATE_OWN,

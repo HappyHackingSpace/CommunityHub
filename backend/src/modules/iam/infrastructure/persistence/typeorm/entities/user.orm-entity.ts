@@ -35,8 +35,8 @@ export class UserOrmEntity {
   @Column('varchar', { length: 50, default: 'ADMIN', name: 'global_role' })
   globalRole: string;
 
-  @Column('bigint', { nullable: true, name: 'primary_tenant_id' })
-  primaryTenantId?: number;
+  @Column('uuid', { nullable: true, name: 'primary_tenant_id' })
+  primaryTenantId?: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

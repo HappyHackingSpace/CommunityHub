@@ -11,7 +11,7 @@ interface CommunityProps {
   founderId: string;
   logoUrl?: string;
   websiteUrl?: string;
-  tenantId?: number;
+  tenantId?: string;
 }
 
 export class Community extends BaseEntity {
@@ -51,7 +51,7 @@ export class Community extends BaseEntity {
     return this.props.websiteUrl;
   }
 
-  get tenantId(): number | undefined {
+  get tenantId(): string | undefined {
     return this.props.tenantId;
   }
 
@@ -92,7 +92,7 @@ export class Community extends BaseEntity {
     founderId: string;
     logoUrl?: string;
     websiteUrl?: string;
-    tenantId?: number;
+    tenantId?: string;
   }): Community {
     const communityId = uuidv4();
     return new Community(communityId, {

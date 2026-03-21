@@ -1,8 +1,9 @@
 export enum RoleType {
-  SUPER_ADMIN = 'SUPER_ADMIN',  
-  ADMIN = 'ADMIN',              
-  ORGANIZER = 'ORGANIZER',      
-  MENTOR = 'MENTOR',             
-  MEMBER = 'MEMBER',             
-  GUEST = 'GUEST',              
+  SUPER_ADMIN = 'SUPER_ADMIN',
+  ADMIN = 'ADMIN',
+  FOUNDER = 'FOUNDER',
+  ORGANIZER = 'ORGANIZER',
+  MENTOR = 'MENTOR',
+  MEMBER = 'MEMBER',
+  GUEST = 'GUEST',
 }

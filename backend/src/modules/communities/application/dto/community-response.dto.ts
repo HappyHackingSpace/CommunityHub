@@ -8,7 +8,7 @@ export class CommunityResponseDto {
   founderId: string;
   logoUrl?: string;
   websiteUrl?: string;
-  tenantId?: number;
+  tenantId?: string;
   createdAt: Date;
   updatedAt: Date;
 }

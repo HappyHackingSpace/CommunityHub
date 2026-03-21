@@ -16,7 +16,7 @@ export class CommunityMapper {
         founderId: raw.founderId,
         logoUrl: raw.logoUrl,
         websiteUrl: raw.websiteUrl,
-        tenantId: raw.tenantId ? Number(raw.tenantId) : undefined,
+        tenantId: raw.tenantId || undefined,
       },
       raw.createdAt,
       raw.updatedAt,
