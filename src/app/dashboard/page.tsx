@@ -6,6 +6,7 @@ import { RightSidebar } from "@/components/dashboard/right-sidebar";
 
 import { useActivityFeed } from "@/hooks/use-activity-feed";
 import { useCommunities } from "@/hooks/use-communities";
+import { useTenantContext } from "@/components/providers/tenant-provider";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
@@ -13,14 +14,22 @@ import { useEffect } from "react";
 export default function DashboardPage() {
   const { data: session } = useSession();
   const { communities, isLoading: communitiesLoading } = useCommunities();
+  const { tenantId: currentTenantId, setTenantId } = useTenantContext();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tenantId = searchParams.get("tenantId");
+  const tenantIdFromUrl = searchParams.get("tenantId");
   
-  const { posts, isLoading, error } = useActivityFeed();
+  const { posts, isLoading, error, createPost, toggleLike, deletePost, editPost } = useActivityFeed();
+
+  // Sync URL tenantId to context
+  useEffect(() => {
+    if (tenantIdFromUrl && tenantIdFromUrl !== currentTenantId) {
+      setTenantId(tenantIdFromUrl);
+    }
+  }, [tenantIdFromUrl, currentTenantId, setTenantId]);
 
   useEffect(() => {
-    if (!communitiesLoading && communities.length > 0 && !tenantId) {
+    if (!communitiesLoading && communities.length > 0 && !tenantIdFromUrl) {
       const myCommunity = communities.find(
         (c) => c.founderId === session?.user?.id || c.isMember
       );
@@ -29,14 +38,14 @@ export default function DashboardPage() {
         router.replace(`/dashboard?tenantId=${myCommunity.tenantId || myCommunity.id}`);
       }
     }
-  }, [communities, communitiesLoading, tenantId, router, session]);
+  }, [communities, communitiesLoading, tenantIdFromUrl, router, session]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-20">
       
       {/* Main Feed Column */}
       <div className="lg:col-span-8 xl:col-span-9 flex flex-col">
-        <CreatePostInput />
+        <CreatePostInput onPost={createPost} />
         
         {/* Posts List */}
         <div className="flex flex-col gap-2">
@@ -55,7 +64,13 @@ export default function DashboardPage() {
           ) : (
             <>
               {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard 
+                  key={post.id} 
+                  post={post} 
+                  onLike={() => toggleLike(post.id, post.isLikedByMe || false)} 
+                  onDelete={() => deletePost(post.id)}
+                  onEdit={(newContent) => editPost(post.id, newContent)}
+                />
               ))}
               
               {/* End of feed message */}

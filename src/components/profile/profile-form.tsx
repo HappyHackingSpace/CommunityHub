@@ -12,8 +12,7 @@ interface ProfileFormProps {
 
 export function ProfileForm({ initialData }: ProfileFormProps) {
   const [formData, setFormData] = useState({
-    firstName: initialData?.firstName || "",
-    lastName: initialData?.lastName || "",
+    displayName: initialData?.displayName || "",
     bio: initialData?.bio || "",
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -37,42 +36,32 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">First Name</label>
-          <Input 
-            value={formData.firstName}
-            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-            placeholder="John" 
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Last Name</label>
-          <Input 
-            value={formData.lastName}
-            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-            placeholder="Doe" 
-          />
-        </div>
+    <form onSubmit={handleSubmit} className="space-y-6 font-base text-black">
+      <div className="space-y-2">
+        <label className="text-sm font-bold">Display Name</label>
+        <Input 
+          className="border-2 border-border rounded-base shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus-visible:ring-0 focus-visible:border-black focus-visible:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+          value={formData.displayName}
+          onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+          placeholder="John Doe" 
+        />
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-700">Bio / About Me</label>
+        <label className="text-sm font-bold">Bio / About Me</label>
         <textarea 
-          className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-[120px] w-full border-2 border-border rounded-base shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-0 focus-visible:border-black focus-visible:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
           value={formData.bio}
           onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
           placeholder="I'm a software engineer building cool stuff with NestJS and Next.js!"
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs font-bold text-gray-500">
           This will be displayed on your public profile within the community.
         </p>
       </div>
 
-      <div className="flex items-center gap-4">
-        <Button type="submit" disabled={isSaving} className="w-32">
+      <div className="flex items-center gap-4 pt-4 border-t-2 border-dashed border-gray-300">
+        <Button type="submit" disabled={isSaving} className="w-32 bg-main text-black font-bold border-2 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all">
           {isSaving ? (
             <span className="loading loading-spinner loading-xs"></span>
           ) : (
@@ -80,7 +69,9 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           )}
         </Button>
         {success && (
-          <span className="text-sm text-green-600 font-medium pb-1">Profile updated successfully!</span>
+          <span className="text-sm text-green-600 font-bold bg-green-100 border-2 border-green-600 px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,128,0,1)]">
+            Profile updated!
+          </span>
         )}
       </div>
     </form>

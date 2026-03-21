@@ -104,6 +104,7 @@ export default function DiscoverPage() {
                 key={community.id}
                 community={community}
                 onApply={handleApply}
+                currentUserId={session?.user?.id}
               />
             ))}
           </div>

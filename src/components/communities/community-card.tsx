@@ -9,9 +9,10 @@ import { Users, Lock, Globe } from "lucide-react";
 interface CommunityCardProps {
   community: Community;
   onApply: (id: string) => void;
+  currentUserId?: string;
 }
 
-export function CommunityCard({ community, onApply }: CommunityCardProps) {
+export function CommunityCard({ community, onApply, currentUserId }: CommunityCardProps) {
   return (
     <Card className="overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow">
       <div 
@@ -50,14 +51,22 @@ export function CommunityCard({ community, onApply }: CommunityCardProps) {
       </CardContent>
       
       <CardFooter className="p-4 pt-0">
-        <Button 
-          variant={community.isMember ? "neutral" : "default"}
-          className="w-full font-semibold" 
-          onClick={() => !community.isMember && onApply(community.id)}
-          disabled={community.isMember}
-        >
-          {community.isMember ? "Already a Member" : "Apply to Join"}
-        </Button>
+        {community.isMember || community.founderId === currentUserId ? (
+           <Button 
+            className="w-full font-semibold bg-chart-4 hover:bg-chart-4/90 text-black border-2 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" 
+            onClick={() => window.location.href = `/dashboard?tenantId=${community.tenantId || community.id}`}
+          >
+            {community.founderId === currentUserId ? "Manage" : "Go to Dashboard"}
+          </Button>
+        ) : (
+          <Button 
+            variant="default"
+            className="w-full font-semibold" 
+            onClick={() => onApply(community.id)}
+          >
+            Apply to Join
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

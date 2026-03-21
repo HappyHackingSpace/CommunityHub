@@ -13,6 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut, useSession } from "next-auth/react";
+import { useCurrentCommunity } from "@/hooks/use-current-community";
+
+import { useUserProfile } from "@/hooks/use-user-profile";
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Community" },
@@ -25,43 +28,53 @@ const NAV_LINKS = [
 export function TopNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { community } = useCurrentCommunity();
+  const { profile } = useUserProfile();
+
+  const displayName = profile?.displayName || session?.user?.name || "User";
+  const avatarUrl = profile?.avatarUrl || session?.user?.image || "";
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-16 items-center px-4 md:px-6 w-full max-w-[1400px] mx-auto">
+    <header className="sticky top-0 z-50 w-full bg-background border-b-4 border-border px-6 py-4">
+      <div className="flex items-center justify-between w-full max-w-[1400px] mx-auto">
         
         {/* Left: Logo & Community Switcher */}
-        <div className="flex items-center gap-4 w-1/4">
-          <Link href="/dashboard" className="flex items-center gap-2 font-bold text-xl">
-            <div className="h-8 w-8 bg-black rounded-md flex items-center justify-center text-white">
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-main rounded-base border-2 border-border flex items-center justify-center font-heading font-black text-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
               C
             </div>
-            <span className="hidden lg:inline-block">CommunityHub</span>
+            <span className="font-heading font-black text-2xl tracking-tight hidden lg:block">
+              CommunityHub
+            </span>
           </Link>
         </div>
 
         {/* Center: Main Navigation Tabs */}
-        <nav className="hidden md:flex flex-1 justify-center gap-1">
-          {NAV_LINKS.map((link) => {
-            const isActive = pathname === link.href || pathname?.startsWith(`${link.href}/`);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`px-4 py-5 text-sm font-medium transition-colors border-b-2 hover:text-primary ${
-                  isActive
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:border-muted"
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
+        <nav className="hidden md:flex flex-1 justify-center">
+          <ul className="flex flex-row gap-8 font-medium">
+            {NAV_LINKS.map((link) => {
+              const isActive = pathname === link.href || pathname?.startsWith(`${link.href}/`);
+              return (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className={`text-black font-semibold tracking-tight transition-colors hover:bg-main hover:text-black hover:border-border hover:border-2 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] px-3 py-2 rounded-base ${
+                      isActive
+                        ? "bg-main border-2 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                        : "border-2 border-transparent"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </nav>
 
         {/* Right: Search, Notifications, Profile */}
-        <div className="flex items-center justify-end gap-4 w-1/4">
+        <div className="flex items-center gap-4">
           <div className="hidden lg:flex relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -79,37 +92,44 @@ export function TopNav() {
 
           <DropdownMenu>
             <DropdownMenuTrigger className="focus-visible:outline-none">
-              <Avatar className="h-9 w-9 border cursor-pointer hover:opacity-80 transition-opacity">
-                <AvatarImage src={session?.user?.image || ""} alt={session?.user?.email || "User"} />
-                <AvatarFallback className="bg-primary/10 text-primary">
-                  {session?.user?.email?.charAt(0).toUpperCase() || "U"}
+              <Avatar className="h-10 w-10 border-2 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all">
+                <AvatarImage src={avatarUrl} alt={displayName} />
+                <AvatarFallback className="bg-main text-black font-bold">
+                  {displayName?.charAt(0).toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <div className="flex items-center justify-start gap-2 p-2">
-                <div className="flex flex-col space-y-1 leading-none">
-                  {session?.user?.name && <p className="font-medium">{session.user.name}</p>}
+            <DropdownMenuContent align="end" className="w-64 font-base border-2 border-border shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-base bg-white">
+              <div className="flex items-center justify-start gap-2 p-3">
+                <div className="flex flex-col space-y-1.5 leading-none text-black">
+                  <p className="font-black text-lg">{displayName}</p>
+                  
+                  {profile?.bio && (
+                    <p className="w-[210px] text-xs font-medium text-gray-600 line-clamp-2 leading-tight">
+                      {profile.bio}
+                    </p>
+                  )}
+                  
                   {session?.user?.email && (
-                    <p className="w-[200px] truncate text-sm text-muted-foreground">
+                    <p className="w-[210px] truncate text-[11px] font-bold text-gray-400 mt-1">
                       {session.user.email}
                     </p>
                   )}
-                  <p className="text-xs text-muted-foreground capitalize mt-1">
-                    Role: {session?.user?.roles?.[0]?.toLowerCase() || 'Member'}
-                  </p>
+                  
+                  <div className="mt-2 text-[10px] font-black uppercase bg-yellow-200 border-2 border-border px-2 py-0.5 w-max">
+                    {session?.user?.id && community?.founderId === session?.user?.id 
+                            ? 'Founder' 
+                            : (session?.user?.roles?.[0]?.toLowerCase() === 'guest' ? 'Member' : session?.user?.roles?.[0]?.toLowerCase() || 'Member')}
+                  </div>
                 </div>
               </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/profile" className="cursor-pointer">Profile</Link>
+              <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem asChild className="font-bold focus:bg-main focus:text-black hover:bg-main cursor-pointer">
+                <Link href="/settings" className="block w-full">Settings</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings" className="cursor-pointer">Settings</Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="bg-border" />
               <DropdownMenuItem
-                className="cursor-pointer text-red-600 focus:text-red-600"
+                className="font-bold cursor-pointer text-red-600 focus:bg-red-100 hover:bg-red-100 focus:text-red-600"
                 onClick={() => signOut({ callbackUrl: "/" })}
               >
                 Log out

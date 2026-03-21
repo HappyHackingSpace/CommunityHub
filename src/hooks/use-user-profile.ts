@@ -7,10 +7,13 @@ import { useSession } from "next-auth/react";
 export interface UserProfile {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  avatar?: string;
+  displayName: string;
+  avatarUrl?: string;
   bio?: string;
+  roles: string[];
+  status: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export function useUserProfile() {

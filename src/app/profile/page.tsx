@@ -2,120 +2,104 @@
 
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { TopNav } from "@/components/dashboard/top-nav";
 import { Button } from "@/components/ui/button";
-import { Settings, Shield, Trophy } from "lucide-react";
-import { ProfileForm } from "@/components/profile/profile-form";
+import { Settings, Shield, Trophy, MapPin, CalendarDays, ExternalLink, Mail } from "lucide-react";
+import Link from "next/link";
 
 export default function ProfilePage() {
   const { profile, isLoading } = useUserProfile();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen bg-background flex flex-col">
         <TopNav />
-        <main className="flex-1 w-full max-w-[1200px] mx-auto p-4 md:p-8 flex items-center justify-center">
-          <span className="loading loading-spinner loading-lg text-primary"></span>
+        <main className="flex-1 w-full flex items-center justify-center">
+          <span className="loading loading-spinner loading-lg text-main"></span>
         </main>
       </div>
     );
   }
 
-  // Fallback data if profile fails rendering but session exists
-  const displayName = profile ? `${profile.firstName} ${profile.lastName}` : "Authenticated User";
+  // Use the actual data from the backend `UserResponseDto` or fallback to session
+  const displayName = profile?.displayName || "Authenticated User";
+  const avatarImage = profile?.avatarUrl;
+  const username = displayName.split(" ")[0].toLowerCase() || "user";
   
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col font-base">
       <TopNav />
       {/* 
-        The main container is centered, with max-width imitating a clean feed aesthetic.
-        Padding is provided for breathing room.
+        The main container is centered, applying neo-brutalism aesthetics
       */}
-      <main className="flex-1 w-full max-w-[1200px] mx-auto p-4 md:p-6 lg:p-8">
+      <main className="flex-1 w-full max-w-[1100px] mx-auto p-4 md:p-8">
         
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Header Cover & Profile Badge */}
+        <div className="mb-12">
+          <div className="w-full h-48 md:h-64 bg-main border-4 border-border rounded-base shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
+            <div className="absolute inset-0 pattern-dots opacity-20"></div>
+          </div>
           
-          {/* Left Column: Profile Card & Gamification */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
-            <Card className="bg-white overflow-hidden">
-              <div className="h-32 bg-primary/20 relative">
-                <Button variant="noShadow" size="sm" className="absolute top-4 right-4 bg-white/50 hover:bg-white border-none">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Edit Banner
-                </Button>
+          <div className="px-6 md:px-12 mt-[-4rem] md:mt-[-5rem] relative z-10 flex flex-col items-start w-full">
+            <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-border rounded-base shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">
+              <AvatarImage src={avatarImage || ""} alt={displayName} />
+              <AvatarFallback className="text-5xl md:text-7xl bg-white text-black font-black font-heading">
+                {displayName?.charAt(0).toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+              <h1 className="text-3xl md:text-5xl font-black font-heading tracking-tight text-black">
+                {displayName}
+              </h1>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 lg:gap-12 mt-16 md:mt-12">
+          
+          {/* Left Column: Info & Details */}
+          <div className="lg:col-span-4 flex flex-col gap-8">
+            <div className="bg-white border-4 border-border rounded-base p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col gap-4">
+              <h2 className="text-xl font-heading font-black border-b-4 border-border pb-2">About Me</h2>
+              <p className="font-medium text-gray-800 leading-relaxed">
+                {profile?.bio || "No biography provided yet. This is your global profile visibility across all communities."}
+              </p>
+              
+              <div className="flex flex-col gap-3 mt-4 text-sm font-bold">
+                <div className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-gray-500" />
+                  <span>{profile?.email || "Email Hidden"}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CalendarDays className="h-5 w-5 text-gray-500" />
+                  <span>Joined {profile?.createdAt ? new Date(profile.createdAt).getFullYear() : "2026"}</span>
+                </div>
               </div>
-              <CardContent className="pt-0 relative px-6 pb-6 text-center lg:text-left">
-                <div className="flex flex-col lg:flex-row items-center lg:items-end gap-4 -mt-12 mb-4">
-                  <Avatar className="h-24 w-24 border-4 border-white shadow-sm bg-white">
-                    <AvatarImage src={profile?.avatar || ""} alt={displayName} />
-                    <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-                      {displayName?.charAt(0) || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="pb-2">
-                    <h2 className="text-2xl font-bold">{displayName}</h2>
-                    <p className="text-muted-foreground text-sm">{profile?.email || "user@example.com"}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-center lg:justify-start gap-2 mb-6">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
-                    <Shield className="h-3 w-3" />
-                    Member
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
-                    <Trophy className="h-3 w-3" />
-                    Level 2
-                  </span>
-                </div>
-
-                <Separator className="my-4" />
-                
-                <div className="text-sm text-gray-600 text-left">
-                  <h4 className="font-semibold text-gray-900 mb-2">About</h4>
-                  <p>{profile?.bio || "No bio provided yet. Update your profile to tell the community about yourself!"}</p>
-                  
-                  <div className="mt-4 pt-4 border-t flex justify-between text-xs text-muted-foreground">
-                    <span>Joined</span>
-                    <span>March 2026</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Badges / Gamification (Placeholder) */}
-            <Card className="bg-white">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-bold flex items-center justify-between">
-                  <span>My Badges</span>
-                  <span className="text-xs font-normal text-muted-foreground">3 Earned</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-3">
-                  {/* Mock Badges */}
-                  <div className="h-12 w-12 rounded-full border-2 border-primary/20 bg-primary/5 flex items-center justify-center" title="Early Adopter">🌱</div>
-                  <div className="h-12 w-12 rounded-full border-2 border-blue-500/20 bg-blue-500/5 flex items-center justify-center" title="1st Post">📝</div>
-                  <div className="h-12 w-12 rounded-full border-2 border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400" title="Locked">🔒</div>
-                </div>
-              </CardContent>
-            </Card>
+            </div>
           </div>
 
-          {/* Right Column: Edit Profile & Activity */}
-          <div className="lg:col-span-8 flex flex-col gap-6">
-            <Card className="bg-white">
-              <CardHeader>
-                <CardTitle>Profile Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ProfileForm initialData={profile} />
-              </CardContent>
-            </Card>
-          </div>
+          <div className="lg:col-span-8 flex flex-col gap-8">
+            {/* Right Column: Communities */}
+            <div className="bg-white border-4 border-border rounded-base shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+              <div className="bg-indigo-300 border-b-4 border-border p-4 flex justify-between items-center">
+                <h2 className="text-xl font-heading font-black text-black">Communities</h2>
+                <Link href="/dashboard" className="text-sm font-bold bg-white border-2 border-border px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-0.5 hover:shadow-none transition-all flex items-center gap-1">
+                  Go to Dashboard <ExternalLink className="h-3 w-3" />
+                </Link>
+              </div>
+              <div className="p-6">
+                <div className="text-center py-6">
+                  <h4 className="font-bold text-black border-b border-transparent inline-block mb-1">
+                    No communities yet
+                  </h4>
+                  <p className="text-sm font-medium text-gray-600 mt-1">
+                    You haven't joined any communities.
+                  </p>
+                </div>
+              </div>
+            </div>
 
+          </div>
         </div>
 
       </main>

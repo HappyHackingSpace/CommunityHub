@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import { useTenantContext } from "@/components/providers/tenant-provider";
 import { Community } from "./use-communities";
@@ -17,10 +17,17 @@ export interface CommunityMember {
   updatedAt: string;
 }
 
+export interface CommunityStats {
+  membersCount: number;
+  activeTasksCount: number;
+  upcomingMeetingsCount: number;
+}
+
 export function useCurrentCommunity() {
   const { tenantId } = useTenantContext();
   const [community, setCommunity] = useState<Community | null>(null);
   const [members, setMembers] = useState<CommunityMember[]>([]);
+  const [stats, setStats] = useState<CommunityStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -47,7 +54,15 @@ export function useCurrentCommunity() {
 
         setCommunity(matchedCommunity);
 
-        // Step 2: Fetch members for this specific community
+        // Step 2: Fetch stats for this specific community
+        try {
+          const statsRes = await apiClient.get<CommunityStats>(`/communities/${matchedCommunity.id}/stats`);
+          setStats(statsRes.data);
+        } catch (statsErr) {
+          console.error("Failed to fetch community stats", statsErr);
+        }
+
+        // Step 3: Fetch members for this specific community
         try {
           const membersRes = await apiClient.get<CommunityMember[]>(`/communities/${matchedCommunity.id}/members`);
           setMembers(membersRes.data);
@@ -69,10 +84,52 @@ export function useCurrentCommunity() {
     fetchCommunityDetails();
   }, [tenantId]);
 
+  const fetchPendingMembers = useCallback(async () => {
+    if (!community) return;
+    try {
+      const res = await apiClient.get<CommunityMember[]>(`/communities/${community.id}/pending-members`);
+      return res.data;
+    } catch (err) {
+      console.error("Failed to fetch pending members", err);
+      return [];
+    }
+  }, [community]);
+
+  const approveMember = useCallback(async (memberId: string) => {
+    if (!community) return;
+    await apiClient.post(`/communities/${community.id}/members/${memberId}/approve`);
+    // Refresh members and stats
+    const [membersRes, statsRes] = await Promise.all([
+      apiClient.get<CommunityMember[]>(`/communities/${community.id}/members`),
+      apiClient.get<CommunityStats>(`/communities/${community.id}/stats`)
+    ]);
+    setMembers(membersRes.data);
+    setStats(statsRes.data);
+  }, [community]);
+
+  const rejectMember = useCallback(async (memberId: string) => {
+    if (!community) return;
+    await apiClient.delete(`/communities/${community.id}/members/${memberId}/reject`);
+    // Refresh members
+    const membersRes = await apiClient.get<CommunityMember[]>(`/communities/${community.id}/members`);
+    setMembers(membersRes.data);
+  }, [community]);
+
+  const refreshMembers = useCallback(async () => {
+    if (!community) return;
+    const membersRes = await apiClient.get<CommunityMember[]>(`/communities/${community.id}/members`);
+    setMembers(membersRes.data);
+  }, [community]);
+
   return {
     community,
     members,
+    stats,
     isLoading,
     error,
+    fetchPendingMembers,
+    approveMember,
+    rejectMember,
+    refreshMembers,
   };
 }

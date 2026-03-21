@@ -46,9 +46,15 @@ export default function CreateCommunityPage() {
 
     try {
       const response = await apiClient.post("/communities", formData);
-      // Wait for backend response, usually returns { id: communityId, ... }
-      // Then re-route user to discover page or dashboard
-      router.push("/discover");
+      const { id, tenantId } = response.data;
+      
+      // Update tenant context locally
+      if (tenantId) {
+        localStorage.setItem("tenantId", tenantId);
+      }
+      
+      // Redirect to dashboard with tenantId
+      router.push(`/dashboard?tenantId=${tenantId || id}`);
     } catch (err: any) {
       console.error(err);
       setError(err?.response?.data?.message || err.message || "Something went wrong.");
