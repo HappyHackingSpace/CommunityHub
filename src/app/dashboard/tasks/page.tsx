@@ -13,7 +13,7 @@ import {
   User, Search, X, Filter
 } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { format } from "date-fns";
+import { formatUserHandle, formatRelativeTime, formatPoints } from "@/lib/formatters";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCurrentCommunity } from "@/hooks/use-current-community";
 
@@ -181,12 +181,12 @@ export default function TasksPage() {
             {task.dueDate && (
               <span className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
-                {format(new Date(task.dueDate), "MMM d")}
+                {formatRelativeTime(task.dueDate)}
               </span>
             )}
             {task.points ? (
               <span className="flex items-center gap-1 text-amber-600">
-                <Trophy className="h-3 w-3" />{task.points} XP
+                <Trophy className="h-3 w-3" />{formatPoints(task.points)}
               </span>
             ) : null}
             {task.estimatedTime ? (
@@ -217,7 +217,7 @@ export default function TasksPage() {
                   <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${task.assigneeId}`} />
                   <AvatarFallback className="bg-main text-[7px]"><User className="h-3 w-3" /></AvatarFallback>
                 </Avatar>
-                <span className="text-[9px] font-black uppercase text-gray-600">{isMe ? 'Mine' : 'Taken'}</span>
+                <span className="text-[9px] font-black uppercase text-gray-600">{isMe ? 'Mine' : formatUserHandle(task.assigneeId)}</span>
               </div>
             ) : (
               <Button variant="neutral" size="sm" className="font-black uppercase text-xs px-3 h-8 border-2 border-black" onClick={() => handleVolunteer(task.id)} disabled={busy}>
@@ -253,10 +253,10 @@ export default function TasksPage() {
           {mode === 'mine' ? <CheckCircle2 className="h-9 w-9 text-black" /> : <Clock className="h-9 w-9 text-black" />}
         </div>
         <h3 className="text-xl font-black italic uppercase">
-          {mode === 'mine' ? 'Queue Empty' : mode === 'created' ? 'No Created Tasks' : 'No Missions'}
+          {mode === 'mine' ? 'Queue Clear' : mode === 'created' ? 'No Missions Posted' : 'No Open Missions'}
         </h3>
-        <p className="font-bold text-gray-400 mt-1 uppercase tracking-widest text-[9px] text-center px-8">
-          {mode === 'mine' ? 'Volunteer for a task in Explorer Hub.' : mode === 'created' ? 'Use + Create Task to post a mission.' : 'No available missions right now.'}
+        <p className="font-bold text-gray-400 mt-2 uppercase tracking-widest text-[9px] text-center px-12 leading-loose">
+          {mode === 'mine' ? 'Join missions in Explorer Hub to begin your training.' : mode === 'created' ? 'Ignite community growth. Use + Create Task to post a mission.' : 'All missions are currently claimed by دیگر explorers.'}
         </p>
       </div>
     );
@@ -298,7 +298,7 @@ export default function TasksPage() {
               My Queue: {myTasks.length}
             </div>
             <div className="bg-white border-2 border-black px-4 py-2 font-black text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] uppercase">
-              XP: {myXP}
+              XP: {formatPoints(myXP)}
             </div>
             <div className="bg-white border-2 border-black px-4 py-2 font-black text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] uppercase">
               Open: {openTasksCount}
@@ -402,11 +402,11 @@ export default function TasksPage() {
                         <AvatarFallback className="bg-main font-black text-xs">U</AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-black text-xs uppercase">USER_{entry.userId.substring(0, 6)}</p>
-                        <p className="font-bold text-[9px] text-gray-500">{entry.badgeCount} Badges</p>
+                        <p className="font-black text-xs uppercase">{formatUserHandle(entry.userId)}</p>
+                        <p className="font-bold text-[9px] text-gray-500">{entry.badgeCount} Mastered Skills</p>
                       </div>
                     </div>
-                    <span className="font-black text-sm">{entry.totalPoints} XP</span>
+                    <span className="font-black text-sm">{formatPoints(entry.totalPoints)}</span>
                   </div>
                 ))
               ) : (

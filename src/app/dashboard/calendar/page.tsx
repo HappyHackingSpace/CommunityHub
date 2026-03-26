@@ -7,11 +7,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCurrentCommunity } from "@/hooks/use-current-community";
-import { 
-  AlertTriangle, PlusCircle, ChevronLeft, ChevronRight, Video, MapPin, 
-  Users, Clock, CalendarDays, X, Check, Minus, LifeBuoy, LogIn, LogOut, 
-  FileText, ListChecks, Save, Trash2, CalendarCheck, AlertCircle, Globe, Lock 
+import {
+  AlertTriangle, PlusCircle, ChevronLeft, ChevronRight, Video, MapPin,
+  Users, Clock, CalendarDays, X, Check, Minus, LifeBuoy, LogIn, LogOut,
+  FileText, ListChecks, Save, Trash2, CalendarCheck, AlertCircle, Globe, Lock
 } from "lucide-react";
+import { formatUserHandle, formatTime12h } from "@/lib/formatters";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
   isSameDay, isToday, isBefore, isPast, addMonths, subMonths,
@@ -42,12 +43,10 @@ interface CreateMeetingModalProps {
 }
 
 function CreateMeetingModal({ onClose, onSubmit, defaultDate }: CreateMeetingModalProps) {
-  // Default: selected date at 09:00, or now + 30 min
-  const defaultStart = (() => {
+  const defaultStart = useMemo(() => {
     const base = defaultDate ? new Date(defaultDate) : new Date();
     if (defaultDate) {
       base.setHours(9, 0, 0, 0);
-      // if that's in the past, use now+30
       if (base <= new Date()) {
         const d = new Date();
         d.setMinutes(d.getMinutes() + 30, 0, 0);
@@ -57,17 +56,18 @@ function CreateMeetingModal({ onClose, onSubmit, defaultDate }: CreateMeetingMod
     }
     base.setMinutes(base.getMinutes() + 30, 0, 0);
     return base;
-  })();
+  }, [defaultDate]);
 
-  // Format for datetime-local input (local time, not UTC)
   const toLocalISO = (d: Date) => {
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   };
 
-  // Min value: now + 3 minutes
-  const minDateTime = (() => { const d = new Date(); d.setMinutes(d.getMinutes() + 3, 0, 0); return toLocalISO(d); })();
+  const minDateTime = useMemo(() => { 
+    const d = new Date(); d.setMinutes(d.getMinutes() + 3, 0, 0); return toLocalISO(d); 
+  }, []);
 
+  const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -76,27 +76,40 @@ function CreateMeetingModal({ onClose, onSubmit, defaultDate }: CreateMeetingMod
     meetingUrl: '',
     location: '',
   });
+  const [locType, setLocType] = useState<"ONLINE" | "IN_PERSON">("ONLINE");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const inputCls = "w-full p-2.5 border-2 border-black rounded-base font-bold bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:translate-x-[1px] focus:translate-y-[1px] focus:shadow-none transition-all outline-none text-sm";
-  const labelCls = "block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1";
+  const inputCls = "w-full p-3 text-sm md:text-base border-2 border-black rounded-base font-bold bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:translate-x-[1px] focus:translate-y-[1px] focus:shadow-none transition-all outline-none";
+  const labelCls = "block text-[10px] md:text-xs font-black uppercase tracking-widest text-gray-500 mb-2";
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleNext = () => {
+    if (step === 1 && !form.title.trim()) {
+      setError("Event Title is required.");
+      return;
+    }
+    setError(null);
+    setStep(s => s + 1);
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!form.title.trim()) { setError("Title is required."); return; }
+    
+    // Auto-clear fields based on locType
+    const submitUrl = locType === "ONLINE" ? form.meetingUrl : "";
+    const submitLoc = locType === "IN_PERSON" ? form.location : "";
+
     setLoading(true);
     setError(null);
     try {
       await onSubmit({
         title: form.title,
         description: form.description || undefined,
-        // Send as ISO string — new Date() on a local datetime-local value
-        // interprets it as local time, which is correct
         startTime: new Date(form.startTime).toISOString(),
         duration: Number(form.duration),
-        meetingUrl: form.meetingUrl || undefined,
-        location: form.location || undefined,
+        meetingUrl: submitUrl || undefined,
+        location: submitLoc || undefined,
       });
       onClose();
     } catch (err: any) {
@@ -107,62 +120,148 @@ function CreateMeetingModal({ onClose, onSubmit, defaultDate }: CreateMeetingMod
     }
   };
 
+  const STEPS_COUNT = 3;
+
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white border-4 border-black rounded-base shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-lg">
-          <div className="flex items-center justify-between p-5 border-b-4 border-black bg-main/20">
-            <h2 className="text-xl font-black uppercase tracking-tight">Schedule Meeting</h2>
-            <button onClick={onClose} className="p-1 hover:bg-black/10 rounded"><X className="h-5 w-5" /></button>
+        <div className="bg-white border-4 border-black rounded-base shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-lg flex flex-col max-h-[90vh]">
+          
+          <div className="flex items-center justify-between p-5 border-b-4 border-black bg-main/20 flex-shrink-0">
+            <div>
+              <h2 className="text-xl font-black uppercase tracking-tight">Create Event</h2>
+              <div className="flex gap-1.5 mt-2">
+                {Array.from({ length: STEPS_COUNT }).map((_, i) => (
+                  <div key={i} className={`h-1.5 w-8 border border-black rounded-full transition-colors ${step >= i + 1 ? 'bg-black' : 'bg-white'}`} />
+                ))}
+              </div>
+            </div>
+            <button type="button" onClick={onClose} className="p-2 hover:bg-black/10 rounded-base border-2 border-transparent hover:border-black transition-colors">
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <form onSubmit={handleSubmit} className="p-5 space-y-4">
-            <div>
-              <label className={labelCls}>Title *</label>
-              <input className={inputCls} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Team standup, Planning session..." />
-            </div>
-            <div>
-              <label className={labelCls}>Description</label>
-              <textarea className={inputCls + " resize-none"} rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What's this meeting about?" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Start Time *</label>
-                <input
-                  type="datetime-local"
-                  className={inputCls}
-                  value={form.startTime}
-                  min={minDateTime}
-                  onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className={labelCls}>Duration (min)</label>
-                <input type="number" min={15} step={15} className={inputCls} value={form.duration} onChange={e => setForm(f => ({ ...f, duration: Number(e.target.value) }))} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Meeting Link</label>
-                <input className={inputCls} placeholder="https://meet.google.com/..." value={form.meetingUrl} onChange={e => setForm(f => ({ ...f, meetingUrl: e.target.value }))} />
-              </div>
-              <div>
-                <label className={labelCls}>Location</label>
-                <input className={inputCls} placeholder="Room A, Building 3..." value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
-              </div>
-            </div>
+
+          <div className="p-6 overflow-y-auto flex-1 bg-white">
             {error && (
-              <div className="bg-red-50 border-2 border-red-500 rounded-base p-3 text-sm font-bold text-red-700 flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" /> {error}
+              <div className="mb-6 bg-red-50 border-2 border-red-500 rounded-base p-3 text-sm font-bold text-red-700 flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" /> 
+                <p>{error}</p>
               </div>
             )}
-            <div className="flex gap-3 pt-1">
-              <Button type="submit" className="flex-1 font-black uppercase border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" disabled={loading}>
-                {loading ? 'Scheduling...' : 'Schedule Meeting'}
+
+            <form id="create-event-form" onSubmit={e => { e.preventDefault(); step < STEPS_COUNT ? handleNext() : handleSubmit(); }}>
+              {step === 1 && (
+                <div className="space-y-6">
+                  <div>
+                    <label className={labelCls}>Event Name *</label>
+                    <input autoFocus className={`${inputCls} text-lg py-4`} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="E.g., Design Sync, Hackathon..." />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Event Description</label>
+                    <textarea className={inputCls + " resize-none"} rows={4} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What is this event about? (Optional)" />
+                  </div>
+                </div>
+              )}
+
+              {step === 2 && (
+                <div className="space-y-6">
+                  <div>
+                    <label className={labelCls}>Start Time *</label>
+                    <input
+                      type="datetime-local"
+                      className={inputCls}
+                      value={form.startTime}
+                      min={minDateTime}
+                      onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Duration</label>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                      {[15, 30, 45, 60, 90, 120].map(dur => (
+                        <button
+                          key={dur}
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, duration: dur }))}
+                          className={`py-2 border-2 border-black rounded-base font-black text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${form.duration === dur ? 'bg-main translate-x-[1px] translate-y-[1px] shadow-none' : 'bg-white hover:bg-main/20'}`}
+                        >
+                          {dur}m
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
+                <div className="space-y-6">
+                  <div>
+                    <label className={labelCls}>Location Type</label>
+                    <div className="flex gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setLocType("ONLINE")}
+                        className={`flex-1 flex flex-col items-center justify-center gap-2 p-4 border-2 border-black rounded-base shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all font-black text-xs uppercase ${
+                          locType === "ONLINE" ? 'bg-main translate-x-[1px] translate-y-[1px] shadow-none' : 'bg-white hover:bg-gray-50'
+                        }`}
+                      >
+                        <Video className="h-6 w-6" />
+                        Virtual
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLocType("IN_PERSON")}
+                        className={`flex-1 flex flex-col items-center justify-center gap-2 p-4 border-2 border-black rounded-base shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all font-black text-xs uppercase ${
+                          locType === "IN_PERSON" ? 'bg-main translate-x-[1px] translate-y-[1px] shadow-none' : 'bg-white hover:bg-gray-50'
+                        }`}
+                      >
+                        <MapPin className="h-6 w-6" />
+                        In-Person
+                      </button>
+                    </div>
+                  </div>
+
+                  {locType === "ONLINE" && (
+                    <div>
+                      <label className={labelCls}>Meeting Link</label>
+                      <input autoFocus className={inputCls} placeholder="https://zoom.us/j/123..." value={form.meetingUrl} onChange={e => setForm(f => ({ ...f, meetingUrl: e.target.value }))} />
+                    </div>
+                  )}
+
+                  {locType === "IN_PERSON" && (
+                    <div>
+                      <label className={labelCls}>Physical Location</label>
+                      <input autoFocus className={inputCls} placeholder="Room A, Building 3..." value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
+                    </div>
+                  )}
+                </div>
+              )}
+            </form>
+          </div>
+
+          <div className="p-5 border-t-4 border-black bg-gray-50 flex gap-3 flex-shrink-0">
+            {step > 1 && (
+              <Button type="button" variant="neutral" onClick={() => setStep(s => s - 1)} className="font-black text-sm uppercase px-6 border-2 border-black">
+                <ChevronLeft className="h-4 w-4 mr-1" /> Back
               </Button>
-              <Button type="button" variant="neutral" onClick={onClose} className="font-black border-2 border-black">Cancel</Button>
-            </div>
-          </form>
+            )}
+            
+            {step < STEPS_COUNT ? (
+              <Button type="submit" form="create-event-form" className="flex-1 font-black uppercase text-sm border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                Continue <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            ) : (
+              <Button type="submit" form="create-event-form" className="flex-1 font-black uppercase text-sm border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" disabled={loading}>
+                {loading ? 'Creating...' : (
+                  <>
+                    <CalendarCheck className="h-4 w-4 mr-2" /> Create Event
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+
         </div>
       </div>
     </>
@@ -294,7 +393,7 @@ function MeetingDetailPanel({ meeting, onClose, currentUserId, hooks }: MeetingD
                 <div>
                   <p className="font-black text-sm">{startDate ? format(startDate, "EEEE, MMMM d, yyyy") : '—'}</p>
                   <p className="font-bold text-xs text-gray-500 mt-0.5">
-                    {startDate ? format(startDate, "HH:mm") : ''} — {endDate ? format(endDate, "HH:mm") : ''} · {meeting.duration} min
+                    {startDate ? formatTime12h(startDate) : ''} — {endDate ? formatTime12h(endDate) : ''} · {meeting.duration} min
                   </p>
                 </div>
               </div>
@@ -333,7 +432,7 @@ function MeetingDetailPanel({ meeting, onClose, currentUserId, hooks }: MeetingD
                     <div key={p.id} className="flex items-center justify-between px-3 py-2 bg-white border-2 border-black rounded-base text-xs font-bold">
                       <span className="flex items-center gap-2">
                         <Users className="h-3 w-3" />
-                        ...{p.userId?.slice(-8)}
+                        {formatUserHandle(p.userId)}
                         {p.userId === meeting.organizerId && <span className="bg-main text-black text-[8px] font-black px-1.5 rounded">HOST</span>}
                       </span>
                       <span className="text-gray-400 uppercase text-[9px]">{p.status}</span>
@@ -453,7 +552,7 @@ function MeetingDetailPanel({ meeting, onClose, currentUserId, hooks }: MeetingD
                         </span>
                       )}
                       <p className="text-sm font-bold text-gray-700">{note.content}</p>
-                      <p className="text-[9px] text-gray-400 font-bold mt-1">by ...{note.authorId?.slice(-6)}</p>
+                      <p className="text-[9px] text-gray-400 font-bold mt-1">Written by {formatUserHandle(note.authorId)}</p>
                     </div>
                   ))}
                 </div>
@@ -528,7 +627,7 @@ export default function CalendarPage() {
         onClick={(e) => { e.stopPropagation(); setSelectedMeeting(meeting); }}
         className={`text-[9px] font-black truncate px-1.5 py-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity ${colors[meeting.status]}`}
       >
-        {format(parseISO(meeting.startTime), 'HH:mm')} {meeting.title}
+        {formatTime12h(parseISO(meeting.startTime))} {meeting.title}
       </div>
     );
   };
@@ -685,7 +784,7 @@ export default function CalendarPage() {
                           <p className="font-black text-sm">{meeting.title}</p>
                           <p className="text-[10px] font-bold text-gray-400 mt-0.5 flex items-center gap-2">
                             <Clock className="h-3 w-3" />
-                            {format(start, 'HH:mm')} – {format(end, 'HH:mm')} · {meeting.duration}min
+                            {formatTime12h(start)} – {formatTime12h(end)} · {meeting.duration}min
                             {LOCATION_ICONS[meeting.locationType]}
                           </p>
                         </div>
@@ -740,7 +839,7 @@ export default function CalendarPage() {
                             <div className="flex-1 min-w-0">
                               <p className="font-black text-sm">{m.title}</p>
                               <p className="text-[10px] font-bold text-gray-400 mt-0.5">
-                                {format(start, 'HH:mm')} – {format(end, 'HH:mm')}
+                                {formatTime12h(start)} – {formatTime12h(end)}
                               </p>
                             </div>
                             <span className={`px-1.5 py-0.5 border-2 font-bold text-[8px] uppercase rounded-base flex-shrink-0 ${STATUS_STYLES[m.status]}`}>
@@ -788,7 +887,7 @@ export default function CalendarPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-black text-xs truncate">{m.title}</p>
-                        <p className="text-[9px] font-bold text-gray-400">{format(start, 'HH:mm')} · {m.duration}min</p>
+                        <p className="text-[9px] font-bold text-gray-400">{formatTime12h(start)} · {m.duration}min</p>
                       </div>
                       {m.meetingUrl && <Video className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />}
                     </div>

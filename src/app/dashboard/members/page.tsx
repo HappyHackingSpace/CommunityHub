@@ -10,10 +10,11 @@ import {
   UserMinus, MoreVertical, Calendar, 
   Activity, ShieldCheck, Mail 
 } from "lucide-react";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { AlertTriangle, X as CloseX } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
+import { formatUserHandle } from "@/lib/formatters";
 
 export default function MembersPage() {
   const { data: session } = useSession();
@@ -53,41 +54,28 @@ export default function MembersPage() {
   const filteredMembers = useMemo(() => {
     return members.filter(m => 
       m.userId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `USER_${m.userId.substring(0, 8)}`.toLowerCase().includes(searchTerm.toLowerCase())
+      formatUserHandle(m.userId).toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [members, searchTerm]);
 
   const filteredPending = useMemo(() => {
     return pendingMembers.filter(m => 
       m.userId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `USER_${m.userId.substring(0, 8)}`.toLowerCase().includes(searchTerm.toLowerCase())
+      formatUserHandle(m.userId).toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [pendingMembers, searchTerm]);
 
-  const handleApprove = async (memberId: string) => {
+  const handleApprove = useCallback(async (memberId: string) => {
     await approveMember(memberId);
     await loadPending();
-  };
+  }, [approveMember, loadPending]);
 
-  const handleReject = async (memberId: string) => {
+  const handleReject = useCallback(async (memberId: string) => {
     await rejectMember(memberId);
     await loadPending();
-  };
+  }, [rejectMember, loadPending]);
 
-  if (isLoading && members.length === 0) {
-    return (
-      <div className="max-w-[1200px] mx-auto space-y-10 pb-24 animate-pulse">
-        <Skeleton className="h-20 w-1/3 border-4 border-black" />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Skeleton className="h-24 border-2 border-black" />
-          <Skeleton className="h-24 border-2 border-black" />
-          <Skeleton className="h-24 border-2 border-black" />
-          <Skeleton className="h-24 border-2 border-black" />
-        </div>
-        <Skeleton className="h-[400px] w-full border-4 border-black" />
-      </div>
-    );
-  }
+
 
   return (
     <div className="max-w-[1200px] mx-auto space-y-6 pb-24 font-base">
@@ -124,11 +112,19 @@ export default function MembersPage() {
         {/* Quick Stats Grid */}
         <div className="flex flex-wrap gap-4">
           <div className="bg-white border-2 border-black px-4 py-2 rounded-base shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center justify-center min-w-[120px]">
-            <span className="font-black text-2xl tracking-tighter leading-none">{stats?.membersCount || members.length}</span>
+            {isLoading && members.length === 0 ? (
+              <Skeleton className="h-8 w-12 border-2 border-black mb-1" />
+            ) : (
+              <span className="font-black text-2xl tracking-tighter leading-none">{stats?.membersCount || members.length}</span>
+            )}
             <span className="font-bold text-[10px] uppercase text-gray-500 tracking-wider">Total Pulse</span>
           </div>
           <div className="bg-main border-2 border-black px-4 py-2 rounded-base shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center justify-center min-w-[120px]">
-            <span className="font-black text-2xl tracking-tighter leading-none">{members.filter(m => m.status === 'ACTIVE').length}</span>
+            {isLoading && members.length === 0 ? (
+              <Skeleton className="h-8 w-12 border-2 border-black border-dashed bg-black/5 mb-1" />
+            ) : (
+              <span className="font-black text-2xl tracking-tighter leading-none">{members.filter(m => m.status === 'ACTIVE').length}</span>
+            )}
             <span className="font-bold text-[10px] uppercase text-black/60 tracking-wider">Active</span>
           </div>
         </div>
@@ -142,7 +138,7 @@ export default function MembersPage() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-black transition-colors" />
           <input 
             className="w-full pl-12 pr-12 py-4 bg-white border-4 border-black rounded-base shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] font-bold placeholder:text-gray-400 focus:translate-x-1 focus:translate-y-1 focus:shadow-none transition-all outline-none"
-            placeholder="Search by ID or Username..."
+            placeholder="Search by ID, handle or explorer name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -184,7 +180,9 @@ export default function MembersPage() {
           {/* Members List */}
           <TabsContent value="all" className="mt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredMembers.length > 0 ? (
+              {isLoading && members.length === 0 ? (
+                [...Array(6)].map((_, i) => <Skeleton key={i} className="h-72 border-4 border-black rounded-base" />)
+              ) : filteredMembers.length > 0 ? (
                 filteredMembers.map(member => (
                   <MemberCard key={member.id} member={member} isFounderView={false} isMe={member.userId === currentUserId} isCreator={community?.founderId === member.userId} />
                 ))
@@ -198,16 +196,16 @@ export default function MembersPage() {
           {isFounder && (
             <TabsContent value="pending" className="mt-0">
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {isRefreshingPending ? (
-                  [...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 border-4 border-black" />)
+                {isRefreshingPending || (isLoading && members.length === 0) ? (
+                  [...Array(3)].map((_, i) => <Skeleton key={i} className="h-72 border-4 border-black rounded-base" />)
                 ) : filteredPending.length > 0 ? (
                   filteredPending.map(member => (
                     <MemberCard 
                       key={member.id} 
                       member={member} 
                       isFounderView={true} 
-                      onApprove={() => handleApprove(member.id)} 
-                      onReject={() => handleReject(member.id)} 
+                      onApprove={handleApprove} 
+                      onReject={handleReject} 
                     />
                   ))
                 ) : (
@@ -222,7 +220,7 @@ export default function MembersPage() {
   );
 }
 
-function MemberCard({ 
+const MemberCard = memo(function MemberCard({ 
   member, 
   isFounderView, 
   onApprove, 
@@ -232,8 +230,8 @@ function MemberCard({
 }: { 
   member: CommunityMember; 
   isFounderView?: boolean;
-  onApprove?: () => void;
-  onReject?: () => void;
+  onApprove?: (id: string) => void;
+  onReject?: (id: string) => void;
   isMe?: boolean;
   isCreator?: boolean;
 }) {
@@ -261,7 +259,7 @@ function MemberCard({
             <AvatarFallback className="bg-main font-black">U</AvatarFallback>
           </Avatar>
         </div>
-        <h4 className="font-black text-lg uppercase truncate max-w-full italic px-2">USER_{member.userId.substring(0, 8)}</h4>
+        <h4 className="font-black text-lg uppercase truncate max-w-full italic px-2">{formatUserHandle(member.userId)}</h4>
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
           {member.status === 'ACTIVE' ? 'Verified Member' : 'Pending Request'}
         </p>
@@ -278,10 +276,10 @@ function MemberCard({
 
         {isFounderView ? (
           <div className="grid grid-cols-2 gap-3">
-            <Button size="sm" onClick={onApprove} className="bg-emerald-400 font-black uppercase text-[10px] h-10 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <Button size="sm" onClick={() => onApprove?.(member.id)} className="bg-emerald-400 font-black uppercase text-[10px] h-10 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <Check className="h-3 w-3 mr-1" /> Approve
             </Button>
-            <Button size="sm" variant="reverse" onClick={onReject} className="bg-red-400 text-white font-black uppercase text-[10px] h-10 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <Button size="sm" variant="reverse" onClick={() => onReject?.(member.id)} className="bg-red-400 text-white font-black uppercase text-[10px] h-10 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <UserMinus className="h-3 w-3 mr-1 font-black" /> Reject
             </Button>
           </div>
@@ -293,9 +291,9 @@ function MemberCard({
       </div>
     </div>
   );
-}
+});
 
-function EmptyState({ icon, title, description }: { icon: React.ReactNode; title: string, description: string }) {
+const EmptyState = memo(function EmptyState({ icon, title, description }: { icon: React.ReactNode; title: string, description: string }) {
   return (
     <div className="col-span-full py-20 bg-white border-4 border-black border-dashed rounded-base flex flex-col items-center justify-center text-center px-10">
       <div className="bg-main/20 border-2 border-black p-6 rounded-full mb-6">
@@ -307,4 +305,4 @@ function EmptyState({ icon, title, description }: { icon: React.ReactNode; title
       </p>
     </div>
   );
-}
+});

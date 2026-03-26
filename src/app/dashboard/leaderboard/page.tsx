@@ -8,17 +8,18 @@ import {
   ChevronRight, Award, Zap, Star 
 } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, memo } from "react";
 import { AlertTriangle, X as CloseX } from "lucide-react";
+import { formatUserHandle, formatPoints } from "@/lib/formatters";
 
-const RankBadge = ({ rank }: { rank: number }) => {
+const RankBadge = memo(({ rank }: { rank: number }) => {
   if (rank === 1) return <div className="bg-yellow-400 p-2 border-2 border-black rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><Crown className="h-4 w-4 text-black" /></div>;
   if (rank === 2) return <div className="bg-slate-300 p-2 border-2 border-black rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><Medal className="h-4 w-4 text-black" /></div>;
   if (rank === 3) return <div className="bg-amber-600 p-2 border-2 border-black rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><Medal className="h-4 w-4 text-white" /></div>;
   return <span className="font-black italic text-xl w-8 text-center">{rank}</span>;
-};
+});
 
-const BadgeIcon = ({ type }: { type: string }) => {
+const BadgeIcon = memo(({ type }: { type: string }) => {
   const icons: Record<string, any> = {
     TASK_COMPLETED: <Zap className="h-6 w-6 text-yellow-500" />,
     FIRST_TASK: <Star className="h-6 w-6 text-blue-500" />,
@@ -28,7 +29,7 @@ const BadgeIcon = ({ type }: { type: string }) => {
     COMMUNITY_CONTRIBUTOR: <Trophy className="h-6 w-6 text-emerald-500" />,
   };
   return icons[type] || <Award className="h-6 w-6 text-gray-500" />;
-};
+});
 
 export default function LeaderboardPage() {
   const { data: session } = useSession();
@@ -60,19 +61,6 @@ export default function LeaderboardPage() {
     return leaderboard?.entries?.find((e: any) => e.userId === currentUserId);
   }, [leaderboard, currentUserId]);
 
-  if (isLoading && !leaderboard) {
-    return (
-      <div className="max-w-[1200px] mx-auto space-y-10 pb-24 animate-pulse">
-        <div className="h-24 w-1/3 bg-gray-200 border-4 border-black mb-10" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          <div className="h-64 bg-gray-200 border-4 border-black" />
-          <div className="h-80 bg-gray-200 border-4 border-black" />
-          <div className="h-64 bg-gray-200 border-4 border-black" />
-        </div>
-        <div className="h-96 bg-gray-200 border-4 border-black rounded-base" />
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-[1200px] mx-auto space-y-6 pb-24 font-base">
@@ -105,7 +93,13 @@ export default function LeaderboardPage() {
       </div>
 
       {/* Podium Section - Only render if there are top players */}
-      {topThree.length > 0 && (
+      {isLoading && !leaderboard ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end px-4 mt-4 animate-pulse">
+          <div className="h-44 bg-gray-200 border-4 border-black rounded-t-base order-2 md:order-1" />
+          <div className="h-64 bg-gray-200 border-4 border-black rounded-t-base order-1 md:order-2" />
+          <div className="h-36 bg-gray-200 border-4 border-black rounded-t-base order-3 md:order-3" />
+        </div>
+      ) : topThree.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end px-4 mt-4">
           
           {/* Rank 2 */}
@@ -121,9 +115,9 @@ export default function LeaderboardPage() {
                 </div>
               </div>
               <div className="w-full bg-white border-4 border-black p-6 rounded-t-base text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] h-44 flex flex-col justify-center">
-                <p className="font-black text-lg uppercase truncate">USER_{topThree[1].userId.substring(0, 8)}</p>
-                <p className="text-3xl font-black text-main mt-1" style={{ WebkitTextStroke: '1px black' }}>{topThree[1].totalPoints} XP</p>
-                <div className="mt-4 inline-block px-3 py-1 bg-black text-white text-[10px] font-black rounded-full tracking-widest uppercase">{topThree[1].badgeCount} Badges</div>
+                <p className="font-black text-lg uppercase truncate">{formatUserHandle(topThree[1].userId)}</p>
+                <p className="text-3xl font-black text-main mt-1" style={{ WebkitTextStroke: '1px black' }}>{formatPoints(topThree[1].totalPoints)}</p>
+                <div className="mt-4 inline-block px-3 py-1 bg-black text-white text-[10px] font-black rounded-full tracking-widest uppercase">{topThree[1].badgeCount} Skills</div>
               </div>
             </div>
           )}
@@ -141,9 +135,9 @@ export default function LeaderboardPage() {
                 </Avatar>
               </div>
               <div className="w-full bg-main border-4 border-black p-8 rounded-t-base text-center shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] h-64 flex flex-col justify-center">
-                <p className="font-black text-2xl uppercase truncate tracking-tighter">USER_{topThree[0].userId.substring(0, 8)}</p>
-                <p className="text-6xl font-black text-white mt-3" style={{ WebkitTextStroke: '2.5px black' }}>{topThree[0].totalPoints} XP</p>
-                <div className="mt-4 inline-block px-5 py-2 bg-black text-white text-xs font-black rounded-full uppercase tracking-widest shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)]">{topThree[0].badgeCount} Badges</div>
+                <p className="font-black text-2xl uppercase truncate tracking-tighter">{formatUserHandle(topThree[0].userId)}</p>
+                <p className="text-6xl font-black text-white mt-3" style={{ WebkitTextStroke: '2.5px black' }}>{formatPoints(topThree[0].totalPoints)}</p>
+                <div className="mt-4 inline-block px-5 py-2 bg-black text-white text-xs font-black rounded-full uppercase tracking-widest shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)]">{topThree[0].badgeCount} Skills</div>
               </div>
             </div>
           )}
@@ -161,9 +155,9 @@ export default function LeaderboardPage() {
                 </div>
               </div>
               <div className="w-full bg-white border-4 border-black p-6 rounded-t-base text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] h-36 flex flex-col justify-center">
-                <p className="font-black text-md uppercase truncate">USER_{topThree[2].userId.substring(0, 8)}</p>
-                <p className="text-2xl font-black text-main mt-1" style={{ WebkitTextStroke: '1px black' }}>{topThree[2].totalPoints} XP</p>
-                <div className="mt-3 inline-block px-2 py-0.5 bg-black text-white text-[9px] font-black rounded-full tracking-widest uppercase">{topThree[2].badgeCount} Badges</div>
+                <p className="font-black text-md uppercase truncate">{formatUserHandle(topThree[2].userId)}</p>
+                <p className="text-2xl font-black text-main mt-1" style={{ WebkitTextStroke: '1px black' }}>{formatPoints(topThree[2].totalPoints)}</p>
+                <div className="mt-3 inline-block px-2 py-0.5 bg-black text-white text-[9px] font-black rounded-full tracking-widest uppercase">{topThree[2].badgeCount} Skills</div>
               </div>
             </div>
           )}
@@ -186,7 +180,11 @@ export default function LeaderboardPage() {
             </div>
             
             <div className="divide-y-4 divide-black">
-              {restOfRanks.length > 0 ? (
+              {isLoading && !leaderboard ? (
+                <div className="p-8 space-y-4">
+                  {[1,2,3,4,5].map(i => <div key={i} className="h-20 bg-gray-200 border-2 border-black rounded-base animate-pulse" />)}
+                </div>
+              ) : restOfRanks.length > 0 ? (
                 restOfRanks.map((entry: any, index: number) => (
                   <div 
                     key={entry.userId} 
@@ -199,12 +197,12 @@ export default function LeaderboardPage() {
                         <AvatarFallback className="bg-main font-black">U</AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-black text-sm uppercase leading-none mb-1">USER_{entry.userId.substring(0, 12)}</p>
+                        <p className="font-black text-sm uppercase leading-none mb-1">{formatUserHandle(entry.userId)}</p>
                         <p className="font-bold text-[10px] text-gray-400 uppercase tracking-widest">Mastered {entry.badgeCount} Skills</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-black text-2xl text-black leading-none">{entry.totalPoints} <span className="text-xs uppercase text-gray-400">XP</span></p>
+                      <p className="font-black text-2xl text-black leading-none">{formatPoints(entry.totalPoints)}</p>
                       {entry.userId === currentUserId && (
                         <div className="mt-1 flex justify-end">
                            <span className="text-[9px] font-black bg-black text-main px-2 py-0.5 rounded-full uppercase tracking-tighter">Current User</span>
@@ -257,8 +255,8 @@ export default function LeaderboardPage() {
               <div className="grid grid-cols-2 gap-4 w-full">
                 <div className="bg-white/[0.03] border-2 border-white/10 p-5 rounded-base flex flex-col items-center justify-center hover:bg-white/[0.07] transition-all">
                   <Zap className="h-5 w-5 text-main mb-2" />
-                  <p className="font-black text-3xl tracking-tighter italic">{myEntry?.totalPoints || 0}</p>
-                  <p className="font-black text-[9px] text-gray-500 uppercase tracking-widest font-heading">Accumulated XP</p>
+                  <p className="font-black text-3xl tracking-tighter italic">{formatPoints(myEntry?.totalPoints)}</p>
+                  <p className="font-black text-[9px] text-gray-500 uppercase tracking-widest font-heading">Accumulated Rank</p>
                 </div>
                 <div className="bg-white/[0.03] border-2 border-white/10 p-5 rounded-base flex flex-col items-center justify-center hover:bg-white/[0.07] transition-all">
                   <Award className="h-5 w-5 text-main mb-2" />
@@ -277,7 +275,11 @@ export default function LeaderboardPage() {
             </div>
             
             <div className="p-10">
-              {badges && badges.length > 0 ? (
+              {isLoading && !badges ? (
+                <div className="grid grid-cols-3 gap-6">
+                  {[1,2,3,4,5,6].map(i => <div key={i} className="aspect-square bg-gray-200 border-2 border-black rounded-base animate-pulse" />)}
+                </div>
+              ) : badges && badges.length > 0 ? (
                 <div className="grid grid-cols-3 gap-6">
                   {badges.map((badge: any) => (
                     <div 
