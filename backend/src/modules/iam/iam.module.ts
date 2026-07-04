@@ -6,7 +6,6 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { UserOrmEntity } from './infrastructure/persistence/typeorm/entities/user.orm-entity';
-import { RoleOrmEntity } from './infrastructure/persistence/typeorm/entities/role.orm-entity';
 import { ApiKeyOrmEntity } from './infrastructure/persistence/typeorm/entities/api-key.orm-entity';
 import { ApiKeyUsageLogOrmEntity } from './infrastructure/persistence/typeorm/entities/api-key-usage-log.orm-entity';
 
@@ -69,7 +68,6 @@ const QueryHandlers = [
     forwardRef(() => CommunitiesModule),
     TypeOrmModule.forFeature([
       UserOrmEntity,
-      RoleOrmEntity,
       ApiKeyOrmEntity,
       ApiKeyUsageLogOrmEntity,
     ]),
