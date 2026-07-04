@@ -1,0 +1,51 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Environment files (NEVER commit these!)
+.env
+.env.local
+.env.production
+.env.*.local
+.env.development
+.env.test
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage
+
+# Temporary files
+*.tmp
+*.temp
+
+# Secrets and credentials
+secrets/
+*.pem
+*.key
+*.cert
+
+# Project-specific files and directories
+database/
+scripts/
+test/
+test-websocket.html
+claude-rules.md
+communities-module.md
+iam-module.md
+project-analysis.md

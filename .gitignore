@@ -1,42 +1,36 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Root-level ignores for the monorepo.
+# Each app (backend/, frontend/) keeps its own .gitignore as well.
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# Dependencies
+node_modules/
 
-# testing
-/coverage
+# Environment files
+.env
+.env.local
+.env.*.local
 
-# next.js
-/.next/
-/out/
+# Build output
+dist/
+build/
+.next/
+out/
 
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
+# Logs
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
 
-# env files
-.env*
-!.env.example
+# Test coverage
+coverage/
 
-# vercel
-.vercel
+# Caches
+.cache/
+.turbo/
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+*.swp

@@ -1,0 +1,39 @@
+# Optional single-origin gateway.
+#
+# The base docker-compose.yml runs the API and the web app on separate ports
+# (3000 and 3001). This override adds a Traefik reverse proxy so everything is
+# served from one origin on port 8080:
+#
+#   http://localhost:8080       -> web app
+#   http://localhost:8080/api   -> API
+#
+# Because the browser then talks to a single origin, CORS is no longer involved.
+# Routing is defined statically in docker/traefik/dynamic.yml (no Docker socket
+# is exposed to the proxy).
+#
+# Run with:
+#   docker compose -f docker-compose.yml -f docker-compose.gateway.yml up --build
+
+services:
+  gateway:
+    image: traefik:v3.3
+    container_name: communityhub-gateway
+    command:
+      - --entrypoints.web.address=:8080
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --providers.file.watch=true
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./docker/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - communityhub-network
+    restart: unless-stopped
+
+  frontend:
+    # Served from the same origin as the API, so a relative base URL is enough.
+    environment:
+      NEXT_PUBLIC_BACKEND_URL: /api
