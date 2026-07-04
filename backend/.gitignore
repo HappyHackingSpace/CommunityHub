@@ -41,7 +41,10 @@ secrets/
 *.cert
 
 # Project-specific files and directories
-database/
+# Track the migration infrastructure; ignore any stray local DB artifacts.
+database/*
+!database/data-source.ts
+!database/migrations/
 scripts/
 test/
 test-websocket.html
