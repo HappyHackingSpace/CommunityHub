@@ -19,7 +19,7 @@
     "motion": "^12.23.26",
     "next": "^16.1.6",
     "next-auth": "^5.0.0-beta.30",
-    "radix-ui": "^1.4.3",
+    "radix-ui": "^1.6.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.4.0"
