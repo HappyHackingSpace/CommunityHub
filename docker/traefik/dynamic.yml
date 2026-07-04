@@ -1,0 +1,26 @@
+# Traefik dynamic configuration for the single-origin gateway.
+# Requests are routed by path to the API and the web app over the shared
+# Docker network, using service DNS names (backend, frontend).
+
+http:
+  routers:
+    api:
+      rule: "PathPrefix(`/api`)"
+      entryPoints:
+        - web
+      service: api
+    web:
+      rule: "PathPrefix(`/`)"
+      entryPoints:
+        - web
+      service: web
+
+  services:
+    api:
+      loadBalancer:
+        servers:
+          - url: "http://backend:3000"
+    web:
+      loadBalancer:
+        servers:
+          - url: "http://frontend:3000"

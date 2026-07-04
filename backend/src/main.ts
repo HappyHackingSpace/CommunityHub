@@ -9,6 +9,8 @@ import * as path from 'path';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.setGlobalPrefix('api');
+
   app.enableCors({
     origin: process.env.NODE_ENV === 'production'
       ? process.env.FRONTEND_URL
@@ -30,7 +32,7 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
 
-  app.use('/reference', apiReference({
+  app.use('/api/reference', apiReference({
     content: document,
     theme: 'bluePlanet',
   }));
@@ -40,7 +42,7 @@ async function bootstrap() {
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
   console.log(`🚀 Application is running on: http://localhost:${port}`);
-  console.log(`📚 API Docs (Scalar) is available on: http://localhost:${port}/reference`);
+  console.log(`📚 API Docs (Scalar) is available on: http://localhost:${port}/api/reference`);
   console.log(`🔌 WebSocket available on: ws://localhost:${port}/notifications`);
 }
 bootstrap();

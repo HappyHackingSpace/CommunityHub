@@ -96,7 +96,7 @@ jobs:
             docker-compose down
             docker-compose up --build -d
             sleep 30
-            curl -f http://localhost:3000/meetings || echo "Health check failed but continuing..."
+            curl -f http://localhost:3000/api/meetings || echo "Health check failed but continuing..."
 
   notify:
     name: Notify Deployment

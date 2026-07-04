@@ -79,7 +79,7 @@ services:
     container_name: communityhub-frontend
     environment:
       NODE_ENV: development
-      NEXT_PUBLIC_BACKEND_URL: http://localhost:3000
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:3000/api
     command: ["npm", "run", "dev", "--", "-H", "0.0.0.0"]
     ports:
       - "3001:3000"

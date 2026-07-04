@@ -1,7 +1,7 @@
 import axios from "axios";
 import { getSession, signOut } from "next-auth/react";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api";
 
 export const apiClient = axios.create({
   baseURL: BACKEND_URL,

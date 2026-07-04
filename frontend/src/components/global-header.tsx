@@ -93,7 +93,7 @@ export function GlobalHeader() {
               sessionStorage.setItem("authRedirect", pathname);
               window.location.href = process.env.NEXT_PUBLIC_BACKEND_URL 
                 ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google` 
-                : "http://localhost:3000/auth/google";
+                : "http://localhost:3000/api/auth/google";
             }}
           >
             Login

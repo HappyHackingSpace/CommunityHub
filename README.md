@@ -59,13 +59,13 @@ This is the fastest way to run the entire stack (PostgreSQL, Redis, backend, and
 
 3. Open the applications:
 
-   | Service        | URL                              | Notes                          |
-   | -------------- | -------------------------------- | ------------------------------ |
-   | Frontend (web) | http://localhost:3001            | Next.js application            |
-   | Backend (API)  | http://localhost:3000            | NestJS application             |
-   | API reference  | http://localhost:3000/reference  | Scalar interactive API docs    |
-   | PostgreSQL     | localhost:5433                   | Mapped from container port 5432 |
-   | Redis          | localhost:6379                   | Cache and job queue            |
+   | Service        | URL                                 | Notes                             |
+   | -------------- | ----------------------------------- | --------------------------------- |
+   | Frontend (web) | http://localhost:3001               | Next.js application               |
+   | Backend (API)  | http://localhost:3000/api           | NestJS application, routes under /api |
+   | API reference  | http://localhost:3000/api/reference | Scalar interactive API docs       |
+   | PostgreSQL     | localhost:5433                      | Mapped from container port 5432   |
+   | Redis          | localhost:6379                      | Cache and job queue               |
 
 4. Stop the stack:
 
@@ -85,6 +85,23 @@ docker compose --profile tools up
 
 It is then served at http://localhost:5050 using the `PGADMIN_DEFAULT_EMAIL` and `PGADMIN_DEFAULT_PASSWORD` values from your `.env`.
 
+### Optional: single origin gateway
+
+By default the API and the web app run on separate ports. If you prefer a single origin, which also removes CORS from the picture, start the stack with the gateway override:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gateway.yml up --build
+```
+
+Everything is then served through a Traefik reverse proxy on port 8080:
+
+| URL                       | Serves  |
+| ------------------------- | ------- |
+| http://localhost:8080     | Web app |
+| http://localhost:8080/api | API     |
+
+The two direct ports (3000 and 3001) stay available as well, so you can use whichever style you prefer.
+
 ## Local development without Docker
 
 If you prefer to run the applications directly, start a PostgreSQL and a Redis instance yourself (or run only those two services with `docker compose up postgres redis`), then run each app.
@@ -98,7 +115,7 @@ npm install
 npm run start:dev
 ```
 
-The API starts on http://localhost:3000. Database migrations are available through the `migration:*` scripts in `backend/package.json`.
+The API starts on http://localhost:3000 with all routes under the `/api` prefix (for example http://localhost:3000/api/reference). Database migrations are available through the `migration:*` scripts in `backend/package.json`.
 
 ### Frontend
 
@@ -108,7 +125,7 @@ npm install
 npm run dev
 ```
 
-The web app starts on http://localhost:3000 by default. Set `NEXT_PUBLIC_BACKEND_URL` if your backend runs on a different address, and run the frontend on another port (for example `npm run dev -- -p 3001`) if the backend already uses port 3000.
+The web app starts on http://localhost:3000 by default. Because the backend also uses port 3000, run the frontend on another port when both run locally (for example `npm run dev -- -p 3001`), and set `NEXT_PUBLIC_BACKEND_URL` to the API base including the `/api` prefix (for example `http://localhost:3000/api`).
 
 ## Environment variables
 
@@ -126,7 +143,7 @@ The root `.env` is used by Docker Compose. The most important values are listed 
 | `GOOGLE_CLIENT_SECRET`    | backend            | Google OAuth client secret                      |
 | `FRONTEND_URL`            | backend            | Allowed CORS origin for the web app             |
 | `REDIS_HOST`              | backend            | Redis host (`redis` inside Docker)              |
-| `NEXT_PUBLIC_BACKEND_URL` | frontend           | Base URL the browser uses to reach the API      |
+| `NEXT_PUBLIC_BACKEND_URL` | frontend           | API base URL for the browser, including the `/api` prefix |
 
 ## Available ports
 
@@ -137,6 +154,7 @@ The root `.env` is used by Docker Compose. The most important values are listed 
 | 5433 | PostgreSQL           |
 | 6379 | Redis                |
 | 5050 | pgAdmin (tools only) |
+| 8080 | Gateway (gateway override only) |
 
 ## Deployment
 
