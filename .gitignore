@@ -1,0 +1,36 @@
+# Root-level ignores for the monorepo.
+# Each app (backend/, frontend/) keeps its own .gitignore as well.
+
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+.next/
+out/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage
+coverage/
+
+# Caches
+.cache/
+.turbo/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
