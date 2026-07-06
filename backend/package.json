@@ -57,7 +57,7 @@
     "@nestjs/throttler": "^6.4.0",
     "@nestjs/typeorm": "^11.0.0",
     "@nestjs/websockets": "^11.1.27",
-    "@scalar/nestjs-api-reference": "^1.0.9",
+    "@scalar/nestjs-api-reference": "^1.2.8",
     "@types/passport-google-oauth20": "^2.0.17",
     "@types/passport-http-bearer": "^1.0.42",
     "bcrypt": "^6.0.0",
