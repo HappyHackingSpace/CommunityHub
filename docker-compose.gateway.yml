@@ -16,7 +16,7 @@
 
 services:
   gateway:
-    image: traefik:v3.3
+    image: traefik:v3.6
     container_name: communityhub-gateway
     command:
       - --entrypoints.web.address=:8080
