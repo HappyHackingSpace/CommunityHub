@@ -9,30 +9,30 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@radix-ui/react-slot": "^1.2.4",
-    "axios": "^1.16.0",
+    "@radix-ui/react-slot": "^1.3.3",
+    "axios": "^1.20.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "daisyui": "^5.5.14",
-    "date-fns": "^4.1.0",
+    "daisyui": "^5.7.47",
+    "date-fns": "^4.4.0",
     "lucide-react": "^0.562.0",
     "motion": "^12.23.26",
-    "next": "^16.2.10",
+    "next": "^16.3.8",
     "next-auth": "^5.0.0-beta.30",
-    "radix-ui": "^1.6.1",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "tailwind-merge": "^3.4.0"
+    "radix-ui": "^1.6.7",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.3.2",
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26",
-    "@types/react": "19.2.7",
-    "@types/react-dom": "19.2.3",
-    "autoprefixer": "^10.5.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "autoprefixer": "^10.6.1",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^10",
-    "eslint-config-next": "16.1.0",
+    "eslint-config-next": "16.3.8",
     "minimatch": "^10.2.4",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
@@ -41,7 +41,7 @@
   },
   "browserslist": "> 1%",
   "overrides": {
-    "@types/react": "19.2.7",
-    "@types/react-dom": "19.2.3"
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
   }
 }
