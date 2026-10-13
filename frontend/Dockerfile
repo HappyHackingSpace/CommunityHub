@@ -1,6 +1,6 @@
 # Development image: installs dependencies and runs the Next.js dev server.
 # The docker compose stack builds this target for local development.
-FROM node:24-alpine AS development
+FROM node:26-alpine AS development
 
 WORKDIR /app
 
