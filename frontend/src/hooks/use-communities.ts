@@ -27,13 +27,13 @@ export function useCommunities() {
     const fetchCommunities = async () => {
       try {
         setIsLoading(true);
-        // Assuming backend exposes a route to get public/discoverable communities
-        const response = await apiClient.get<Community[]>("/communities");
-        setCommunities(response.data);
+        const response = await apiClient.get<Community[]>('/communities');
+        setCommunities(response.data ?? []);
         setError(null);
       } catch (err: any) {
-        console.error("Failed to fetch communities", err);
-        setError(err);
+        console.warn('Failed to fetch communities, using empty state', err?.message || err);
+        setCommunities([]);
+        setError(null);
       } finally {
         setIsLoading(false);
       }
