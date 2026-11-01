@@ -1,10 +1,9 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { WsAuthAdapter } from './modules/notifications/infrastructure/websocket/ws-auth.adapter';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import * as express from 'express';
-import * as path from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -20,7 +19,12 @@ async function bootstrap() {
 
   app.useWebSocketAdapter(new WsAuthAdapter(app));
 
-  app.use(express.static(path.join(__dirname)));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+    }),
+  );
 
   const config = new DocumentBuilder()
     .setTitle('CommunityHub API')

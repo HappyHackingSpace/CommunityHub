@@ -6,8 +6,6 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { JwtAuthGuard } from '../../../iam/infrastructure/guards/jwt-auth.guard';
@@ -20,7 +18,6 @@ import { UpdateSubTaskStatusCommand } from '../../application/commands/update-su
 
 @Controller('subtasks')
 @UseGuards(JwtAuthGuard, TenantContextCompleteGuard, TenantAccessGuard)
-@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class SubTasksController {
   constructor(private readonly commandBus: CommandBus) {}
 

@@ -10,8 +10,6 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
@@ -66,9 +64,7 @@ import { VolunteerForTaskCommand } from '../../application/commands/volunteer-fo
 @ApiTags('tasks')
 @ApiBearerAuth()
 @Controller('tasks')
-@UseGuards(FlexibleAuthGuard, RolesGuard, ScopesGuard, TenantContextCompleteGuard, TenantAccessGuard, ApiKeyThrottlerGuard)
-@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-export class TasksController {
+@UseGuards(FlexibleAuthGuard, RolesGuard, ScopesGuard, TenantContextCompleteGuard, TenantAccessGuard, ApiKeyThrottlerGuard)export class TasksController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
