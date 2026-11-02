@@ -163,3 +163,7 @@ The backend ships with a manual deployment workflow at `.github/workflows/backen
 ## Contributing
 
 Create a feature branch from `main`, keep changes scoped to the relevant application where possible, and open a pull request. Frontend and backend can be worked on independently, and their histories remain intact for `git blame` and `git log --follow`.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=HappyHackingSpace/CommunityHub&type=Date)](https://star-history.com/#HappyHackingSpace/CommunityHub&Date)
