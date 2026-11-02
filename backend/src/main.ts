@@ -11,11 +11,25 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
+    'http://localhost:8080',
+    'http://127.0.0.1:8080',
+  ].filter(Boolean) as string[];
+
   app.enableCors({
-    origin: process.env.NODE_ENV === 'production'
-      ? process.env.FRONTEND_URL
-      : true,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-Id'],
   });
 
   app.useWebSocketAdapter(new WsAuthAdapter(app));
