@@ -7,8 +7,6 @@ import {
   Param,
   Body,
   UseGuards,
-  ValidationPipe,
-  UsePipes,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -75,9 +73,7 @@ import { GetUserAttendanceHistoryQuery } from '../../application/queries/get-use
 @ApiTags('meetings')
 @ApiBearerAuth()
 @Controller('meetings')
-@UseGuards(FlexibleAuthGuard, RolesGuard, ScopesGuard, TenantContextCompleteGuard, TenantAccessGuard, ApiKeyThrottlerGuard)
-@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-export class MeetingsController {
+@UseGuards(FlexibleAuthGuard, RolesGuard, ScopesGuard, TenantContextCompleteGuard, TenantAccessGuard, ApiKeyThrottlerGuard)export class MeetingsController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,

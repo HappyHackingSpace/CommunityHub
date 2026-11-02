@@ -6,8 +6,6 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { JwtAuthGuard } from '../../../iam/infrastructure/guards/jwt-auth.guard';
@@ -19,7 +17,6 @@ import { CreateTagCommand } from '../../application/commands/create-tag/create-t
 import { GetAllTagsQuery } from '../../application/queries/get-all-tags/get-all-tags.query';
 
 @Controller('tags')
-@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class TagsController {
   constructor(
     private readonly commandBus: CommandBus,

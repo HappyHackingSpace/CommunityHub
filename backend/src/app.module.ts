@@ -1,5 +1,6 @@
 // src/app.module.ts
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
@@ -14,6 +15,7 @@ import { ClubsModule } from './modules/clubs/clubs.module';
 import { ActivityFeedModule } from './modules/activity-feed/activity-feed.module';
 import { SecurityModerationModule } from './modules/security-moderation/security-moderation.module';
 import { MultiTenantModule } from './shared/multi-tenant/multi-tenant.module';
+import { GlobalThrottlerGuard } from './shared/guards/global-throttler.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DataSource } from 'typeorm';
@@ -95,6 +97,12 @@ import { DataSource } from 'typeorm';
     SecurityModerationModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: GlobalThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

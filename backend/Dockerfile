@@ -45,7 +45,7 @@ EXPOSE 3000
 
 # Health check - simple process check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD ps aux | grep node || exit 1
+  CMD pgrep node || exit 1
 
 # Use dumb-init to handle signals properly (production only)
 ENTRYPOINT ["dumb-init", "--"]
